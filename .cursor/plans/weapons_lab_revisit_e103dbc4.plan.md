@@ -3,19 +3,19 @@ name: Weapons Lab revisit
 overview: "Six fixes to the Weapons Lab, each tied to the ODF value, guide line or engine address it follows: an engagement-aware start distance measured to the target's surface, per-target lock time from signatures, Fang's same-turn salvo and sound, TAG under weapon switching, first-person eyepoint hardening, Scenario folded into one Shooting range page, and a theme and Bootstrap pass over the whole Lab."
 todos:
   - id: reach-distance
-    content: Shared engagementReach + surface-based start distance, box hit volume, Closing floor, distance UI (weapons-weave.js, weapons-range.js, weapon-sim.js, weapons-calc.js lockRange default)
+    content: engagementReach(profile, gravity) + openingCentre(eng, floor) in weapons-weave.js, profile.leader, calc engagementOf() mirror + lockRange default, surface-based start distance, box hit volume, Closing floor, distance UI
     status: pending
   - id: lock-signature
-    content: Signature-scaled lock time in profile/sim + calc lockTime() + result card Lock-on row
+    content: Signature-scaled lock time in profile/sim (target.signatures) + calc lockTime(stem, targetStem) -> {seconds, never, signature} + result card Lock-on row
     status: pending
   - id: fang-salvo-audio
-    content: Engine catch-up salvo loop, one fireSound per step (OnlyOneSound / SoundPerShot 2 replace), same-step shotSound collapse
+    content: Banked salvo loop on the sim step, one fireSound per weapon per TURN_SEC (OnlyOneSound / SoundPerShot 2 replace, defensive), shotSound collapse within TURN_SEC
     status: pending
   - id: tag-sim
     content: "TAG: ground hit = miss, per-field captured profile, banked salvo, engine re-tag rule (TAG_RETAG_AFTER), survive weapon switch"
     status: pending
   - id: tag-weave
-    content: "Allow targeting in weave: pull returns true, busy 0, live readyAt, planner TAG cycle model"
+    content: "Allow targeting in weave: pull returns true, descriptor tag/busy 0/leader reach/cooldown = TAG cycle, live readyAt, TAG ammo on the shared tank"
     status: pending
   - id: eyepoint
     content: Explorer prefix eyepoint lookup, keep fallbacks, fix stale run_cockpits docstring
@@ -27,7 +27,7 @@ todos:
     content: "Bootstrap + theme pass: chips/hp to btn, tags/tiers to badge (muted vars), range controls to form-check/form-range, meters to progress, HUD/slot/weave to card, tables to table-sm, status/notes to alert, vt-mono + --vt-anim vars; delete dead CSS; dark/light/mobile check"
     status: pending
   - id: gates
-    content: Update check_weapons_calc / check_weapon_fx / check_weapon_weave (flip line 112) and run all three
+    content: "Gates are pre-written: make check_weapons_calc / check_weapon_fx / check_weapon_weave pass (baseline: calc throws at ctx.lockTime, fx cannot import engagementReach, weave 2 of 290 fail); add the synthetic OnlyOneSound check"
     status: pending
   - id: docs
     content: DEVELOPER_GUIDE.md section 12 and project-overview.mdc item 12 + Key File Locations, with ODF/guide/engine citations
@@ -47,12 +47,16 @@ What's wrong today:
 - **Shadower.** The range already opens it at 90% of `lockRange` 200 = 180 m. But the result card, Closing and the weave all use its 800 m flight range.
 
 Fix:
-- Add one pure `engagementReach(profile)` helper in [js/weapons-weave.js](js/weapons-weave.js), which already owns reach. It returns:
-  - Launchers: LauncherClass `lockRange` (guide 7554-7595).
-  - TAG: the leader's `shotSpeed × lifeSpan`.
-  - Lobbed weapons: the existing aiRange / ballistic reach.
-  - Everything else: the ordnance's `shotSpeed × lifeSpan`.
-- Give the calculator and the profile the same `lockRange` default. Today [js/weapons-calc.js](js/weapons-calc.js) line 471 has none, while [js/fx/weapon-profile.js](js/fx/weapon-profile.js) line 687 falls back to `shotSpeed × lifeSpan`.
+- Add two pure exports to [js/weapons-weave.js](js/weapons-weave.js), which already owns reach. The fx gate imports both by these names.
+  - `engagementReach(profile, gravity)` returns an object with at least `reach` (the gate reads only `.reach`):
+    - Launchers: LauncherClass `lockRange` (guide 7554-7595).
+    - TAG: the leader's `shotSpeed × lifeSpan`. Check for TAG before the lobbed branch, because TAG weapons also declare `aiRange`. `gtagcr_c` has `aiRange` 160 while its leader `leadcr_c` reaches 150 × 1.1 = 165 m.
+    - Lobbed weapons: the existing aiRange / ballistic reach (this is why it takes `gravity`).
+    - Everything else: the ordnance's `shotSpeed × lifeSpan`.
+  - `openingCentre(eng, floor)` returns the opening centre-to-centre distance, given the no-overlap floor (rules below). The gates read the hull gap as `opened − floor + 1`, so they assume `margin` = 1 m.
+- `buildProfile` attaches `leader: { shotSpeed, lifeSpan, ammoCost, stickTime }` for targeting weapons. Today the profile carries only `leaderName`, and the sim resolves the leader at fire time ([js/fx/weapon-sim.js](js/fx/weapon-sim.js) line 1255), so a pure helper cannot see the 175 m. Resolve it from the Ordnance bucket argument, not `db`: the weave gate's eligibility loop calls `buildProfile(entry, db.Ordnance)` with no third argument.
+- The calculator gets `ctx.engagementOf(stem)` → `{ reach, … }` as a mirror of the same rule. [js/weapons-calc.js](js/weapons-calc.js) is a classic script and cannot import the module. The two gates pin both copies to the same numbers. The result card in [js/weapons.js](js/weapons.js) reads the calc copy.
+- Give the calculator and the profile the same `lockRange` default. Today the calculator (line 471) has none, while [js/fx/weapon-profile.js](js/fx/weapon-profile.js) line 690 falls back to `shotSpeed × lifeSpan`. The calc gate compares `ctx.variant(stem).fire.lockRange` with `buildProfile(...).lockRange` for `gshadowvsr_c`, `gfafmslvsr_a`, `gmlockvsr_c` and `gcomet_c`.
 - Measure distance to the target's **surface**:
   - `shipFront` is the hull box face along the forward axis, or the muzzle if that is further forward.
   - `targetDepth` is the face of the target's GLB box along the approach ray, including the box's centre offset. That box is the one the `.msh` header bakes around the visible geometry (Models rule).
@@ -62,6 +66,9 @@ Fix:
   - TAG opens at 90% of leader reach, measured to the surface, because the leader has to touch the hull.
   - Direct fire opens with a gap of `START_REACH_FRACTION` (0.5, renderer choice) × reach to the surface.
   - Example: the Mauler opens 25 m from the factory face, about 61 m centre to centre.
+  - Gate values: `openingCentre(shadower, 8)` is exactly 180. Fang (reach 50) against a factory floor of 38 opens with a gap in (0, 50]. TAG against a floor of 8 opens with a gap in (0, 175).
+  - The range's existing 400 m ceiling (`lockStartDistance` in weapon-sim.js 143-145, and line 1688 in weapons-range.js) still clamps the result.
+  - In [js/weapons-range.js](js/weapons-range.js) the opening distance comes from `engagementReach(profile, gravity)` on the live profile. That replaces the `distanceHint` / `lockHint` / `hintScale` path (weapons-range.js 1685-1688, fed by `rangeSnapshot` in weapons.js 1920-1962).
 - Closing stops at the floor plus `CLOSE_STOP_M`, measured to the surface.
 - The target's hit volume becomes the same box, tested in the target's local frame, instead of `segmentHitsSphere` on a 0.35 × diagonal sphere. The sphere stays as a fallback when there is no box. This keeps "in reach" and "it hits" consistent.
 - The UI shows both distances, e.g. "61 m (25 m to hull)", and replaces the "Distances are to the target's centre" note. The result card's Range row shows engagement reach and flight reach as separate values.
@@ -79,16 +86,16 @@ Evidence:
 - **Guide:** lines 1590-1597 say what each signature controls; all three default to 1.0.
 
 Formula: `lockTime = lockDelay × (targetCount−1) / targetCount / signature`. A signature of 0 means the lock never completes.
-- Shadower (base 1.0 s): Scout (image 3.0) 0.33 s, ISDF Tank (2.5) 0.40 s, Factory (1.0) 1.0 s, Scion Artillery (0.1) 10 s.
+- Shadower (base 1.0 s): Scout (image 3.0) 0.33 s, ISDF Tank (2.5) 0.40 s, Factory (1.0) 1.0 s, Scion Archer (`fvartl_vsr`, image 0.1) 10 s.
 - Hornet (thermal, base 1.33 s): Scout (heat 0.5) 2.7 s, Scavenger (5.0) 0.27 s.
-- Mini-Comet (radar, base 0.33 s): never locks the Scion Artillery (radar 0.0).
+- Mini-Comet (stock `gcomet_c`, outside the VSR armory; radar, base 0.33 s): never locks the Archer (radar 0.0).
 
 Changes:
 - [js/fx/weapon-profile.js](js/fx/weapon-profile.js) records which signature a weapon locks with, from its class chain. MultiLauncher derives from ImageLauncher (guide 7696), so it uses the image signature. I could not confirm this in the engine: the vtables are only built at runtime, so they are not in the static dump. The docs will say so.
-- The target ODF's three signatures (with inheritance, default 1.0) go into the sim.
+- The target ODF's three signatures (with inheritance, default 1.0) go into the sim as `getTarget().signatures = { image, heat, radar }`. A missing object or key reads as 1.0, which is how every existing gate target runs. The fx gate passes `signatures` through `runSim` options.
 - [js/fx/weapon-sim.js](js/fx/weapon-sim.js) (lock update, around line 1800) divides `acquire` by the signature.
 - During implementation, check whether leaving the cone counts as a target change. The engine resets accumulation and stage on a target change (`0x0061E26E`). If it does, the current 1/s drain becomes a reset.
-- Add `lockTime(variant, target)` to the calculator. The card's "Lock-on" row in [js/weapons.js](js/weapons.js) (around line 1385) shows the time for the chosen target and names the signature used, instead of the raw `lockDelay`. The launcher note at line 814 is updated to match.
+- Add `ctx.lockTime(stem, targetStem)` to the calculator. It returns `{ seconds, never, signature }`, with `never: true` and no finite `seconds` when the signature is 0. The calc gate calls it with stems. The card's "Lock-on" row in [js/weapons.js](js/weapons.js) (around line 1385) shows the time for the chosen target and names the signature used, instead of the raw `lockDelay`. The launcher note at line 814 is updated to match.
 
 ## 3. Fang: one burst, sound starting at once
 
@@ -96,15 +103,30 @@ ODF: `gquill_a` has `salvoCount` 15, `salvoDelay` 0.001, `shotVariance` 0.5 and 
 
 Engine:
 - **Salvo catch-up loop** (`0x0061920D` adds dt, `0x00619276`-`0x006195A3` fires): `while timer >= 0 && left > 0 { fire; timer -= salvoDelay; left-- }`. All 15 rounds leave in the same 50 ms turn. The salvo stops early when ammo runs out (`0x0061929F`).
-- **fireSound:** one sound handle per weapon instance (`+0x4C8`). With `SoundPerShot` 1 the engine starts at most one new `fireSound` per turn: the first round of the turn starts it (`0x00619228`), and later rounds skip it while it plays (`0x0061931F`). `SoundPerShot` 2 or `OnlyOneSound` (class +0x790) stops the old sound and replaces it (guide 7348-7352). Only `glockvsr_a` sets `OnlyOneSound`.
+- **fireSound:** one sound handle per weapon instance (`+0x4C8`).
+  - On each turn the weapon fires, the handle is forgotten without being stopped (`0x00619228`-`0x0061923E`). This happens unless `OnlyOneSound` (class +0x790) is set or `SoundPerShot` is 0 or 3. The turn's first round therefore starts a new sound.
+  - Each later round first clears a finished handle (`0x006192F2`). With a live handle it skips the sound (`0x0061934D`), unless `SoundPerShot` is 2 or `OnlyOneSound` is set; those stop the old sound and restart it (`0x0061931F`-`0x00619340`, guide 7348-7352). A new sound starts at `0x006193B1`.
+  - With `SoundPerShot` 1 that comes to at most one new `fireSound` per weapon per turn.
+  - Stop-and-replace is defensive. Only `glockvsr_a` sets `OnlyOneSound`, and it is a machine gun that already loops. Only `gresin` sets `SoundPerShot` 0, and no ODF sets 2.
 - **shotSound:** every round plays its own ordnance `shotSound` (`0x00669152`-`0x006691B0`).
 - **Spread** (`0x006274BD`): pitch = table[i] × variance − shotPitch, yaw = table[i+1] × variance. That is what `applyCone` already does, so the cone maths stays.
 
 Changes in [js/fx/weapon-sim.js](js/fx/weapon-sim.js):
-- Replace both salvo branches (the `delay <= 1e-6` dump and the one-round-per-frame branch with a timer reset, lines 1955-1976) with the engine's banked loop.
-- `fireMuzzles` starts at most one `fireSound` per step. Parse `OnlyOneSound` and `SoundPerShot` 2 in the profile and use stop-and-replace for them.
-- Collapse identical `shotSound` starts within one step into a single voice. This is a renderer choice: 30 identical copies starting at once only add volume and clip in Web Audio. The engine plays all 30.
-- The variance maths is untouched. The "stream" look came from rounds leaving on different frames, so once all 30 pellets leave in one step the burst reads as one cone.
+- Replace both salvo branches (the `delay <= 1e-6` dump and the one-round-per-frame branch with a timer reset, lines 1955-1976) with the engine's banked loop, run on the sim step: `salvoTimer -= stepDt; while (salvoLeft > 0 && salvoTimer <= 0) { fire; salvoTimer += delay; }`. The loop stops early when `fireMuzzles` fails (out of ammo). With `delay` 0 it drains the salvo in one step. MAG charge salvos share this branch (`startSalvo` with `level.salvoDelay`).
+  - Why not quantize releases to 20 Hz turns: it would be closer to the engine, but it would release MAG stage 4 (`salvoDelay4` 0.035) as 1, 1, 1, 2 rounds per turn. That breaks the existing `spaced(s4.hits, 0.035, 0.012)` check (fx gate line 378), and the Fang fix doesn't need it.
+- The sound rules work in sim time over a `TURN_SEC` window (imported from weapons-weave.js), not per render step. The sim steps once per frame (`stepDt = Math.min(0.05, dt)`, line 1773), and the gate steps every 10 ms, so at 0.001 s spacing Fang's pellets leave across two steps. Per-step rules would give 2 reports.
+- `fireMuzzles`, `SoundPerShot` 1: a round starts `fireSound` only when at least `TURN_SEC` has passed since that weapon's last start; otherwise it skips.
+  - Key the timestamp by weapon, so a weave swap still plays the next weapon's report.
+  - The sim has no clip-length state, so the engine's "a finished sound may restart mid-turn" case is not modelled.
+- Parse `OnlyOneSound` and `SoundPerShot` (2) in the profile and use stop-and-replace for them, by stopping the handle `playOnce` returns. No ODF reaches this path, so the gate covers it with a synthetic profile.
+- Collapse identical `shotSound` starts within `TURN_SEC` of the first into a single voice. This is a renderer choice: 30 identical copies starting at once only add volume and clip in Web Audio. The engine plays all 30.
+- The `muteReport` special case goes; the turn window covers the same-tick dump. The existing one-report-per-volley across hardpoints stays, and stays labelled as a renderer choice: the engine has one weapon instance and one handle per hardpoint.
+- Existing checks this must keep, verified by hand at the gate's 10 ms step:
+  - Arc Cannon: 5 bolts at a 0.07 s gap, the last by about 0.29 s, inside 0.35 s.
+  - Burst Gun: 1 `eburst` per pull, single and twin.
+  - Salvo Rkt `gshadow_a`: 10 `gpopp00` at a 0.1 s gap.
+  - MAG stage 4: 0.03 / 0.04 s gaps, inside 0.035 ± 0.012.
+- The variance maths is untouched. The "stream" look came from rounds leaving one per frame. At 60 fps all 30 pellets now leave in the opening frame, and at any frame rate within about 20 ms, so the burst reads as one cone.
 
 ## 4. TAG in the sim
 
@@ -128,7 +150,7 @@ flowchart LR
 ```
 
 Changes in [js/fx/weapon-sim.js](js/fx/weapon-sim.js):
-- A leader that hits the ground counts as a miss, with no salvo. Today lines 1632-1645 start a salvo on a terrain hit.
+- A leader that hits the ground counts as a miss, with no salvo. Today lines 1632-1645 start a salvo on a terrain hit. The same goes for a leader that expires short of the target; the gate fires at 4000 m.
 - Each tag field captures its own weapon's profile, ordnance, `fireSound` and hardpoint when it is created. Today it reads the global `profile`, which a weapon switch swaps.
 - The tag salvo timer banks like the cannon's (fixes the reset at line 1671).
 - Re-tag rule: the default `TAG_RETAG_AFTER = 'leader'` is the engine read (wait for the stuck tag to drop, about 4 s after a hit). `'salvo'` is available as a one-line switch.
@@ -136,15 +158,16 @@ Changes in [js/fx/weapon-sim.js](js/fx/weapon-sim.js):
 
 ## 5. TAG under weapon switching (Chain + TAG)
 
-- Remove `targeting` from `EXCLUDED` and add it to `WEAVE_ARCHETYPES` in [js/weapons-weave.js](js/weapons-weave.js).
+- Remove `targeting` from `EXCLUDED` and add it to `WEAVE_ARCHETYPES` in [js/weapons-weave.js](js/weapons-weave.js). `exclusionReason` then passes it: the calculator already rates the swarmer as `kind` 'direct' with a per-hit value.
 - The targeting pull returns true when a leader fired. Today the bare `return;` at line 1273 means `fireSlot` never registers it.
-- A TAG pull costs one pull with `busy = 0`, because the missiles are automatic.
-- Its `readyAt` comes from the live per-hardpoint state above. When it is ready it goes first, so the trigger otherwise stays on the chain gun.
-- The analytic planner (`weaveWeapon` / `planWeave`) models one TAG cycle as follows:
-  - Cycle length = leader flight + `stickTime`, or + the salvo time under `'salvo'`.
-  - Damage per cycle = `salvoCount` × swarmer damage for the target's class, per hardpoint.
-  - Missiles land at hit + `firstDelay` + k·`salvoDelay` + flight.
-  - There is no damage when the target is outside leader reach.
+- `weaveWeapon` special-cases TAG before the generic reach / busy code, which would otherwise give it `aiRange` reach and `busy = (6 − 1) × 0.2` = 1.0 s:
+  - The descriptor carries `tag: true`, `busy: 0` (the missiles are automatic) and `reach` = leader `shotSpeed × lifeSpan` (from `profile.leader`, section 1).
+  - `cooldown` is the TAG cycle: `max(pullCooldown(shotDelay…), leader lifeSpan + stickTime)` under `'leader'`, or `+ firstDelay + (salvoCount − 1) × salvoDelay` instead of `stickTime` under `'salvo'`.
+  - That keeps `cycle = max(cooldown, busy)` true. The weave gate checks it over the whole VSR armory (lines 95-110), and once eligible TAG is in that loop. It also keeps `slot.readyAt = tPull + w.cooldown` (line 440) correct with no TAG branch.
+  - The descriptor has no distance, so it uses the leader's full `lifeSpan` as flight time. `planWeave` may tighten `readyAt` to `tPull + d / leader shotSpeed + stickTime` when the target is inside leader reach.
+- Live sim: `readyAt` comes from the per-hardpoint state in section 4. When it is ready it goes first, so the trigger otherwise stays on the chain gun.
+- Planner damage per cycle = `salvoCount` × swarmer damage for the target's class, per hardpoint. Missiles land at hit + `firstDelay` + k·`salvoDelay` + flight. There is no damage when the target is outside leader reach.
+- Ammo comes from the shared tank in both the sim and the planner. The leader costs its `ammoCost` (1) at the pull. Each swarmer costs its own `ammoCost` (8) as it launches, so a full six-missile `gtaggunvsr_c` salvo draws 48 from the tank the chain gun also uses. A salvo stops early when the tank runs dry, as the cannon loop does (`0x0061929F`).
 
 ## 6. First person uses `hp_eyepoint` (already), hardened
 
@@ -202,18 +225,28 @@ Swaps (CSS, markup, and the JS string builders in [js/weapons.js](js/weapons.js)
 
 ## Gates (gitignored)
 
-- [_investigation/check_weapons_calc.mjs](_investigation/check_weapons_calc.mjs):
-  - Lock times per target (the values above, including "never").
-  - Engagement reach: Shadower 200 m, TAG 175 m, Fang 50 m.
-  - The calculator and the profile agree on the `lockRange` default.
-- [_investigation/check_weapon_fx.mjs](_investigation/check_weapon_fx.mjs):
-  - Fang's 30 rounds leave in one step, with one `fireSound` per step.
-  - A TAG ground hit starts no salvo.
-  - A tag field survives a profile swap, and its salvo banks.
-  - Start distance: the Mauler vs the Factory does not overlap and is within reach, the Shadower opens at 180 m, and the TAG opens within 175 m of the surface.
+The checks are already written; the job is to make them pass, not to write them. Baseline today:
+- `check_weapons_calc.mjs` throws `ctx.lockTime is not a function`.
+- `check_weapon_fx.mjs` cannot load (`weapons-weave.js` does not export `engagementReach`), so none of its checks run, old or new.
+- `check_weapon_weave.mjs` fails 2 of 290, both of them TAG.
+
+Every existing check must still pass afterwards. They pin the API names used above.
+
+- [_investigation/check_weapons_calc.mjs](_investigation/check_weapons_calc.mjs) lines 663-687:
+  - `ctx.lockTime(stem, targetStem).seconds` for the lock times above (±0.02), and `.never` for the Mini-Comet against the Archer.
+  - `ctx.engagementOf(stem).reach`: Shadower 200 m, TAG 175 m, Fang 50 m.
+  - `ctx.variant(stem).fire.lockRange` equals `buildProfile(...).lockRange` for four launchers.
+- [_investigation/check_weapon_fx.mjs](_investigation/check_weapon_fx.mjs) lines 1256-1303 (imports at line 34):
+  - Fang x2 spawns 30 rounds by 0.08 s, with exactly one `chaff` and one `gquil` play.
+  - The `engagementReach` / `openingCentre` values in section 1.
+  - A TAG fired at 4000 m starts no tag salvo.
+  - Shadower on image signature 3 shows frame `gshadow.3` by 0.4 s.
+  - A tag salvo survives `setWeapon(chain, …, true)` and keeps launching.
+  - Add one check: a synthetic `OnlyOneSound` profile restarts its `fireSound`, stopping the previous handle, on each round.
 - [_investigation/check_weapon_weave.mjs](_investigation/check_weapon_weave.mjs):
-  - Line 112 changes from "`gtagcr_c` refused" to "planned".
-  - Chain + TAG on `ivscout_vsr` puts at least 95% of pulls on the chain gun.
+  - Lines 120-128: `gtagcr_c` is planned, with `tag`, `busy === 0` and `reach > 0`. Line 112 is the MAG / Arc refusal check and stays as it is.
+  - Lines 643-654: Chain (`gchainvsr_c`, GUN:c) + TAG (`gtaggunvsr_c`, ROCK:c) on `ivscout_vsr` against `ivscav_vsr` at 80 m. TAG has busy 0 and reach under 200, and over 20 pulls at least 95% are the chain gun.
+  - Lines 90-110 (existing): once eligible, TAG must satisfy `cycle = max(cooldown, busy)` and a non-null per hit.
 
 ## Docs
 
