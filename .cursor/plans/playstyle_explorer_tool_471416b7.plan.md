@@ -4,43 +4,43 @@ overview: Build Playstyle Analysis, a quiet, publicly reachable but unlinked pag
 todos:
   - id: gitignore
     content: Add /_analysis/.cache/ to .gitignore and verify with git check-ignore that the rest of _analysis/ is tracked
-    status: pending
+    status: completed
   - id: odf-model
     content: "Build the ODF reload model in the script: per (ship, weapon) effective reload from shotDelay, hardpoint count, shotAlternate, salvoCount/salvoDelay, InitialShotDelay, weaponGroupN; exclude charge/lock/dispenser/ammo-starved cases; calibrate against the observed corpus floor and emit the weapon reference table with mismatch flags"
-    status: pending
+    status: completed
   - id: build-raw
     content: "Write scripts/build_analysis_data.py raw metrics: switching, reload-relative switch-backs (margin, dead time, quadrant histograms), alternation rhythm (fit/permutation/jitter, reload-relative window), silent ammo drops, same-tick, reload violations; per-ship and per-weapon-pair; reroutes; seeded RNG; per-match cache; --jobs/--force/--only"
-    status: pending
+    status: completed
   - id: build-join
     content: Join contributions metrics (accuracy + era flag, PvP hit share, T-key, K/D, DPM, per-weapon, ship mix, flags) and emit _analysis/data/index.json (rows + streak table) and data/match/<id>.json lanes within the size budget
-    status: pending
+    status: completed
   - id: gate
     content: Write _investigation/check_analysis.py reproducing the investigation figures and the slow-weapon probe, checking the ODF floors, spot-checking the leader boards, and checking determinism; run it
-    status: pending
+    status: completed
   - id: page-shell
     content: Create _analysis/index.html (noindex, canonical topnav, vendored Chart.js + zoom), css/analysis.css, js/analysis.js with tabs, shared filters and URL state
-    status: pending
+    status: completed
   - id: leaders
     content: "Build the Leaders tab with the LEADER_TITLES copy table (Fast Hands, Quick Draw, Button Masher, The Metronome, Swiss Watch, Hair Trigger, Clockwork, Right On Cue, plus the 14 career titles); crowned #1 rows, best-per-player vs all-records toggle, date window filter, and a Titles column in Compare and All players"
-    status: pending
+    status: completed
   - id: reload-tab
     content: "Build the Reload timing tab: margin vs dead-time density map per player, per-weapon population comparison (percentiles), quadrant shares, and the ODF weapon reference card with observed floors"
-    status: pending
+    status: completed
   - id: history
     content: "Build the History tab: one-metric-many-players overlay and one-player-every-metric small multiples, with event and split markers, smoothing, zoom"
-    status: pending
+    status: completed
   - id: compare
-    content: "Build the Compare tab (stat grid with before/after split and Suggest split, strip plots), the Rhythm map tab, and the All players table"
-    status: pending
+    content: Build the Compare tab (stat grid with before/after split and Suggest split, strip plots), the Rhythm map tab, and the All players table
+    status: completed
   - id: drilldown
     content: "Implement the match drill-down offcanvas: streak gap chips, tick-lane canvas, links to the match dashboard and raw browser; open it from leader rows, chart points and rhythm dots"
-    status: pending
+    status: completed
   - id: docs
     content: Add _analysis/README.md (not DEVELOPER_GUIDE, which the public docs page renders) and one project-overview line (neutral wording, rating-inert, regeneration command)
-    status: pending
+    status: completed
   - id: verify
     content: "Browser-verify via scripts/dev_server.py: leader boards, Nomad's step change in History, Nomad/Muffin/VTrider compare, URL round-trip, theme switch, narrow viewport, 2026-10-28 drill-down"
-    status: pending
+    status: completed
 isProject: false
 ---
 
