@@ -1,21 +1,21 @@
 ---
 name: VTSR next-gen analysis
-overview: "Evidence review of VTSR-T and VTSR-C from read-only analyses of the 292 rated matches and F9bomber's 508 ledger duels, revised after checking two Gemini peer reviews and two VTSR-T studies against the data. Adds a description of how the game works, and proposes a joint commanding-and-fighting model plus one interim VTSR-T revision. Nothing here changes a rating; it is analysis and brainstorming."
+overview: "Evidence review of VTSR-T and VTSR-C from read-only analyses of the 292 rated matches and F9bomber's 508 ledger duels, revised after checking three Gemini peer reviews and two VTSR-T studies against the data. Adds a description of how the game works, and proposes a joint commanding-and-fighting model plus one interim VTSR-T revision. Nothing here changes a rating; it is analysis and brainstorming."
 todos:
   - id: save-studies
-    content: "Commit the read-only analyses from all three passes as study scripts beside scripts/validate_elo.py and rerun them (first-review checks, exact-likelihood and noise tests, movement with and without decay, recomputations of the three later documents)"
+    content: "Commit the read-only analyses from all four passes as study scripts beside scripts/validate_elo.py and rerun them (first-review checks, exact-likelihood and noise tests, movement with and without decay, recomputations of the three later documents, third-review checks: likelihood comparison, switch-rule simulation, eight-variant interim table)"
     status: pending
   - id: housekeeping
     content: "Append the 74-duel HOLD to critique/decisions/phase-6-faction-advantage-term.md and the 57-game forward check to critique/decisions/vtsr-t-enemy-damage.md (once, shared with the net-versus-dealt plan); add a Python-to-JS parity gate for the Balonce win probability"
     status: pending
   - id: joint-model-memo
-    content: "Write critique/decisions/joint-skill-model.md: model structure, exact damage likelihood, one frozen configuration chosen by a committed script on data up to the freeze date, baseline named by commit, preview and withdrawal rule, single switch rule (log-loss better by 0.010, looks every 60 duels up to 400 at 2.2 standard errors), edge-case rules"
+    content: "Write critique/decisions/joint-skill-model.md: model structure, exact Gaussian damage likelihood (noise by team size and match length, no damage rows under four minutes), Newton with step-halving from a zero start, one frozen configuration and display scale chosen by a committed script on data up to the freeze date, frozen baseline replayed by switches, preview and withdrawal rule, switch rule (looks at 200, 300 and 400 recorded duels, 2.0 standard errors, over-confidence guard, hard stop at 400), edge-case rules"
     status: pending
   - id: interim-vtsr-t
-    content: "One interim VTSR-T revision: inert opponents-only reference hook in scripts/elo.py, fairness harness, one memo covering the reference and the late-demolition trim with the low-tier lift on and off, then one re-rate if it passes"
+    content: "One interim VTSR-T revision: inert opponents-only reference hook in scripts/elo.py, fairness harness, one memo whose candidate is the reference fix plus the late-demolition trim with the low-tier lift retired (the lift-on version reported beside it), then one re-rate if it passes"
     status: pending
   - id: joint-model-forensic
-    content: "Build the joint model as a forensic alt mode in its own numpy module with a soft-fail block: own-team log-ratio damage observation, noise by team size and match length with heavy tails, per-player commander offset, exports of commanding and fighting skill with uncertainties"
+    content: "Build the joint model as a forensic alt mode in its own numpy module with a soft-fail block: own-team log-ratio damage observation, Gaussian noise by team size and match length, per-player commander offset, exports of commanding and fighting skill with uncertainties"
     status: pending
   - id: preview-meter
     content: "Show the joint model's win chance as a labelled preview beside today's meter; meter, bands and VTSR-C switch together only when the switch rule passes"
@@ -27,7 +27,7 @@ todos:
     content: "Decided 2026-11-20: no standalone change. Commander fighting enters the win prediction with the joint model; record that in balonce-meter-t-term.md"
     status: cancelled
   - id: lowtier-lift
-    content: "Close roadmap Phase 7(c) now; retire the low-tier lift with the joint model unless the interim memo's on/off numbers argue for sooner"
+    content: "Decided 2026-11-22: retire the low-tier lift in the interim VTSR-T revision. Close roadmap Phase 7(c) now"
     status: pending
   - id: commander-stats-display
     content: "Show own fighting, AI-army damage, production rate and early pool lead as display-only commander statistics; leave the economy composite inert"
@@ -47,6 +47,7 @@ isProject: false
 - Core instrument: one win/loss model over all 800 games in which each player has a commanding effect and a fighting effect. A side's strength is its commander's commanding effect plus the mean fighting effect of all its fighters, commander included.
 - Second pass (2026-11-20): every testable claim in [peer_review_engineering_feedback_on_vtsr_next_gen_analysis_plan.md](peer_review_engineering_feedback_on_vtsr_next_gen_analysis_plan.md) was checked, and the joint model was prototyped with the damage observation added.
 - Third pass (2026-11-22): the same for [the second review](.cursor/plans/peer_review_v2_feedback_on_revised_vtsr_next_gen_analysis_plan.md), [the net-versus-dealt study](.cursor/plans/net_vs_dealt_verdict_85a3f123.plan.md) and [the team-strength and end-game study](.cursor/plans/team_strength_and_endgame_1728b6f3.plan.md), including full re-rates the last one defers. The game-mechanics section is new.
+- Fourth pass (2026-11-22): the same for [the third review](peer_review_v3_final_pre_memo_feedback_on_vtsr_next_gen_plan.md). The three damage likelihoods were fitted side by side, the switch rule was simulated on the real per-duel differences, and the interim revision was replayed through VTSR-T and VTSR-C in all eight combinations. The VSR mod files on this PC were read for the mechanics section.
 
 ## How the game works
 
@@ -58,6 +59,7 @@ This is my current understanding of a VSR team strategy match. Each statement ca
 - **(data)** measured on the 292 rated matches
 - **(docs)** this repository's documentation
 - **(web)** the VSR workshop page and Nathan Mates' Battlezone II notes
+- **(VSR files)** the VSR mod on this PC: its developer notes on lobby variables and the text strings in its strategy mission DLL
 
 What I could not check is listed at the end of the section. Correct whatever is wrong.
 
@@ -87,12 +89,13 @@ flowchart LR
 - **Factions.** Each commander chooses the team's faction (web). ISDF is picked in 50% of team-games, Hadean in 28% and Scion in 22%; both teams take the same one in 35% of matches (data).
 - **Maps.** 77 different maps in the rated corpus, about 7 pools each, bases a median 960 m apart (data).
 - **Length.** Median 15 minutes. A quarter of matches end within 11 minutes, a quarter last more than 22, and one in ten passes 48 (data).
-- **Start.** Every player, commander included, starts in the faction's Scout (data).
-- **House rules.** Anything the game allows is fair. The one convention is not to hit the enemy Recycler in the first minute or two (you).
+- **Start.** Every player, commander included, starts in the faction's Scout (data). Teams start without turrets (you).
+- **The Recycler starts as a vehicle** and the commander deploys it in the first half-minute (you). The mission script spawns a Recycler vehicle for each team (VSR files), deploying takes 10 seconds (ODF), and the first build order comes 25 to 31 seconds in for 409 of 410 team-games (data).
+- **House rules.** Anything the game allows is fair. The lobby sets a Recycler invulnerability timer (you; the option is in minutes, VSR files), and the convention is not to hit the enemy Recycler in the first minute or two (you).
 
 ### How a match ends
 
-- **The game's rule.** A side loses when its Recycler and Factory are both destroyed (web). The pipeline's winner inference uses the same test (docs).
+- **The game's rule.** A side is out only when its Recycler and its Factory are both gone (you, web). The mission script ends the game for the last team with a base and reads both buildings (VSR files). The pipeline's winner inference uses the same test (docs).
 - **In practice** teams usually concede before the base is fully destroyed (you). The recording shows the loser's Recycler destroyed in 51% of rated matches and both buildings in 29% (data).
 - **The recorded winner** is the host's end-of-game dialog in 70% of rated matches, your adjudication in 18% and kill evidence alone in 12% (data). Draws and cancelled games are not rated (docs).
 - **The last three minutes are one-sided.** Winning thugs deal 8.5% of their match damage to buildings in that window, losing thugs 1.9% (data).
@@ -176,7 +179,7 @@ Cost in scrap and hull points (ODF).
   - Stealing an enemy ship.
   - Sniping an enemy pilot and taking the ship.
 - **What happens in practice:** 60% of climbs back in are into an Empty Scout, 9% a Tank, 7% a Scout. Time in another faction's hull is 1.9% of vehicle time (data).
-- **Sniping needs the commander too.** The default pilot gun has no sniper mode. The Pulse Rifle crate costs 30 scrap and needs a Relay Bunker or the faction's equivalent, and one shot empties the pilot's ammo, which takes 20 seconds to refill (ODF). Scouts, tanks and Scion morph craft can be sniped; assault tanks, walkers, turrets and tracked vehicles cannot (guide). There are 1.4 snipes a match, and 22% of matches have one (data).
+- **Sniping needs the commander too.** The default pilot gun has no sniper mode. The Pulse Rifle crate costs 30 scrap and needs a Relay Bunker or the faction's equivalent, and one shot empties the pilot's ammo, which takes 20 seconds to refill (ODF). Scouts, tanks and Scion morph craft can be sniped; assault tanks, walkers, turrets and tracked vehicles cannot (guide). Players snipe about once a match, in 21% of matches and never before the ninth minute. All 263 snipes by players followed that player's own rifle-crate pickup, so the lobby option to respawn with a rifle is not in use (data, VSR files). Another 80 recorded snipe events have no player behind them.
 - **Time on foot:** 22% of thug time (data). A thug on foot at base is usually waiting on the commander (you). Which thug it is explains 15% of that time and which commander 4% (data).
 
 ### What the recording holds
@@ -198,10 +201,9 @@ Cost in scrap and hull points (ODF).
 
 ### Not verified
 
-- The exact win rule in the VSR mission script. I relied on Nathan Mates' notes and the pipeline's inference.
 - How a commander passes a ship in practice, and how often a passed ship is left as AI support. The recording does not show hand-overs.
-- Whether the Recycler starts deployed. The first scavenger is ordered about 35 seconds in.
-- Whether any lobby option in use changes the rules above (starting scrap, rejoin, invulnerability time).
+- How long the Recycler invulnerability timer is set for, and whether any other lobby option in use changes the rules above (starting scrap, rejoin, pilot invulnerability time). The recording does not carry lobby settings.
+- The win rule and the Recycler start rest on your confirmation, the VSR notes and the DLL's text strings. I did not disassemble the DLL.
 
 ## Corrections
 
@@ -236,6 +238,19 @@ To the second version of this plan:
 - "Start recording drafts now": dropped, at your decision.
 - "Fixes arrive with the joint model, not as separate patches": still true for drift, the lift and commander fighting. The two narrower leaks in today's VTSR-T now get one interim revision.
 
+To the third version of this plan:
+
+- "The interim fix costs prediction": wrong. The loss came from the low-tier lift reacting to the fix. With the lift off there is none (figures under the third review).
+- "Heavy-tailed noise, so that one idle game cannot move a player far": dropped. It breaks the convexity the fit relies on and gains nothing measurable. Under Gaussian noise the largest single-game move for a regular is 40 points.
+- "Newton steps": plain Newton is not enough even for the Gaussian model. From wild starting points it reached the fit 9 times in 40; with step-halving, 40 in 40.
+- "A 2.2 threshold keeps the false-pass rate at 5%": true only if the per-duel differences were normal. They are skewed, and the rate is 6.8%.
+- "It passes 39 to 70% of the time": the rule as written passes 44 to 67%, at that 6.8% false-pass rate. The corrected figures are under Decisions.
+- "Log-loss better by at least 0.010": that floor never binds. The smallest gain that can pass is 0.032.
+- "The low-tier lift stays until the joint model": retired in the interim revision, at your decision.
+- "The lift raises 8 players": 4 of them have 10 or more rated matches.
+- "1.4 snipes a match": 80 of the 343 recorded snipe events have no player behind them. Players snipe about once a match.
+- "The win rule and the Recycler start are unverified": you confirmed both, and the VSR files agree.
+
 ## Findings
 
 ### How games form
@@ -254,7 +269,7 @@ To the second version of this plan:
 - The commander's own fighting counts at least as much as a thug's (best fit 1.5 to 2 times; log Bayes factor 7.4 over zero). Two independent checks agree: p = 0.006 in a regression on published ratings, and validator §14 `cmdr_in_mean` at 65.8% against 62.3% on 292 duels (log-loss 0.611 against 0.631), flagged eligible under [critique/decisions/balonce-meter-t-term.md](critique/decisions/balonce-meter-t-term.md).
 - Commanding and fighting skill correlate about 0.6 across the 18 players who do both.
 - Results-only joint model, out of sample (walk-forward, last 350 duels): 68.3% of winners against 63.4% for today's ladders (p = 0.057). Log-loss is 0.608 against 0.616, and that interval spans zero.
-- With the damage observation added (settings chosen on 106 recorded duels, scored on the last 146): log-loss 0.612, against 0.630 for the results-only model and 0.638 for today's ladders. Winner calls are 65.1%, 67.8% and 59.6%. Every interval spans zero at this size. The best damage loading is 0.12 to 0.16 in both windows, which is where the data's own spread says it should be. The corrected likelihood leaves these figures unchanged.
+- With the damage observation added (settings chosen on 106 recorded duels, scored on the last 146): log-loss 0.612, against 0.630 for the results-only model and 0.638 for today's ladders. Winner calls are 65.1%, 67.8% and 59.6%. Every interval spans zero at this size. The best damage loading is 0.12 to 0.16 in both windows, which is where the data's own spread says it should be. The corrected likelihood leaves these figures unchanged, and the final noise rule gives 0.611 and 66.4% on the same window.
 
 ### What the damage axis measures
 
@@ -357,7 +372,7 @@ Not supported:
 My additions from the same runs:
 
 - **Noise falls with match length.** The damage loading is the same at every length (0.11 to 0.13), but the leftover spread drops from 0.35 in matches under 12 minutes to 0.20 at 30 to 60 minutes.
-- **Heavy tails.** Noise that is heavy-tailed and scaled by match length gives the best scoring-window log-loss (0.6096 against 0.6137 for plain Gaussian noise estimated the same way). The difference is inside the noise: 0.003 ± 0.004 over 252 duels.
+- **Heavy tails.** Noise that is heavy-tailed and scaled by match length gave the best scoring-window log-loss (0.6096 against 0.6137 for plain Gaussian noise estimated the same way). The difference is inside the noise: 0.003 ± 0.004 over 252 duels. Dropped after the third review (below).
 - **Against today's prediction** the joint model is ahead by 0.038 log-loss over the 252 recorded duels (standard error 0.020). Those duels also chose the settings, so read it as an upper bound.
 
 ### Net versus dealt
@@ -395,20 +410,58 @@ New, from full re-rates in memory (the document defers these):
 - **Opponents-only reference.** The slope falls to +0.007 (z 0.8) and reliability from 0.957 to 0.953. With the lift off, regulars move between −52 and +56 points, not the −73 to +150 of the straight-line estimate, and stronger players rise (correlation with rating 0.47).
 - **It interacts with the low-tier lift.** With the lift on, judgeguns rises 64 points instead of falling 52. The lower rating makes him eligible for the lift (factor 0 to 0.59), which more than gives it back.
 - **Late-demolition trim.** Team-result share 23% to 14%, reliability 0.957 to 0.979, slope still +0.032. Largest moves: Snake +87, Domakus +64, VTrider +52; Monkey −64, Darkvale −60, dd −48.
-- **Both together.** Slope −0.001, team-result share 13%, reliability 0.972. Six of 24 regulars change half-band.
-- **The cost is prediction.** The thug gap's likelihood gain over the commander gap falls from 4.87 to 3.37, and winner AUC since 2026-10-25 from 0.610 to 0.602. Removing a win signal from a personal score makes it a weaker predictor.
+- **Both together, lift on.** Slope −0.001, team-result share 13%, reliability 0.972. Six of 24 regulars change half-band. The thug gap's likelihood gain over the commander gap falls from 4.87 to 3.37, and winner AUC since 2026-10-25 from 0.610 to 0.602.
+- **That loss belongs to the lift, not to the fixes.** I first read it as the price of removing a win signal. The fourth pass ran the same bundle with the lift off: likelihood gain 5.15 and AUC 0.609 (figures under the third review).
 - **The two leaks are one thing seen twice.** With the match result held fixed the team-gap slope disappears (−0.014, z −1.5). Stronger teammates mean more wins, and winners out-damage losers.
 - **The joint model has neither leak by construction.** Its damage observation sums to zero within a team, so no team-level quantity can enter: not the team gap, the result or the faction. Trimming late demolition inside it makes no measurable difference (scoring-window log-loss 0.6131 against 0.6119).
+
+## Third peer review: what held and what did not
+
+### Confirmed by the data
+
+- **Student-t noise breaks the fit the plan describes.** 60 of 2,493 damage rows (2.4%) sit where that likelihood curves the wrong way. Plain Newton steps from a zero start raised the objective on 18 of 40 steps and diverged. The reweighting method I had actually run does converge.
+- **It gains nothing.** At the same noise table the three likelihoods cannot be told apart on the 252 recorded duels: Student-t against Gaussian −0.0005 log-loss (± 0.0017), the review's convex alternative (pseudo-Huber with a team intercept) −0.0022 (± 0.0028). No regular moves more than 19 points between them.
+- **Gaussian noise does not let one game move a player far.** Leaving one game's damage out moves a regular by 12 points at the 99th percentile and 40 at most. Today's VTSR-T moves the same regulars 13 points in a median game, 76 at the 99th percentile and 131 at most.
+- **Short matches need their own rule.** Five rated matches ran under 4 minutes (1.4 to 3.3). Damage shares there are 1.73 times as noisy as average, against 1.16 to 1.34 at 4 to 12 minutes and 0.78 to 0.92 beyond, and the 40-point move above came from a 2.7-minute game. Leaving out damage rows under 4 minutes does not change prediction (log-loss 0.5908 against 0.5905).
+- **The intercept form and the centred form are one likelihood under Gaussian noise.** Fitted both ways, the parameters agree to 2e-8.
+- **The switch rule was ambiguous,** and the 0.010 floor in it never binds: the smallest mean gain that can pass is 0.032.
+- **A hard stop at 400 duels** has to be written down.
+- **The lift should retire with the interim revision.** Replayed in all eight combinations of reference, trim and lift:
+  - Thug gap's likelihood gain over the commander gap, lift on then off: today 4.87 and 5.09; reference fix 3.72 and 5.45; trim 4.63 and 4.91; both 3.37 and 5.15.
+  - Today's win formula on the last 252 recorded duels: both fixes with the lift on are worse by 0.0107 log-loss (± 0.0053); with the lift off, −0.0001 (± 0.0046).
+  - Both fixes with the lift off: reliability 0.983 (0.957 today), same-game tier ordering 73.4% (70.7% today), team-gap slope −0.001 and team-result share 14%. With the lift on the same bundle gives 0.972 and 71.3%.
+  - Today the lift raises 4 players with 10 or more matches (Maverick +112, Totokomo +59, The_Bylarge +49, DraconisMarch +32) and puts two of them above judgeguns, whose rating without it is higher. Inside the bundle it raises 6 players by 52 to 147 points and reverses the order of 9 pairs.
+- **The interim revision barely moves VTSR-C.** Commanders with 15 or more duels move 3.8 points on average and 9.0 at most.
+
+### Not supported, or wrong
+
+- **The outlier example.** With the plan's noise the three normal teammates sit 2.8 standard deviations out, not inside the quadratic core, and are down-weighted too. Their pull on fighting skill is +0.50 under the plan's Student-t, the same +0.50 under the review's own alternative, and +2.78 under the Gaussian noise it recommends. The pattern is rare: 16 of 580 team-games have a thug more than 3 standard deviations below the team mean.
+- **"Guaranteed warm and cold start equivalence" under Gaussian noise.** The optimum is unique, but plain Newton reached it from only 9 of 40 wild starting points. With step-halving it is 40 of 40. The same holds for Student-t, so the heavy-tailed fit showed no second optimum either.
+- **Distorted uncertainties.** Under Student-t the reweighting curvature understates a regular's uncertainty by 7% at most.
+- **A +0.005 calibration tolerance.** Binned calibration error differs between two equally good models by ± 0.03 at 300 duels, so that tolerance would veto about 44% of the time by chance. A perfectly calibrated model reads 0.045 ± 0.015 on the same measure.
+- **"Or require a lower Brier score."** Per-duel Brier and log-loss differences correlate 0.994. In 2,043 resampled passes at 300 duels Brier never disagreed.
+- **The cost of pinning the baseline.** No legacy copy of the rating code is needed. The interim revision is three switches, and replaying VTSR-T and then VTSR-C in memory with them set back reproduces all 800 published duels exactly. Shipping the interim revision first would only delay the clock.
+- **"The interim revision weakens the baseline."** Only with the lift on (figures above).
+- **"Crossing a cliff."** The lift tapers in over 60 points. The reversal comes from its size, about 120 points at a factor of 0.6, which is larger than the taper.
+- **"The sequential framework is sound at 2.2."** The per-duel differences are skewed (−0.86). Resampling them gives a 6.8% false-pass rate at 2.2 over seven looks; 5% needs 2.36. Session clustering does not matter (standard error ratio 0.97 across 62 sessions).
+
+### What I added
+
+- **Fewer looks pass more often at the same 5% false-pass rate.** If the joint model is truly better by what the back-test measured (0.027 to 0.037 log-loss), seven looks at 2.36 pass 38 to 61% of the time, three looks (200, 300, 400) at 2.0 pass 45 to 69%, and one look at 400 at 1.67 passes 51 to 75%.
+- **An over-confidence guard is the calibration check that works at this size.** Veto when the joint model's calibration slope is more than 2 standard errors below 1. At 300 duels it fires 3% of the time when the stated chances are right, 76% when they are 1.5 times too extreme and 99% at 2 times.
+- **The joint model is the sharper of the two,** which is why the guard matters. It rates the favourite at 70% or more in 48% of recorded duels, against 35% for today's formula. On the back-test its favourites won 54%, 66%, 68% and 84% where it said 55%, 65%, 75% and 87%. Its slope is 0.90 ± 0.14; today's is 0.91 ± 0.17.
+- **The constant added before the log does not matter.** With 30, 100 or 300, log-loss stays within 0.001 and no regular moves 5 points.
+- **Zero-damage rows have to stay out.** Keeping the four of them in moves one regular by 24 points.
 
 ## My take
 
 - VTSR-T is legitimate, more than I credited. On every test damage share is the best or joint-best single statistic, and the data says there is essentially one axis: engagement. Your axis retirements moved in the right direction.
 - VTSR-C is legitimate and already at the ceiling for a commander-only rating. Its next gain is fighters, not economy axes.
 - The weakness is architectural. Three ladders hold evidence about the same players and do not share it: VTSR-T ignores results, VTSR-C ignores the commander's own fighting, and the wins ladder is a weak estimator of a real signal.
-- The two VTSR-T studies found that weakness from the other side. A lobby-wide personal score absorbs the team result, through the teammates and through the last three minutes. Patching it is right, and it costs prediction, because today one number does two jobs.
+- The two VTSR-T studies found that weakness from the other side. A lobby-wide personal score absorbs the team result, through the teammates and through the last three minutes. Patching it is right, and with the low-tier lift retired it costs nothing in prediction.
 - What I think you were sensing: target judgment ("knowing where to deal damage"), which nothing measures; commander games distorting individual ratings; the team result leaking into a personal score; and a meter that treats the commander as if they did not fight.
 - "Can the real axes be found programmatically?" Yes. Three instruments now agree: the joint model as the criterion, the career-level comparison against it, and the lagged test. Today they return one axis for thugs, and too few commanders to decide for VTSR-C.
-- Both reviews' modelling fixes are mostly right. Their numbers, the first promote rule and the case for time decay needed correcting. Confirmation of the joint model will take months, which is why the two VTSR-T leaks get an interim revision.
+- The three reviews' modelling fixes are mostly right. Their numbers, the first promote rule, the case for time decay and the calibration tolerance needed correcting. Confirmation of the joint model will take months, which is why the two VTSR-T leaks get an interim revision.
 
 ## Proposal: one model, two skills, three outputs
 
@@ -429,16 +482,18 @@ flowchart LR
 ```
 logit P(A wins) = (C_cmdrA - C_cmdrB)
                 + mean F over A's fighters - mean F over B's fighters   # commanders included, at their thug-level F
-                + matchup terms                                         # faction, map; start at 0
+                                                                        # no faction, map or first-pick terms
 
 thug:       v_i = ln(d_i + 100) - own thugs' mean   ~ beta * (F_i - mean F of own thugs)            + noise
 commander:  v_c = ln(d_c + 100) - own thugs' mean   ~ beta * (F_c - mean F of own thugs) + offset_c + noise
 offset_c ~ Normal(group mean, group spread)         # one per player, shrunk toward the group
 
-thug noise:      a team's k rows are scored together: sum of squared residuals / sigma_k^2,
+noise:           Gaussian
+thug rows:       a team's k rows are scored together: sum of squared residuals / sigma_k^2,
                  sigma_k = centred spread / sqrt((k - 1) / k)   # 0.29, 0.34, 0.37 for k = 2, 3, 4
-commander noise: 0.45 to 0.48, independent of the thug rows
-both:            scaled by match length and heavy-tailed (Student t, 5 degrees of freedom)
+commander row:   0.45 to 0.48, independent of the thug rows
+match length:    both multiplied by about 1.2 under 12 minutes, 0.9 at 12 to 30 and 0.77 beyond
+no damage rows:  matches under 4 minutes; rows with no enemy damage; teams with fewer than two thugs who dealt damage
 
 exported per player: commanding skill, fighting skill, their uncertainties
 displayed VTSR-C = commanding skill + one fifth of fighting skill      # total commanding strength, five fighters
@@ -448,15 +503,16 @@ displayed VTSR-T = fighting skill
 - **Two skills per player**, commanding and fighting, each with an uncertainty read from the curvature at the fitted values.
 - **Results are the anchor.** They are the one kind of evidence a player cannot farm. [TrueSkill 2](https://www.microsoft.com/en-us/research/publication/trueskill-2-improved-bayesian-skill-rating-system/) states the rule: "the more control that a player has over a quantity, the less useful it is for skill rating". Overwatch [removed performance adjustments above Diamond](https://kotaku.com/soon-all-that-will-matter-in-high-rank-overwatch-match-1821139905) for that reason.
 - **Damage, scored within the own team as a log-ratio, is the fast evidence about fighting.** It places a thug in about 10 games where raw results need hundreds. TrueSkill 2 has this structure, and so does basketball's [box-score prior on adjusted plus-minus](https://jeremiasengelmann.substack.com/p/nba-adjusted-plus-minus-how-to-build).
-- **Noise.** Larger in short matches, and heavy-tailed so that one idle game cannot move a player far.
+- **Noise.** Gaussian, and larger in short matches. Matches under 4 minutes count through their result only. That keeps the fit convex, and the most one game's damage moves a regular is 40 points.
 - **Commander games:** one offset per player on the damage observation only. A commander who fights less while commanding keeps their thug-level fighting skill, and the cost shows up in commanding skill. That matches your view that doing both jobs at once is a commanding skill.
 - **Who counts.**
   - Camera-pod, low-activity and zero-damage thug rows are not fighters and give no damage row, as today.
-  - A commander with no enemy damage gives a result but no damage row.
+  - Any row with no enemy damage gives a result but no damage row, and stays out of the team mean.
+  - A team needs two thugs who dealt damage for any of its damage rows to count.
   - A benched player (one match so far) gives no damage row.
   - Uneven sides use the mean of the fighters present, with no headcount term.
-- **Fitting:** maximise the penalised likelihood with Newton steps in numpy. It is deterministic on one machine, and a full walk-forward history takes seconds.
-- **One frozen configuration.** Today's leader is damage loading 0.12, prior spreads 0.75 and 2.0, no correlation and no decay. A committed script re-derives it on data up to the freeze date. Nothing is chosen on confirmation duels.
+- **Fitting:** maximise the penalised likelihood with Newton steps and step-halving from a zero start, in numpy. With Gaussian noise there is one optimum, and step-halving reached it from 40 of 40 random starts where plain Newton reached it from 9. A full walk-forward history takes seconds.
+- **One frozen configuration.** Today's leader is damage loading 0.12, prior spreads 0.75 and 2.0, no correlation, no decay and no matchup terms. A committed script re-derives it on data up to the freeze date. The same script fixes the noise table and the display scale (how skill units become rating points and bands), so neither is tuned later. Nothing is chosen on confirmation duels.
 - **History:** a player's `before` is the fit on all earlier matches and `after` the fit including this one. Only participants get a row, and every per-match change shown anywhere is that row's own after minus before. The small moves of players who did not play are documented, not displayed.
 - **No drift by construction:** skills are centred by their prior. No loss aversion, floor, commander allowance or lift is needed, and no sum-to-zero constraint either.
 - **Responsiveness.** A participant's fighting skill moves 3.7 points a game against 13.6 today; commanding skill moves 7.2 a duel against 8.9. Much of today's movement is noise. Per-game verdicts ("beat expectation") can still come from the game's own damage row.
@@ -467,22 +523,31 @@ displayed VTSR-T = fighting skill
 
 Decided 2026-11-22: one revision of today's VTSR-T, ahead of the joint model.
 
-- **What changes.** The expected-score reference becomes the median of the opposing team, and building damage in the last 180 seconds leaves the damage share.
-- **How.** One memo written before the harness runs, then one re-rate if it passes. This replaces the two memos in [the team-strength plan](.cursor/plans/team_strength_and_endgame_1728b6f3.plan.md); that plan's inert hook and harness steps stand, and its all-damage trim stays optional.
-- **The memo has to settle three things first.**
-  - **The yardstick.** The trim failed the winner-AUC guard on 2026-10-24, because stomp damage predicts winners. For a personal score the gates should be reliability, team-result share, the team-gap slope and same-game tier ordering. Winner prediction is a cost to report, not a gate.
-  - **The lift.** Score every variant with the lift on and off and list each regular's move both ways. Where the reference fix moves a low-tier player through the lift, as it does judgeguns, the memo says so before sign-off.
-  - **The joint model's baseline.** Its switch rule compares against today's win formula. The joint-model memo names that formula by commit, so this re-rate cannot move the yardstick mid-test.
-- **Knock-ons.** VTSR-C reads thug means and VTSR-2v2T the same damage field, so the harness reports both.
+- **What changes,** in one re-rate:
+  - The expected-score reference becomes the median of the opposing team.
+  - Building damage in the last 180 seconds leaves the damage share.
+  - The low-tier lift is retired.
+- **Why the lift goes with it.** With the lift on, the two fixes make thug ratings worse at predicting winners and reorder players. With it off they cost nothing (figures under the third review).
+- **What it does on today's data,** replayed in memory:
+  - Team-gap slope +0.040 to −0.001, team-result share 23% to 14%, reliability 0.957 to 0.983, same-game tier ordering 70.7% to 73.4%.
+  - Thug gap's likelihood gain over the commander gap 4.87 to 5.15. Winner AUC since 2026-10-25 0.610 to 0.609.
+  - Of 24 regulars, 7 change half-band and 5 change tier. Largest moves: Snake +110, Cloaket +74, VTrider +67, Domakus +65; Monkey −95, DraconisMarch −90, The Wanderer −89, Darkvale −77.
+  - Against the same bundle with the lift kept, retiring it leaves Maverick, Totokomo, DraconisMarch and The_Bylarge in Tier 4 Lower instead of Tier 4 Upper, and The Wanderer and judgeguns in Tier 4 Upper instead of Tier 3 Lower. Against today, the first four drop half a tier, The Wanderer drops from Tier 3 Lower, and judgeguns stays where he is.
+- **How.** One memo written before the harness runs, then one re-rate if it passes. This replaces the two memos in [the team-strength plan](.cursor/plans/team_strength_and_endgame_1728b6f3.plan.md); that plan's inert hook and harness steps stand, and its all-damage trim stays optional. The memo records the figures above as already seen.
+- **The memo has to settle two things first.**
+  - **The yardstick.** The trim failed the winner-AUC guard on 2026-10-24. For a personal score the gates should be reliability, team-result share, the team-gap slope and same-game tier ordering. Winner prediction is reported, and on today's numbers it does not fall.
+  - **The comparison.** The lift-on version of the bundle and each change alone are scored beside the candidate, so the memo shows what each part does.
+- **Knock-ons.** VTSR-C reads thug means and VTSR-2v2T the same damage field, so the harness reports both. VTSR-C moves little: 3.8 points on average and 9.0 at most for commanders with 15 or more duels.
+- **It does not move the joint model's yardstick.** The joint-model memo freezes today's win formula on today's rating rules as the baseline, and the validator replays it in memory by setting these three switches back.
 - **When.** After the joint-model memo is frozen, so the confirmation clock is not delayed.
 
 ## Suggested order of work
 
 1. **Housekeeping.** Save the studies as scripts beside [scripts/validate_elo.py](scripts/validate_elo.py). Append the 74-duel HOLD to [critique/decisions/phase-6-faction-advantage-term.md](critique/decisions/phase-6-faction-advantage-term.md) and the 57-game forward check to [critique/decisions/vtsr-t-enemy-damage.md](critique/decisions/vtsr-t-enemy-damage.md); the net-versus-dealt plan lists the same two appends, so do them once. Add a parity gate so [js/balonce-meter.js](js/balonce-meter.js) and [scripts/elo_commander.py](scripts/elo_commander.py) are checked against each other on fixture lobbies.
-2. **Write and freeze the joint-model memo.** The structure above, one configuration, the baseline named by commit, the preview and switch rules. Confirmation duels count from the freeze, even before the model is built.
-3. **Interim VTSR-T revision.** Hook, harness, one memo, one re-rate.
+2. **Write and freeze the joint-model memo.** The structure above, one configuration, the frozen baseline, the preview and switch rules. Confirmation duels count from the freeze, even before the model is built.
+3. **Interim VTSR-T revision.** Hook, harness, one memo, one re-rate, with the low-tier lift retired.
 4. **Build the joint model as a forensic alt mode** in its own module, emitting its own current and history files beside the canonical ones, and show its win chance as a labelled preview.
-5. **Close Phase 7(c) now.** Commander fighting in the meter, drift removal and the lift's retirement arrive with the joint model.
+5. **Close Phase 7(c) now.** Commander fighting in the meter and drift removal arrive with the joint model.
 6. **Backlog.** Commander statistics as display-only telemetry; target-class decoding.
 
 ## Decisions
@@ -492,16 +557,21 @@ Decided 2026-11-22: one revision of today's VTSR-T, ahead of the joint model.
 - **Stage 1 is a preview.** The joint model's win chance is shown as a labelled second reading wherever the meter appears. It changes no rating, band or suggestion. The meter, the VTSR-T bands and VTSR-C switch together.
 - **One interim VTSR-T revision** for the two leaks, as described above.
 - **Pick order is not recorded.** Picks happen over voice, nobody should have to write them down, and the resulting teams are what the model uses. The draft sidecar and the first-pick term are dropped.
+- **The low-tier lift retires in the interim revision.** This replaces the 2026-11-20 choice to keep it until the joint model. The all-tier extension (roadmap Phase 7(c)) is closed now.
+- **The switch test is checked three times,** at 200, 300 and 400 recorded duels, not every 60.
 
 ### Decided on 2026-11-20, as amended
 
 - **One fighting number.** The joint model's fighting skill becomes the VTSR-T band once it is promoted. There is no separate predictive value.
 - **Commander fighting in the win prediction waits for the joint model.** No standalone change to [scripts/elo_commander.py](scripts/elo_commander.py) or [js/balonce-meter.js](js/balonce-meter.js), even though the term passes its registered rule. The memo should record why: coupling it would turn VTSR-C into macro skill only.
 - **Switch rule.** One configuration is frozen before the first confirmation duel.
-  - Everything switches when log-loss is better than today's formula by at least 0.010 and calibration is no worse, scored every 60 recorded duels up to 400.
-  - With that many looks the per-look threshold has to be about 2.2 standard errors to keep the false-pass rate at 5%; at the usual 1.645 it is 15%.
-  - At that threshold it passes 39 to 70% of the time if the joint model is truly better by what was measured, typically after 180 to 240 duels (about 3 months). It may not pass within 400.
-- **Low-tier lift retires with the joint model,** unless the interim memo's on/off numbers argue for sooner at sign-off. The all-tier extension (roadmap Phase 7(c)) is closed now.
+  - **The measure.** Recorded duels are counted from the freeze. For each one, take its log-loss under the frozen baseline minus its log-loss under the joint model.
+  - **The test.** At 200, 300 and 400 duels, the mean of those differences has to be at least 2.0 of its standard errors above zero. The standard error is the differences' standard deviation over the square root of their number.
+  - **Two further conditions at that look.** The over-confidence guard does not fire, and the joint model is also ahead of whatever formula is live.
+  - **What switches.** The meter, the VTSR-T bands and VTSR-C, together, at the first look that passes.
+  - **Hard stop.** If no look passes, the test ends at 400. The joint model stays a forensic output, and a later attempt needs a new memo and fresh duels.
+  - **The frozen baseline** is today's win formula on today's rating rules. The validator replays it in memory, so the interim revision does not move it.
+  - **What to expect,** from resampling the 252 back-test differences: a 5% chance of passing if the two are truly equal, and 45 to 69% if the joint model is truly better by what was measured (0.027 to 0.037 log-loss). The guard vetoes about 3% of passes when the stated chances are right. The smallest mean gain that can pass is 0.045, 0.037 and 0.032 at the three looks. At about 80 recorded duels a month the looks fall roughly 2.5, 4 and 5 months after the freeze.
 
 ### Proposed defaults, unless you object
 
@@ -509,22 +579,24 @@ Decided 2026-11-22: one revision of today's VTSR-T, ahead of the joint model.
 - **The commander economy composite stays inert** under its own rule.
 - **No time decay.** It adds 0.6 of a point of movement a game and costs accuracy.
 - **numpy for the joint model only,** in its own module with a soft-fail block like the 1v1 and 2v2 ladders, and added to [scripts/requirements.txt](scripts/requirements.txt). Today's ratings stay stdlib-only. Gates on the joint outputs compare with a tolerance.
-- **The preview comes down** if the joint model is behind today's formula by more than 2.2 standard errors at any look.
+- **Gaussian damage noise** by team size and match length, with no damage rows from matches under 4 minutes. This replaces the heavy-tailed noise of the last version.
+- **An over-confidence guard in place of "calibration is no worse".** The switch is vetoed at a look where the joint model's calibration slope is more than 2 standard errors below 1. The table of stated against actual win rates is reported at every look.
+- **The preview comes down** if the joint model is behind the frozen baseline by 2.0 standard errors at a look. That fires 3% of the time if the two are equal and 91% if the joint model is truly worse by 0.05.
 - **No trade-quality memo.**
 
 ### Still open
 
 - **Sanity check on six names.** Do blue, M.S and Cyber win more than their damage suggests, and Nomad, dd and sponge less? Best asked blind of two or three veterans once the forensic output exists.
-- **Whether the lift goes in the interim revision.** Decided at the memo's sign-off, on its on/off numbers.
-- **The four items under "Not verified"** in the mechanics section.
+- **The items under "Not verified"** in the mechanics section. None blocks the model.
 
 ## Limits
 
 - The career-level tests rest on 16 to 28 players. One player moves a correlation by 0.1.
 - No out-of-sample log-loss difference in this plan has an interval that excludes zero, except commander fighting on the full 292 duels. Winner-call differences reach p = 0.01 to 0.06.
 - I ran many comparisons, and the scoring window has now been looked at many times. Only confirmation duels after the freeze are clean.
+- The switch-rule threshold and pass rates come from resampling the same 252 back-test differences that chose the settings. The measured gain (0.027 to 0.037) is an upper estimate, so the real chance of passing is probably lower. The committed script should recompute the threshold at the freeze.
 - The comparisons are correlational. Stronger thugs get heavier ships, so damage partly reflects the commander's judgment of the thug.
 - F9 games carry rosters and results only, and their name mapping is the importer's.
 - The joint model here is a prototype built in memory. It has no matchup terms and no time dynamics.
-- The interim re-rates were also run in memory, by patching a copy of [scripts/elo.py](scripts/elo.py). The harness has to reproduce them.
-- The mechanics section mixes sources of different strength. The web items and the "Not verified" list have not been checked against the game itself; I did not need the game executable and did not decode raw sessions.
+- The interim re-rates were also run in memory, by patching a copy of [scripts/elo.py](scripts/elo.py) and feeding the result to [scripts/elo_commander.py](scripts/elo_commander.py). The harness has to reproduce them.
+- The mechanics section mixes sources of different strength. For the win rule and the Recycler start I read the VSR mod's notes and the text strings in its mission DLL; I did not disassemble the DLL or the game executable, and did not decode raw sessions.

@@ -423,6 +423,7 @@ These are applied by the statsgate collector before data reaches us:
 - Collision damage (`DAMAGE_TYPE_COLLISION`) is excluded at source — never in data
 - `ordnance_odf` can be null (water/environmental damage) — display as "Unknown"
 - BulletInit is recorded when the shooter is a player. BulletHit is recorded only when BOTH the shooter and the victim are players (`record_bullet_hit` returns unless both `is_player` checks pass). Rounds into extractors, scavengers and buildings are DamageDealt events and are not BulletHits. Accuracy on the wire is a human hit rate; `accuracy_est` reconstructs the rest from damage events.
+- Exception: the three `d72eb40` recordings of 2026-04-16 (`SLOT_CREDITED_MATCHES`) recorded every BulletHit and credited every unit on a team slot to that slot's player in BulletInit and BulletHit. `_repair_slot_credited_events()` returns those shots and hits to the AI before any accumulator (`PIPELINE_VERSION` 64), so their `hits_est_source` is `wire`. Their damage events were always attributed correctly.
 
 ### Sentinel Damage Filter
 

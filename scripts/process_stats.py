@@ -27,6 +27,7 @@ import statsgate_v2_pb2       # v2 (frozen schema, retained for the 2026-04..08 
 import statsgate_v1_pb2       # v1 (legacy schema, retained for pre-Nomad sessions)
 import identity_aliases
 import match_format
+import odf_fit
 import perf_axes
 from google.protobuf.message import DecodeError
 
@@ -186,7 +187,13 @@ STATSGATE_SESSIONS_DIR = STATSGATE_DIR / "sessions"
 # BuildEvent.build_orientation ({x,y,z,w} or null). The 3D replay
 # applies it once. Display-only. Ratings unmoved.
 # structures.schema_version 3.
-PIPELINE_VERSION = 63
+# 63 -> 64: the three slot-credited 2026-04-16 recordings
+# (SLOT_CREDITED_MATCHES). Hits on a player's AI units counted as PvP hits
+# on him, and his AI Turret's shots and hits as his own; both go back to
+# the AI before any accumulator. That build recorded non-human hits, so
+# accuracy_est is the wire figure instead of counting those hits twice.
+# Damage untouched. Display-only. Ratings unmoved.
+PIPELINE_VERSION = 64
 
 # Building damage inside this many seconds of the last recorded tick is
 # reported separately as `enemy_structure_dealt_late` (the winners' end-of-
@@ -202,15 +209,18 @@ CALIB_MIN_REF_HITS = 30
 DAMAGE_DUP_MIN_R = 1.5
 # Pre-fix corpus median of the BH-weighted per-weapon ratio, used when a
 # match has no usable reference (zero BulletHits, or the three
-# 2026-04-16 recordings whose victim attribution is contaminated).
+# slot-credited 2026-04-16 recordings).
 DAMAGE_DUP_FALLBACK_R = 2.15
 # A v4 match measuring above this is a collector regression. WARN only;
 # the measured r is still what gets applied.
 DAMAGE_DUP_V4_WARN_R = 1.05
 # d72eb40 DLL: non-human hits were recorded, but the missing IsPlayer
-# guard attributed AI craft to their owning player. Do not trust those
-# BulletHit victim ids; reconstruct from damage events at the fallback r.
-ACCURACY_RECON_CONTAMINATED = frozenset({
+# guard credited every unit on a team slot to the slot's player in
+# BulletInit and BulletHit. _repair_slot_credited_events() returns those
+# shots and hits to the AI before anything reads them. Damage events were
+# attributed correctly. The damage scale stays at the fallback r so the
+# repair moves no damage figure.
+SLOT_CREDITED_MATCHES = frozenset({
     "2026-04-16T01-27-48",
     "2026-04-16T01-49-33",
     "2026-04-16T02-11-20",
@@ -5080,6 +5090,46 @@ def _apply_account_reroutes_to_events(events, reroute_map):
             if x.picker and g(x.picker): x.picker = g(x.picker)
 
 
+def _repair_slot_credited_events(events, hardpoint_fit):
+    """Return a slot-credited recording's AI shots and hits to the AI.
+
+    For SLOT_CREDITED_MATCHES only. A hit on a player whose victim ODF is
+    not the ship that player is in landed on one of his AI units: its victim
+    becomes 0. A shot or hit whose ordnance the shooter's ship cannot fire
+    (``odf_fit``) came from one of his AI units: its shooter becomes 0. The
+    shooter half needs the ODF database and is skipped without one. Damage
+    events are left alone. Mutates in place; returns the counts.
+    """
+    ship = {}
+    out = {"victims": 0, "shots": 0, "hits": 0}
+
+    def foreign(s64, ordnance):
+        cur = ship.get(s64) if s64 else None
+        return bool(cur and hardpoint_fit and not hardpoint_fit.can_fire(cur, odf_fit.stem(ordnance)))
+
+    for evt in events:
+        kind = evt.WhichOneof("event_type")
+        if kind == "update_tick":
+            for ps in evt.update_tick.players:
+                if ps.player and ps.odf:
+                    ship[ps.player] = odf_fit.stem(ps.odf)
+        elif kind == "bullet_init":
+            x = evt.bullet_init
+            if foreign(x.shooter, x.ordnance_odf):
+                x.shooter = 0
+                out["shots"] += 1
+        elif kind == "bullet_hit":
+            x = evt.bullet_hit
+            v_cur = ship.get(x.victim) if x.victim else None
+            if v_cur and odf_fit.stem(x.victim_odf) != v_cur:
+                x.victim = 0
+                out["victims"] += 1
+            if foreign(x.shooter, x.ordnance_odf):
+                x.shooter = 0
+                out["hits"] += 1
+    return out
+
+
 class _RosterPlayer:
     """Working identity row for `_build_identity_maps` (header or tick-only)."""
     __slots__ = ("steam64", "nickname", "teamnum")
@@ -7065,7 +7115,7 @@ def _calibrate_damage_events(events, schema, match_id):
         r_by_weapon[key] = round(ratio, 4)
         weighted.append((ratio, hits))
 
-    contaminated = match_id in ACCURACY_RECON_CONTAMINATED
+    contaminated = match_id in SLOT_CREDITED_MATCHES
     if weighted and not contaminated:
         r_lobby = _bh_weighted_median(weighted)
         source = "in_match"
@@ -7087,9 +7137,9 @@ def _calibrate_damage_events(events, schema, match_id):
         )
 
     damage_scale = (1.0 / r_lobby) if r_lobby >= DAMAGE_DUP_MIN_R else 1.0
-    # Clean non-human BulletHits (a future collector, or a match the
-    # override list does not condemn) are preferred over reconstruction.
-    if nonhuman_hits > 0 and not contaminated and bullet_hits_seen > 0:
+    # Non-human BulletHits on the wire (a future collector, or a
+    # slot-credited recording once repaired) are preferred over reconstruction.
+    if nonhuman_hits > 0 and bullet_hits_seen > 0:
         hits_est_source = "wire"
     elif source == "fallback":
         hits_est_source = "fallback"
@@ -7133,7 +7183,7 @@ def _estimate_weapon_hits(calib, s64, odf, shots, pvp_hits, self_hits):
     return pve_est, pvp_est
 
 
-def process_match(session, source_file, source_size_bytes, submitter, resolve_weapon, resolve_unit, known_powerup_odfs, building_odfs, known_players=None, schema=PROTO_SCHEMA_V2, ship_caps=None, ordnance_ranges=None, producer_lanes=None, scrap_costs=None, combat_ship_odfs=None, extractor_odfs=None, scavenger_odfs=None, turret_odfs=None, mine_attribution=None, no_prompt=False):
+def process_match(session, source_file, source_size_bytes, submitter, resolve_weapon, resolve_unit, known_powerup_odfs, building_odfs, known_players=None, schema=PROTO_SCHEMA_V2, ship_caps=None, ordnance_ranges=None, producer_lanes=None, scrap_costs=None, combat_ship_odfs=None, extractor_odfs=None, scavenger_odfs=None, turret_odfs=None, mine_attribution=None, no_prompt=False, hardpoint_fit=None):
     """Process a single match session into pre-computed stats.
 
     `source_size_bytes` is the byte size of the source .binpb.gz at
@@ -7928,6 +7978,11 @@ def process_match(session, source_file, source_size_bytes, submitter, resolve_we
     _match_id_early = datetime.fromtimestamp(
         _start_ts.seconds + _start_ts.nanos / 1e9, tz=timezone.utc
     ).strftime("%Y-%m-%dT%H-%M-%S")
+    if _match_id_early in SLOT_CREDITED_MATCHES:
+        _slot_repair = _repair_slot_credited_events(events, hardpoint_fit)
+        print(f"  slot-credited recording: {_slot_repair['victims']} hits on AI units, "
+              f"{_slot_repair['shots']} shots and {_slot_repair['hits']} hits by AI units "
+              "returned to the AI")
     event_calibration = _calibrate_damage_events(events, schema, _match_id_early)
     damage_scale = event_calibration["damage_scale"]
 
@@ -12276,6 +12331,7 @@ def main():
     # v35: mine entities (v2+ shooter/killer ODF) and the v1 ordnance
     # fallback, each mapped to the ships that can lay that mine.
     mine_attribution = build_mine_attribution_tables(odf_db)
+    hardpoint_fit = odf_fit.HardpointFit(odf_db)
     _mine_with_carrier = sum(1 for c in mine_attribution["entities"].values() if c)
     _v1_with_carrier = sum(1 for c in mine_attribution["v1_ordnance"].values() if c)
     print(
@@ -12337,6 +12393,7 @@ def main():
                 turret_odfs=turret_odfs,
                 mine_attribution=mine_attribution,
                 no_prompt=args.no_prompt,
+                hardpoint_fit=hardpoint_fit,
             )
             match_id = match_data["match"]["id"]
             out_path = OUTPUT_DIR / f"{match_id}.json"
