@@ -1,5 +1,5 @@
 /**
- * VT Stats - Tools Page - Coinflip
+ * VSR - Tools Page - Coinflip
  *
  * Horizontal-shuffle team selector. Two team cards (Team 1 / Team 2 or
  * the live session's svar1/svar2 team names when present) sit side-by-side;

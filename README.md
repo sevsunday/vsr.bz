@@ -1,4 +1,4 @@
-# VT Stats
+# VSR
 
 Static HTML/JS/CSS site hosted via Github pages. Originally built for the VSR Community to display data collected by VTrider's statsgate collector, it now encompasses much more than that: 
 

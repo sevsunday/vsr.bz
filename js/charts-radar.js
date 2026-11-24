@@ -1,5 +1,5 @@
 /**
- * VT Stats - Player Performance Radar (Spiderweb)
+ * VSR - Player Performance Radar (Spiderweb)
  *
  * Eight normalized axes (0-100) per polygon:
  *   1. Damage Dealt     personal.dealt                      vs match max

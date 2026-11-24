@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VT Stats — Documentation</title>
+  <title>VSR — Documentation</title>
   <link rel="stylesheet" href="../vendor/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet" href="../vendor/bootstrap-icons/bootstrap-icons.min.css">
   <link rel="stylesheet" href="../css/theme-system.css">
@@ -27,7 +27,7 @@
   <nav class="navbar navbar-expand-md sticky-top border-bottom vt-docs-nav">
     <div class="container-fluid px-3 px-md-4 gap-2">
       <a class="navbar-brand fw-bold" href="../index.html" style="color: var(--kb-text-primary); text-decoration: none;">
-        <i class="bi bi-crosshair me-1" style="color: var(--kb-primary);"></i>VT Stats
+        <i class="bi bi-crosshair me-1" style="color: var(--kb-primary);"></i>VSR
       </a>
 
       <!-- Search pill (xl+ only). Flows after the brand so it cannot
@@ -422,12 +422,12 @@
         const usedIds = new Set();
         content.querySelectorAll('h1, h2, h3, h4').forEach(heading => {
           // Honor kramdown-style explicit anchor extension on headings:
-          // `## 13. VTSR-T Methodology {#vtsr-methodology}` → ID
-          // `vtsr-methodology`, displayed text `13. VTSR-T Methodology`.
+          // `## 13. VSR-T Methodology {#vtsr-methodology}` → ID
+          // `vtsr-methodology`, displayed text `13. VSR-T Methodology`.
           // Vanilla marked doesn't strip the {#...} suffix, so without
           // this step the heading text would slugify to something like
           // `13-vtsr-methodology-vtsr-methodology` and any deep link to
-          // the explicit anchor (e.g. the VTSR-T modal's footer link in
+          // the explicit anchor (e.g. the VSR-T modal's footer link in
           // js/app.js) would silently no-op.
           let id;
           const explicitMatch = heading.textContent.match(/\s*\{#([\w-]+)\}\s*$/);

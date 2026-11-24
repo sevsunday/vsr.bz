@@ -1850,7 +1850,7 @@ function setupSnipeUI() {
 }
 
 /* Reveal the True-lighting toggle when the model has any spec/roughness
- * coverage. Each open starts OFF: the default gloss is VT Stats' stylized
+ * coverage. Each open starts OFF: the default gloss is VSR's stylized
  * (luminance) look; ON swaps to the game-authored alpha-gloss conversion. */
 function setupTrueLightingUI() {
   const has = !!(activeViewer && activeViewer.hasSpecular());

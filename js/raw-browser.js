@@ -1,5 +1,5 @@
 /**
- * VT Stats — Raw Data Browser (raw/index.html)
+ * VSR — Raw Data Browser (raw/index.html)
  *
  * Isolated from the main dashboard. Lets users inspect the raw protobuf
  * wire-format, the faithful JSON decode, and the processed aggregates for

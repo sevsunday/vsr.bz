@@ -1,5 +1,5 @@
 /**
- * VT Stats - Tools Page - Random Map (slot machine)
+ * VSR - Tools Page - Random Map (slot machine)
  *
  * Three-reel slot machine for random VSR map selection. Each reel pulls
  * from a different category, filtered by the pool-count radio pills:

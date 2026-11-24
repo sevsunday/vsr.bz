@@ -1,4 +1,4 @@
-/* js/vtsr-explainers.js — shared VTSR-T explainer content + annotated-stage engine.
+/* js/vtsr-explainers.js — shared VSR-T explainer content + annotated-stage engine.
  *
  * Loaded by BOTH index.html (methodology modal) and elo/index.html (the
  * dedicated ELO page's explainer tabs). Exposes `window.VTSRExplain`.
@@ -73,7 +73,7 @@
     { term: 'eq-k', title: 'Move speed', x: 36, y: 5,
       body: 'How far one match can move you. New players swing fast while we place them; veterans barely budge per game.' },
     { term: 'eq-dr', title: 'Your rating change', x: 3, y: 5,
-      body: 'Added straight onto your VTSR-T after the match. Positive surprise moves you up; negative moves you down.' },
+      body: 'Added straight onto your VSR-T after the match. Positive surprise moves you up; negative moves you down.' },
   ];
   const DELTA_R_TEX = '\\htmlId{eq-dr}{\\Delta R} \\;=\\; \\htmlId{eq-k}{K}\\,'
     + '\\htmlId{eq-gap}{\\bigl(\\, \\htmlId{eq-perf}{P} - \\htmlId{eq-exp}{E} \\,\\bigr)}';
@@ -87,9 +87,9 @@
     { term: 'eq-alpha', title: 'The mixer knob (\u03b1)', x: 36, y: 5,
       body: 'How much the Wins dial counts. <strong>Currently set to 0</strong> &mdash; your published rating is 100% performance. The wins ladder is computed but doesn&rsquo;t feed your number. The leaderboard can preview a 10%, 25%, or 50% mix, or the wins ladder with the axes turned off. None of those previews is the published number.' },
     { term: 'eq-vtsr', title: 'Your published rating', x: 3, y: 5,
-      body: 'The VTSR-T number on the leaderboard: the two dials, mixed by the knob.' },
+      body: 'The VSR-T number on the leaderboard: the two dials, mixed by the knob.' },
   ];
-  const BLEND_TEX = '\\htmlId{eq-vtsr}{\\text{VTSR-T}} \\;=\\; '
+  const BLEND_TEX = '\\htmlId{eq-vtsr}{\\text{VSR-T}} \\;=\\; '
     + '\\htmlId{eq-alpha}{\\alpha} \\cdot \\htmlId{eq-rw}{R^{W}} \\;+\\; '
     + '(1 - \\alpha) \\cdot \\htmlId{eq-rt}{R^{T}}';
 
@@ -413,7 +413,7 @@
       `<tr><td><strong>${n}</strong></td><td class="text-end"><code>${r}</code></td>
        <td class="text-muted"><small>${esc(note)}</small></td></tr>`).join('');
     return `<table class="vt-katex-tiers">
-      <thead><tr><th>Tier</th><th class="text-end">VTSR-T range</th><th></th></tr></thead>
+      <thead><tr><th>Tier</th><th class="text-end">VSR-T range</th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
   }
@@ -430,7 +430,7 @@
   // = 28.33 / (2.5 * 0.5030) = 22.53). Re-read that history entry after
   // any re-rate; the values shift even though the story doesn't.
   function workedExampleHtml() {
-    return `<p class="mb-2">In a recent <strong>Domakus</strong> match, his VTSR-T moved from <strong>1790.5</strong> to <strong>1818.8</strong> (+28.3).</p>
+    return `<p class="mb-2">In a recent <strong>Domakus</strong> match, his VSR-T moved from <strong>1790.5</strong> to <strong>1818.8</strong> (+28.3).</p>
       <ul class="mb-2">
         <li>Match performance: <strong>+0.89</strong> (top of the lobby &mdash; the scale runs roughly &minus;1 to +1, where 0 is an average game)</li>
         <li>Expected: <strong>+0.39</strong> (already a high-rated player &mdash; the bar was high)</li>
@@ -440,8 +440,8 @@
   }
 
   // ------------------------------------------------------------------
-  // The commander ladder (VTSR-C) — static section for the ELO page's
-  // VTSR-C pill (it sits above the ladder table). Deliberately NOT an
+  // The commander ladder (VSR-C) — static section for the ELO page's
+  // VSR-C pill (it sits above the ladder table). Deliberately NOT an
   // annotated stage (scope control): a plain pre-rendered KaTeX handicap
   // formula + the mirror-blend story + a worked example with real corpus
   // numbers (elo_commander_history.json, 2026-08-23T03-25-36 Oldboy:
@@ -457,17 +457,17 @@
       'E_A \\;=\\; \\frac{1}{1 + 10^{-\\left(\\left(R_A - R_B\\right)'
       + ' + \\lambda\\,\\left(T_A - T_B\\right)\\right) / 400}}'
     ) || '';
-    return `<p class="mb-2">Commanders get a <strong>second, separate rating</strong>: VTSR-C. It&rsquo;s the mirror image of the thug rating &mdash; VTSR-T is <em>all performance, no wins</em> (its wins ladder runs, but the mixer that would fold it into the published number sits at zero); VTSR-C is <em>all wins, no performance yet</em>. Both converge on the same blend architecture, from opposite ends.</p>
+    return `<p class="mb-2">Commanders get a <strong>second, separate rating</strong>: VSR-C. It&rsquo;s the mirror image of the thug rating &mdash; VSR-T is <em>all performance, no wins</em> (its wins ladder runs, but the mixer that would fold it into the published number sits at zero); VSR-C is <em>all wins, no performance yet</em>. Both converge on the same blend architecture, from opposite ends.</p>
       <p class="mb-2">Every match with a <strong>verified outcome</strong> is a 1v1 duel between the two commanders &mdash; classic chess ELO: beat the expectation, gain points; fall short, lose them. One twist keeps it honest &mdash; <strong>the expected score knows which side had the stronger thugs</strong>:</p>
       ${eq ? `<div class="text-center my-2" style="overflow-x: auto;">${eq}</div>` : ''}
-      <p class="mb-2"><em>R</em> is each commander&rsquo;s rating; <em>T</em> is each team&rsquo;s average thug rating (their pre-match VTSR-T); <em>&lambda;</em> converts a thug-team edge into rating points (currently 1:1 &mdash; a 100-point average-thug advantage counts like 100 rating points). Winning with the weaker roster pays big; losing with it barely costs.</p>
+      <p class="mb-2"><em>R</em> is each commander&rsquo;s rating; <em>T</em> is each team&rsquo;s average thug rating (their pre-match VSR-T); <em>&lambda;</em> converts a thug-team edge into rating points (currently 1:1 &mdash; a 100-point average-thug advantage counts like 100 rating points). Winning with the weaker roster pays big; losing with it barely costs.</p>
       <p class="mb-2">The ladder&rsquo;s history also includes hundreds of <strong>hand-logged community duels</strong> from <a href="https://f9bomber.com" target="_blank" rel="noopener">F9bomber</a>&rsquo;s match ledger (2025 onward, 3v3/4v4/5v5 only, deduplicated against our own recordings &mdash; a recorded match always supersedes the ledger). They rate at the same K as recorded duels; the thug handicap applies whenever the players involved already had ratings at that point in history, and reads zero before the rating era began &mdash; exactly like our own earliest matches. Community-sourced duels are tagged on every ladder row and duel log.</p>
       <p class="mb-2">Since the proto-v4 collector, every duel also records a <strong>commander economy read</strong> against the other commander, measured across the whole game: pools held, time the scrap bank spent out of green, scrap spent on real combat ships (empty scouts and empty Xypos excluded), and upgrades held. Three further readouts &mdash; ships built per ship lost, the same without empty scouts, and loose share (across the whole match, how much of the scrap earned was loose collected by scavengers) &mdash; are shown and not scored. The blend weight &alpha;<sub>c</sub> sits at 1 (outcome-pure). It stays there until a fresh sample, recorded after 23 Oct 2026, clears a pre-registered rule that asks for more than &ldquo;the leader of the stat also won that match.&rdquo; The formula can&rsquo;t be tuned to fit the matches that judge it. The first real telemetry match is the humility anchor: the composite pointed at the commander who lost.</p>
       <p class="mb-0 text-muted small">Real example: in the 2026-08-23 Oldboy match, F9bomber was already the higher-rated commander (1578 vs 1496) and his thugs averaged <strong>+65 stronger</strong>, so he was the <strong>70% favorite</strong>. He lost anyway: <strong>&minus;14.0</strong> for the stacked favorite, <strong>+14.0</strong> for mort. New commanders move fast (K decays 40 &rarr; 20 over the first 5 duels) and stay <strong>provisional</strong> below 5 rated games. A ranked <code>#</code> additionally requires <strong>8 proto-v4 games or 25 older games</strong> (pre-v4 recordings and F9Stats), a game within 90 days of the newest match, and a command game within 90 days (or 3 commander games after going stale while still thugging); everyone else stays visible in the Unranked table.</p>`;
   }
 
   // ------------------------------------------------------------------
-  // The 1v1 ladder (VTSR-1v1) — static How-tab section. Plain Elo, no
+  // The 1v1 ladder (VSR-1v1) — static How-tab section. Plain Elo, no
   // handicap. Worked-example digits are real (elo_1v1_history.json,
   // 2026-10-15T23-37-32 Mojave: Maverick 1500.00 expected 0.5076, Nomad
   // 1494.74 expected 0.4924, shared K 32, delta 16.24). Re-read that
@@ -477,7 +477,7 @@
     const eq = renderEq(
       'E_A \\;=\\; \\frac{1}{1 + 10^{-\\left(R_A - R_B\\right) / 400}}'
     ) || '';
-    return `<p class="mb-2">Head-to-head games get a <strong>third, separate rating</strong>: VTSR-1v1. In a 1v1 both players are commanders and nobody else is on the field, so neither of the other ladders fits. VTSR-T needs a lobby of at least six to grade thug form, and VTSR-C weighs each commander&rsquo;s thugs. Both already leave 1v1s out, so this ladder never changes either of them.</p>
+    return `<p class="mb-2">Head-to-head games get a <strong>third, separate rating</strong>: VSR-1v1. In a 1v1 both players are commanders and nobody else is on the field, so neither of the other ladders fits. VSR-T needs a lobby of at least six to grade thug form, and VSR-C weighs each commander&rsquo;s thugs. Both already leave 1v1s out, so this ladder never changes either of them.</p>
       <p class="mb-2">It is plain chess Elo. A game counts when exactly one player sits on each side (camera pods don&rsquo;t count) and it has a verified winner. Game length does not matter. Draws are not rated.</p>
       ${eq ? `<div class="text-center my-2" style="overflow-x: auto;">${eq}</div>` : ''}
       <p class="mb-2">There is no handicap term, because there are no thugs. Both players in a game use the same K (the average of their two schedules, 40 for a debut falling to 20 after five games), so the points one player gains are exactly the points the other loses.</p>
@@ -486,7 +486,7 @@
   }
 
   // ------------------------------------------------------------------
-  // The 2v2 ladders (VTSR-2v2C + VTSR-2v2T) — static How-tab section.
+  // The 2v2 ladders (VSR-2v2C + VSR-2v2T) — static How-tab section.
   // Worked-example digits are real (elo_2v2_history.json,
   // 2026-10-27T04-00-33 Oasis: mort 1520.00 + HappyOtter 1481.00 vs
   // VTrider 1500.00 + DraconisMarch 1500.00, expected 0.5014, K 38/38,
@@ -498,11 +498,11 @@
       'E_1 \\;=\\; \\frac{1}{1 + 10^{-\\left(\\left(C_1 - C_2\\right)'
       + ' + \\lambda\\,\\left(T_1 - T_2\\right)\\right) / 400}}'
     ) || '';
-    return `<p class="mb-2">A 2v2 is two commanders, each with one thug. It gets its <strong>own ladders</strong>, separate from VTSR-C, VTSR-T and VTSR-1v1: VTSR-T needs at least six players to grade a thug against the lobby, and VTSR-C only rates games VTSR-T rated, so both already leave 2v2s out.</p>
-      <p class="mb-2"><strong>VTSR-2v2C</strong> rates the commanders on wins and losses. The win chance counts all four players: <em>C</em> is each commander&rsquo;s 2v2C, <em>T</em> is each thug&rsquo;s 2v2T (win/loss), and <em>&lambda;</em> is 1, as in VTSR-C.</p>
+    return `<p class="mb-2">A 2v2 is two commanders, each with one thug. It gets its <strong>own ladders</strong>, separate from VSR-C, VSR-T and VSR-1v1: VSR-T needs at least six players to grade a thug against the lobby, and VSR-C only rates games VSR-T rated, so both already leave 2v2s out.</p>
+      <p class="mb-2"><strong>VSR-2v2C</strong> rates the commanders on wins and losses. The win chance counts all four players: <em>C</em> is each commander&rsquo;s 2v2C, <em>T</em> is each thug&rsquo;s 2v2T (win/loss), and <em>&lambda;</em> is 1, as in VSR-C.</p>
       ${eq ? `<div class="text-center my-2" style="overflow-x: auto;">${eq}</div>` : ''}
       <p class="mb-2">Thugs get <strong>two ratings for now</strong>, shown side by side. <strong>Win/loss</strong> moves with the result in the same update as the commanders. <strong>Performance</strong> is a duel between the two thugs: your share of the two thugs&rsquo; damage to the enemy, against the share your ratings predicted. Performance only uses recorded games with a verified winner, like the other ladders. Once 30 recorded 2v2s with a verified winner exist, a rule written in advance picks the one that predicts winners better, or keeps both if neither wins.</p>
-      <p class="mb-2">Every rating starts at 1500 with K falling from 40 to 20 over a player&rsquo;s first five games on that ladder. Both players in a role share one K, so each game is zero-sum. Only recorded games count: a recording shows who was active and who commanded, which a hand-kept result can&rsquo;t. Ratings show as numbers, like VTSR-1v1.</p>
+      <p class="mb-2">Every rating starts at 1500 with K falling from 40 to 20 over a player&rsquo;s first five games on that ladder. Both players in a role share one K, so each game is zero-sum. Only recorded games count: a recording shows who was active and who commanded, which a hand-kept result can&rsquo;t. Ratings show as numbers, like VSR-1v1.</p>
       <p class="mb-0 text-muted small">Real example: on Oasis (2026-10-27), mort (1520) and HappyOtter (1481) faced VTrider and DraconisMarch, both in their first 2v2 (1500 each). mort&rsquo;s higher rating and HappyOtter&rsquo;s lower one cancelled out, so the game was a <strong>coin flip (50%)</strong>. VTrider&rsquo;s side won: <strong>+19.1</strong> to VTrider and DraconisMarch, <strong>&minus;19.1</strong> to mort and HappyOtter. On performance, HappyOtter was expected to deal 49% of the two thugs&rsquo; damage and dealt 38%, so he lost <strong>3.9</strong> to DraconisMarch. Players stay <strong>provisional</strong> below 5 games on a ladder; a ranked <code>#</code> needs 5 and a game within 90 days of the newest match.</p>`;
   }
 
@@ -514,9 +514,9 @@
       <table class="table table-sm align-middle mb-2" style="font-size: 0.85rem;">
         <thead><tr><th>Players per side</th><th>Ladder</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td>1 and 1</td><td>VTSR-1v1</td><td>Both players command.</td></tr>
-          <tr><td>2 and 2</td><td>VTSR-2v2C + VTSR-2v2T</td><td>A commander and one thug on each side, and all four active: nobody left early, and no thug dealt zero damage.</td></tr>
-          <tr><td>3 or more on each side</td><td>VTSR-T, then VTSR-C</td><td>At least six players in total.</td></tr>
+          <tr><td>1 and 1</td><td>VSR-1v1</td><td>Both players command.</td></tr>
+          <tr><td>2 and 2</td><td>VSR-2v2C + VSR-2v2T</td><td>A commander and one thug on each side, and all four active: nobody left early, and no thug dealt zero damage.</td></tr>
+          <tr><td>3 or more on each side</td><td>VSR-T, then VSR-C</td><td>At least six players in total.</td></tr>
           <tr><td>Anything else</td><td>None</td><td>2v1, 3v1, 3v2, 4v2, or a 2v2 with an idle or departed player.</td></tr>
         </tbody>
       </table>
@@ -539,7 +539,7 @@
 
       <section class="vt-vtsr-doc-section">
         <h6>How it works</h6>
-        <p class="mb-1">VTSR-T is your <strong>thug form</strong>. Each game it grades your share of the lobby&rsquo;s damage to the enemy against the people in that lobby. You go up when that grade beats what your current number predicted, and down when it falls short. Winning the game does not move it; commanders have their own win rating, VTSR-C. Everyone starts at <strong>1500</strong>. Walk through the formula:</p>
+        <p class="mb-1">VSR-T is your <strong>thug form</strong>. Each game it grades your share of the lobby&rsquo;s damage to the enemy against the people in that lobby. You go up when that grade beats what your current number predicted, and down when it falls short. Winning the game does not move it; commanders have their own win rating, VSR-C. Everyone starts at <strong>1500</strong>. Walk through the formula:</p>
         ${deltaBlock}
         <p class="mb-0 mt-2 text-muted small">Losses sting a little less than wins reward, and your rating never drops below <strong>1000</strong>.</p>
       </section>
@@ -557,7 +557,7 @@
 
       <section class="vt-vtsr-doc-section">
         <h6>Tier ladder</h6>
-        <p class="mb-2">Tiers are <strong>absolute</strong> VTSR-T thresholds &mdash; they don&rsquo;t track percentile, so a thin top tier is a thin top tier. Each is 200 points wide and splits into an Upper and a Lower half; Tier 0 at the top has no ceiling. Players with fewer than 10 rated matches show a <strong>Provisional</strong> badge instead of a tier. To appear on the ladder requires <strong>25 rated matches</strong> and a game within 90 days of the newest match in the corpus (or 3 games after returning); everyone else stays visible under <strong>Not on the ladder yet</strong>. The ladder groups by tier and does not number players.</p>
+        <p class="mb-2">Tiers are <strong>absolute</strong> VSR-T thresholds &mdash; they don&rsquo;t track percentile, so a thin top tier is a thin top tier. Each is 200 points wide and splits into an Upper and a Lower half; Tier 0 at the top has no ceiling. Players with fewer than 10 rated matches show a <strong>Provisional</strong> badge instead of a tier. To appear on the ladder requires <strong>25 rated matches</strong> and a game within 90 days of the newest match in the corpus (or 3 games after returning); everyone else stays visible under <strong>Not on the ladder yet</strong>. The ladder groups by tier and does not number players.</p>
         ${tierTableHtml()}
       </section>
 

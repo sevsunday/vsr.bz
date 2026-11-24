@@ -1,5 +1,5 @@
 /*
- * VT Stats — descriptive performance axes (window.VTPerfAxes).
+ * VSR — descriptive performance axes (window.VTPerfAxes).
  *
  * Pure data layer (no DOM at load) behind the player-page Performance /
  * Trends tabs, the 5-player compare and the Players hub. Reads the
@@ -39,7 +39,7 @@
     {
       key: 'enemy_damage_share', label: 'Enemy Damage Share', short: 'Enemy dmg',
       icon: 'bi-fire',
-      desc: 'Share of the lobby\'s damage to enemy players, AI and buildings this player dealt. The one axis VTSR-T scores today.',
+      desc: 'Share of the lobby\'s damage to enemy players, AI and buildings this player dealt. The one axis VSR-T scores today.',
       explain: 'Of all the damage everyone in the match dealt to the enemy side (their ships, their AI units, their buildings), how much of it was yours. In a 4v4 the even share is 12.5%, so anything above that means you carried more than your seat.',
       higher: 'You did more of your lobby\'s fighting than the average player in it.',
       rawFmt: v => `${(v * 100).toFixed(1)}% of lobby`,

@@ -1,5 +1,5 @@
 /**
- * VT Stats - Live Session Card (stateless renderer)
+ * VSR - Live Session Card (stateless renderer)
  *
  * Renders a BZ2 lobby session card: title bar with state/mode/VSR badges,
  * map thumbnail + map line, host info, players grid (team-split for STRAT
@@ -28,7 +28,7 @@
  *   - canonicalNames: Map<steam64, string> | null
  *   - knownHostNames: Map<steam64, string>
  *   - vsrMapByFile:   Map<lowercased mapFile, vsrmaplist entry> | null
- *   - gameWatchUrl:   string (defaults to VT Stats' own /gw/ Game Watch)
+ *   - gameWatchUrl:   string (defaults to VSR's own /gw/ Game Watch)
  *   - showFooterCloseBtn: boolean (default true)
  *   - footerExtras:   string of HTML appended after the standard footer actions
  *
@@ -39,7 +39,7 @@
   'use strict';
 
   // Root-absolute so it resolves correctly from any page depth (e.g. the
-  // /tools lobby card). Points at VT Stats' own Game Watch page.
+  // /tools lobby card). Points at VSR's own Game Watch page.
   const DEFAULT_GAMEWATCH_URL = '/gw/';
 
   // ---------------------------------------------------------------- Utilities

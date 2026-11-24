@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lobby Tools — VT Stats</title>
+  <title>Lobby Tools — VSR</title>
   <meta name="description" content="Lobby utilities for BZ2 Combat Commander: live session viewer, player wheel, coinflip, random map roller, and team balonce calculator.">
 
-  <link rel="canonical" href="https://vtstats.bz/tools/">
+  <link rel="canonical" href="https://vsr.bz/tools/">
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Lobby Tools — VT Stats">
+  <meta property="og:title" content="Lobby Tools — VSR">
   <meta property="og:description" content="Live session viewer, player wheel, coinflip, random map roller, and team balonce calculator.">
-  <meta property="og:url" content="https://vtstats.bz/tools/">
-  <meta property="og:image" content="https://vtstats.bz/data/og/player-card.png">
-  <meta property="og:site_name" content="VT Stats">
+  <meta property="og:url" content="https://vsr.bz/tools/">
+  <meta property="og:image" content="https://vsr.bz/data/og/player-card.png">
+  <meta property="og:site_name" content="VSR">
   <meta name="twitter:card" content="summary_large_image">
 
   <link rel="stylesheet" href="../vendor/bootstrap/css/bootstrap.min.css">
@@ -46,7 +46,7 @@
   <nav class="navbar navbar-expand-md sticky-top border-bottom">
     <div class="container-fluid px-3 px-md-4 gap-2">
       <a class="navbar-brand fw-bold" href="../index.html" style="color: var(--kb-text-primary); text-decoration: none;">
-        <i class="bi bi-crosshair me-1" style="color: var(--kb-primary);"></i>VT Stats
+        <i class="bi bi-crosshair me-1" style="color: var(--kb-primary);"></i>VSR
       </a>
 
       <!-- Tools-page action group. Sits flush against the brand on the left.
@@ -304,7 +304,7 @@
             <div class="btn-group btn-group-sm vt-tools-pill-group" role="group"
                  id="vt-tools-balonce-format" aria-label="Game format">
               <button type="button" class="btn btn-outline-secondary active" data-vt-balonce-format="team"
-                      aria-pressed="true" title="Main ladders: VTSR-C for commanders, VTSR-T for thugs">Team</button>
+                      aria-pressed="true" title="Main ladders: VSR-C for commanders, VSR-T for thugs">Team</button>
               <button type="button" class="btn btn-outline-secondary" data-vt-balonce-format="2v2"
                       aria-pressed="false" title="2v2 ladders: exactly 4 players, a commander and one thug per side">2v2</button>
             </div>
@@ -761,7 +761,7 @@
                       id="vt-tools-picker-sort"
                       title="Sort the player grid">
                 <option value="alpha" selected>A &rarr; Z</option>
-                <option value="vtsrc-desc">VTSR-C (high &rarr; low)</option>
+                <option value="vtsrc-desc">VSR-C (high &rarr; low)</option>
                 <option value="matches-desc">Matches played</option>
               </select>
             </div>
@@ -931,7 +931,7 @@
             in the lobby and, for each pair, every way to split the rest into two
             even teams (one extra player on a side only when the lobby is odd).
             Each layout is scored with the same formula the Balonce Meter uses
-            &mdash; the commander VTSR-C gap plus the gap in average thug VTSR-T
+            &mdash; the commander VSR-C gap plus the gap in average thug VSR-T
             &mdash; and the layout closest to a 50% win chance wins. Ties go to
             the smaller total-rating gap, then to the layout that moves fewer
             people.
@@ -952,7 +952,7 @@
             <li>
               <strong>Unrated and provisional players count at the starting rating</strong>, and
               a commander&rsquo;s own thug band is shown but not scored &mdash; their
-              commanding record (VTSR-C) is what counts.
+              commanding record (VSR-C) is what counts.
             </li>
             <li>
               <strong>Uneven lobbies use a house rule.</strong> The formula compares

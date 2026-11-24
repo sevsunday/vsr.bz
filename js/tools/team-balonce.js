@@ -1,5 +1,5 @@
 /**
- * VT Stats - Tools Page - Team Balonce
+ * VSR - Tools Page - Team Balonce
  *
  * Intentional misspell (community in-joke). Three-scenario commander
  * configurator + exhaustive thug-pool partition + drag-to-swap + the
@@ -7,20 +7,20 @@
  * PLAYED", hence the band names below).
  *
  * THE MODEL (shared with the dashboard's per-match section):
- *   The meter is driven by the VTSR-C duel formula in
+ *   The meter is driven by the VSR-C duel formula in
  *   js/balonce-meter.js — the SAME function elo_commander.py uses to
  *   score every real match, validated at ~66% winner accuracy over 625
  *   duels:
  *
  *     P(T1) = 1 / (1 + 10^(-((Rc1 - Rc2) + lambda*(T1mean - T2mean)) / 400))
  *
- *   Rc = commander VTSR-C; T = mean THUG VTSR-T (commander excluded).
+ *   Rc = commander VSR-C; T = mean THUG VSR-T (commander excluded).
  *   Both commanders must be set for the commander term to apply — with
  *   0 or 1 set we fall back to the thug-only read rather than asserting
  *   an unknown commander is average-vs-someone-specific.
  *
- *   A commander's own VTSR-T is DISPLAYED on their row but deliberately
- *   NOT in the math: VTSR-C is outcome-pure, so their fighting is
+ *   A commander's own VSR-T is DISPLAYED on their row but deliberately
+ *   NOT in the math: VSR-C is outcome-pure, so their fighting is
  *   already priced into the wins that built it.
  *
  * Algorithm:
@@ -29,7 +29,7 @@
  *   2. Suggest (header button) searches every ordered commander pair in
  *      the playing roster, then the best thug split under that pair.
  *      Ignored players are excluded; hidden and unsplit players stay in.
- *      Objective: minimize |P - 0.5| with both VTSR-C terms, tie-broken
+ *      Objective: minimize |P - 0.5| with both VSR-C terms, tie-broken
  *      by |sum(team1) - sum(team2)|, then by fewer players moved off
  *      their current team. Each side stays between 1 and 5. More than
  *      10 playing players cannot fit; the layout is left as-is.
@@ -52,7 +52,7 @@
  * Empty-seat rule (Tools only, NOT the pipeline formula): the handicap
  * compares thug MEANS, which reads a 4v3 as fair. When the columns differ
  * in headcount, the short side's thug list is padded with phantom thugs
- * at the VTSR-T rating floor (elo_current.rating_floor, 1000) before its
+ * at the VSR-T rating floor (elo_current.rating_floor, 1000) before its
  * mean is taken, in the live meter AND inside Suggest. Only 8 rated games
  * so far were uneven, so this is a stated assumption, labeled as such on
  * the card; the validator's accuracy figure covers even teams only. The
@@ -77,14 +77,14 @@
  *     80%+       PLAYEDalocalypse
  *
  * Provisional anchoring (mirrored from player-resolver):
- *   - Unrated / custom entries anchored at VTSR 1500 (and VTSR-C 1500)
+ *   - Unrated / custom entries anchored at VSR 1500 (and VSR-C 1500)
  *   - Rated-but-provisional carry their actual rating + flag
  *
  * Empty state: < 2 active roster players.
  *
  * 2v2 mode (header `Team | 2v2` pills, in-memory, Reset all -> Team):
- *   the same win-probability formula, fed commander VTSR-2v2C and thug
- *   VTSR-2v2T (win/loss) with the 2v2 file's own lambda / scale. The
+ *   the same win-probability formula, fed commander VSR-2v2C and thug
+ *   VSR-2v2T (win/loss) with the 2v2 file's own lambda / scale. The
  *   performance 2v2T shows on thug rows as context only. The meter needs
  *   exactly 4 playing players in a 2-2 layout (the lobby API cannot tell
  *   a spectator from a player, so the user ignores spectators by
@@ -337,7 +337,7 @@
 
   /**
    * Rating a phantom thug on the short side is worth under the empty-seat
-   * rule: the VTSR-T floor from elo_current.json, never a tuned number.
+   * rule: the VSR-T floor from elo_current.json, never a tuned number.
    */
   function emptySeatRating() {
     const meta = window.VTToolsResolver && window.VTToolsResolver.getEloMeta
@@ -348,7 +348,7 @@
 
   /**
    * Empty-seat rule. `n1` / `n2` are BODIES per side (commander included),
-   * `vals1` / `vals2` the thug VTSR-T lists. The side with fewer bodies gets
+   * `vals1` / `vals2` the thug VSR-T lists. The side with fewer bodies gets
    * one phantom floor-rated thug per missing seat, so a 4v3 no longer reads
    * as fair just because its averages match. Returns the padded lists plus
    * a descriptor for the UI; `active` is false when headcounts are equal.
@@ -392,7 +392,7 @@
    *
    * `assignment` defaults to the live `assignmentOverride`. Sums are kept
    * as the secondary material readout the community already reads; the
-   * PRIMARY number is `probT1` from the validated VTSR-C duel formula.
+   * PRIMARY number is `probT1` from the validated VSR-C duel formula.
    */
   function balanceState(assignment) {
     const map = assignment || assignmentOverride;
@@ -476,7 +476,7 @@
    *
    * OBJECTIVE (two modes):
    *   - Both commanders set: minimize |P - 0.5| under the validated
-   *     VTSR-C duel formula, tie-broken by |sum1 - sum2|. This is the
+   *     VSR-C duel formula, tie-broken by |sum1 - sum2|. This is the
    *     real upgrade over the legacy sum objective — because the
    *     commander gap is a fixed term in P, the search compensates a
    *     weaker commander with stronger thugs instead of pretending the
@@ -1105,14 +1105,14 @@
         <div class="vt-tools-balonce-banner vt-tools-balonce-banner--yellow">
           <i class="bi bi-info-circle me-1"></i>
           <strong>1 of 2 commanders set.</strong>
-          VTSR-C stays out of the prediction until both commanders are set. Suggest fills both slots and splits the thugs.
+          VSR-C stays out of the prediction until both commanders are set. Suggest fills both slots and splits the thugs.
           ${provisionalNote}
           ${fitNote}
         </div>
       `;
     }
     // Both set: the commander term is live, so the chip reports the real
-    // VTSR-C gap. No "different skills" disclaimer any more — the model
+    // VSR-C gap. No "different skills" disclaimer any more — the model
     // is now using the rating that actually measures commanding.
     const { cmdr1, cmdr2 } = getActiveCommanders();
     const gap = vtsrCOf(cmdr1) - vtsrCOf(cmdr2);
@@ -1125,7 +1125,7 @@
         const label = c.vtsrCUnrated ? 'unrated' : `${c.vtsrCGames} duels`;
         const tip = c.vtsrCUnrated
           ? `${c.displayName} has no rated commander games — the model debuts them at ${ANCHOR}.`
-          : `${c.displayName} has only ${c.vtsrCGames} rated commander duels, so their VTSR-C is still provisional.`;
+          : `${c.displayName} has only ${c.vtsrCGames} rated commander duels, so their VSR-C is still provisional.`;
         return `<span class="vt-tools-balonce-row-provisional ms-1" title="${escapeHtml(tip)}">${escapeHtml(c.displayName)}: ${escapeHtml(label)}</span>`;
       }).join('');
     return `
@@ -1171,7 +1171,7 @@
       <div class="vt-tools-balonce-banner vt-tools-balonce-banner--green">
         <i class="bi bi-check-circle me-1"></i>
         <strong>2v2 &middot; both commanders set.</strong>
-        Prediction is using VTSR-2v2C for the commanders and VTSR-2v2T (win/loss) for the thugs.
+        Prediction is using VSR-2v2C for the commanders and VSR-2v2T (win/loss) for the thugs.
         <span class="vt-tools-balonce-cmdr-delta-chip ms-2">${gapTxt}</span>
         ${newNote}
         ${basisNote}
@@ -1229,7 +1229,7 @@
     const team1 = state.teams[1];
     const team2 = state.teams[2];
     // Disadvantage is now keyed to the model's win probability, not the
-    // raw rating sum — a side can carry more total VTSR-T and still be
+    // raw rating sum — a side can carry more total VSR-T and still be
     // the underdog once the commander gap is in play.
     const disadvantaged = (is2v2() && twoVTwoProblem(state)) ? null : state.disadvantaged;
 
@@ -1280,18 +1280,18 @@
     const isCmdr = (team === 1 && commanderSetup.team1 === key)
                 || (team === 2 && commanderSetup.team2 === key);
     const cmdrChip = isCmdr ? '<span class="vt-tools-balonce-row-cmdrchip">CMDR</span>' : '';
-    // VTSR-T shows as a band chip, never a number.
+    // VSR-T shows as a band chip, never a number.
     const band = p.band || (p.tier != null && window.VTSRDisplay ? VTSRDisplay.rawBandFor(p.vtsr) : null);
     const tierBadge = (band && window.VTSRDisplay)
-      ? `<span class="vt-tools-balonce-row-tier">${VTSRDisplay.bandChipHtml(band, { compact: true, bsTooltip: false, title: `VTSR-T ${band.label}` })}</span>`
+      ? `<span class="vt-tools-balonce-row-tier">${VTSRDisplay.bandChipHtml(band, { compact: true, bsTooltip: false, title: `VSR-T ${band.label}` })}</span>`
       : '';
-    // Commanders carry TWO ratings: VTSR-C (numeric) is the one in the
-    // prediction; their VTSR-T band is shown for context only.
+    // Commanders carry TWO ratings: VSR-C (numeric) is the one in the
+    // prediction; their VSR-T band is shown for context only.
     const cmdrEloChip = isCmdr
       ? `<span class="vt-tools-balonce-row-cmdrelo${p.vtsrCUnrated ? ' is-unrated' : ''}"
              title="${escapeHtml(p.vtsrCUnrated
-               ? `No rated commander games yet — the model debuts ${p.displayName} at ${ANCHOR}. Their VTSR-T band is not part of the prediction.`
-               : `Commander rating (VTSR-C) over ${p.vtsrCGames} rated duel${p.vtsrCGames === 1 ? '' : 's'}. This is the term the prediction uses; their VTSR-T band is context only.`)}">C ${Math.round(vtsrCOf(p))}${p.vtsrCUnrated ? '*' : ''}</span>`
+               ? `No rated commander games yet — the model debuts ${p.displayName} at ${ANCHOR}. Their VSR-T band is not part of the prediction.`
+               : `Commander rating (VSR-C) over ${p.vtsrCGames} rated duel${p.vtsrCGames === 1 ? '' : 's'}. This is the term the prediction uses; their VSR-T band is context only.`)}">C ${Math.round(vtsrCOf(p))}${p.vtsrCUnrated ? '*' : ''}</span>`
       : '';
     const provisionalChip = p.isProvisional
       ? `<span class="vt-tools-balonce-row-provisional" title="${escapeHtml(p.isCustom ? 'Custom entry' : 'Provisional / unrated')}">${p.isCustom ? 'cust' : 'prov'}</span>`
@@ -1323,8 +1323,8 @@
   }
 
   /**
-   * 2v2 rows show 2v2 numbers. A commander carries VTSR-2v2C; a thug
-   * carries both VTSR-2v2T ratings, win/loss (used in the prediction)
+   * 2v2 rows show 2v2 numbers. A commander carries VSR-2v2C; a thug
+   * carries both VSR-2v2T ratings, win/loss (used in the prediction)
    * first and performance (context only) second.
    */
   function render2v2RowChips(p, isCmdr) {
@@ -1336,12 +1336,12 @@
     };
     if (isCmdr) {
       return chip('2v2C', p.vtsr2v2c, p.vtsr2v2cGames, p.vtsr2v2cProvisional,
-        'Commander 2v2 rating (VTSR-2v2C), used in the prediction.');
+        'Commander 2v2 rating (VSR-2v2C), used in the prediction.');
     }
     return chip('W/L', p.vtsr2v2tWl, p.vtsr2v2tWlGames, p.vtsr2v2tWlProvisional,
-      'Thug 2v2 win/loss rating (VTSR-2v2T), used in the prediction.')
+      'Thug 2v2 win/loss rating (VSR-2v2T), used in the prediction.')
       + chip('Perf', p.vtsr2v2tPerf, p.vtsr2v2tPerfGames, p.vtsr2v2tPerfProvisional,
-        'Thug 2v2 performance rating (VTSR-2v2T), shown for comparison only.', ' is-context');
+        'Thug 2v2 performance rating (VSR-2v2T), shown for comparison only.', ' is-context');
   }
 
   /**
@@ -1379,7 +1379,7 @@
 
   /**
    * The Balonce Meter. Primary number is the model's win probability
-   * (VTSR-C commander gap + thug VTSR-T handicap); the raw rating sums
+   * (VSR-C commander gap + thug VSR-T handicap); the raw rating sums
    * stay on as the secondary material readout the community reads.
    */
   function renderPlayedMeter() {
@@ -1390,8 +1390,8 @@
     const parts = [];
     if (Number.isFinite(state.cmdrGap)) {
       const gapTip = is2v2()
-        ? 'Commander rating gap (VTSR-2v2C), Team 1 minus Team 2.'
-        : 'Commander rating gap (VTSR-C), Team 1 minus Team 2. The strongest single term in the prediction.';
+        ? 'Commander rating gap (VSR-2v2C), Team 1 minus Team 2.'
+        : 'Commander rating gap (VSR-C), Team 1 minus Team 2. The strongest single term in the prediction.';
       parts.push(`<span class="vt-balonce-part" title="${gapTip}">Cmdr gap <span class="vt-mono">${signed(state.cmdrGap)}</span></span>`);
     }
     if (Number.isFinite(state.thugGap)) {
@@ -1421,7 +1421,7 @@
         // The corpus record for each reason class is a team-game record;
         // an empty object (not null) keeps the window fallback out of 2v2.
         validation: is2v2() ? {} : (validationSummary || null),
-        cmdrLabel: is2v2() ? 'VTSR-2v2C' : undefined,
+        cmdrLabel: is2v2() ? 'VSR-2v2C' : undefined,
         thugNoun: is2v2() ? 'thug' : undefined,
       }), { bsTooltip: false })
       : '';
@@ -1493,7 +1493,7 @@
     const seatActive = !!(state.seatRule && state.seatRule.active);
     if (n1 !== n2 && n1 > 0 && n2 > 0) {
       const tip = seatActive
-        ? `Teams are ${n1}v${n2}. The validated formula compares AVERAGE thug rating and would call this fair; here each empty seat on the short side is scored as a thug at the VTSR-T floor. Only ${SEAT_RULE_UNEVEN_GAMES_SEEN} rated games so far were uneven, so this is a house rule, not a validated term — the accuracy figure below is for even teams.`
+        ? `Teams are ${n1}v${n2}. The validated formula compares AVERAGE thug rating and would call this fair; here each empty seat on the short side is scored as a thug at the VSR-T floor. Only ${SEAT_RULE_UNEVEN_GAMES_SEEN} rated games so far were uneven, so this is a house rule, not a validated term — the accuracy figure below is for even teams.`
         : `Teams are ${n1}v${n2}. The prediction compares AVERAGE thug rating, so the extra body on the larger side is not reflected in the percentage.`;
       const label = seatActive
         ? `${n1}v${n2} \u2014 empty seat scored as a floor-rated thug`
@@ -1507,12 +1507,12 @@
     let claim;
     if (seatActive) {
       claim = rec
-        ? `Model: VTSR-C duel formula + empty-seat rule (even-team accuracy ${Math.round(rec.accuracy * 100)}% over ${rec.n} games)`
-        : 'Model: VTSR-C duel formula + empty-seat rule';
+        ? `Model: VSR-C duel formula + empty-seat rule (even-team accuracy ${Math.round(rec.accuracy * 100)}% over ${rec.n} games)`
+        : 'Model: VSR-C duel formula + empty-seat rule';
     } else {
       claim = rec
-        ? `Model: VTSR-C duel formula \u00b7 ${Math.round(rec.accuracy * 100)}% over ${rec.n} games`
-        : 'Model: VTSR-C duel formula';
+        ? `Model: VSR-C duel formula \u00b7 ${Math.round(rec.accuracy * 100)}% over ${rec.n} games`
+        : 'Model: VSR-C duel formula';
     }
 
     // --- ratings freshness: ratings change after every pushed match, and
@@ -1564,7 +1564,7 @@
     const recorded = (latest && Number.isFinite(latest.vtsr_2v2_n))
       ? latest.vtsr_2v2_n
       : (meta ? meta.wl_games_rated : null);
-    const pieces = ['Model: VTSR-2v2 ladders (experimental)'];
+    const pieces = ['Model: VSR-2v2 ladders (experimental)'];
     if (latest && Number.isFinite(latest.vtsr_2v2_accuracy) && Number.isFinite(latest.vtsr_2v2_n)) {
       pieces.push(`called ${Math.round(latest.vtsr_2v2_accuracy * 100)}% of ${latest.vtsr_2v2_n} 2v2 winners`);
     }
@@ -1796,7 +1796,7 @@
       </button>
       <button type="button" role="menuitem" data-vt-balonce-menu-action="vtstats"
               ${p.vtstatsUrl ? '' : 'disabled'}
-              title="${p.vtstatsUrl ? 'Open VT Stats profile' : 'No VT Stats profile for this player'}">
+              title="${p.vtstatsUrl ? 'Open VSR profile' : 'No VSR profile for this player'}">
         <i class="bi bi-bar-chart-fill" aria-hidden="true"></i>
         Player profile
       </button>

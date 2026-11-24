@@ -1,5 +1,5 @@
 /**
- * VT Stats — Balonce Meter (shared module).
+ * VSR — Balonce Meter (shared module).
  *
  * The community calls a lopsided lobby "getting PLAYED", so the balance
  * gauge is the Balonce Meter (misspell is the in-joke, same as Team
@@ -7,19 +7,19 @@
  *
  *   P(Team 1 wins) = 1 / (1 + 10^(-((Rc1 - Rc2) + lambda*(T1 - T2)) / scale))
  *
- *     Rc = commander VTSR-C   (anchor 1500 when unrated)
- *     T  = mean THUG VTSR-T per side (commanders excluded)
+ *     Rc = commander VSR-C   (anchor 1500 when unrated)
+ *     T  = mean THUG VSR-T per side (commanders excluded)
  *     lambda / scale read from the emitted JSON, never hardcoded here
  *
- * This is the VTSR-C expected-score function verbatim (see
+ * This is the VSR-C expected-score function verbatim (see
  * `scripts/elo_commander.py::expected_score` + `_team_thug_means`) — the
  * one the validator scores at 66.2% over 625 duels. Both surfaces run it
  * so the accuracy footer belongs to the formula actually on screen.
  *
- * Commander VTSR-T is DISPLAYED (each commander carries two ratings) but
- * deliberately NOT in the math: VTSR-C is outcome-pure, so a commander's
+ * Commander VSR-T is DISPLAYED (each commander carries two ratings) but
+ * deliberately NOT in the math: VSR-C is outcome-pure, so a commander's
  * own fighting is already priced into the wins it produced. Adding their
- * VTSR-T would double-count it. The promotion path is a pre-registered
+ * VSR-T would double-count it. The promotion path is a pre-registered
  * validator ablation, not an assumption.
  *
  * Status bands key off the FAVORITE's win probability:
@@ -64,7 +64,7 @@
   const DEFAULT_LAMBDA = 1.0;
   const DEFAULT_SCALE = 400;
 
-  // Fallbacks for the VTSR-C K curve, mirroring CMDR_K_BASE /
+  // Fallbacks for the VSR-C K curve, mirroring CMDR_K_BASE /
   // CMDR_K_FLOOR / CMDR_PROVISIONAL_PRIOR. Only reached if the emitted
   // JSON ever stops carrying them.
   const DEFAULT_CMDR_K_BASE = 40;
@@ -172,7 +172,7 @@
   /**
    * Commander display name for a side, or null. Prefers the leaderboard
    * row (which also carries the steam64 the links need) and falls back to
-   * the duel's own recorded name, so a commander whose VTSR-C had to be
+   * the duel's own recorded name, so a commander whose VSR-C had to be
    * reconstructed still gets named.
    */
   function commanderName(joined, side) {
@@ -197,7 +197,7 @@
   // ---------------------------------------------------------------- The model
 
   /**
-   * The VTSR-C expected score, team-1 perspective.
+   * The VSR-C expected score, team-1 perspective.
    *
    * Null-safe by design so every degradation path still renders:
    *   - missing commander rating  -> ANCHOR (that side debuts at 1500)
@@ -247,7 +247,7 @@
   /**
    * The shared gauge: gradient track, centre tick, chevron at
    * `probT1 * 100%` (so chevron-right == Team 1 favored == Team 2 getting
-   * played, matching the legacy delta-VTSR orientation), plus a
+   * played, matching the legacy delta-VSR orientation), plus a
    * three-slot footer.
    *
    * The in-track text is ALWAYS the band label — `Good game`,
@@ -475,7 +475,7 @@
   }
 
   /**
-   * Reconstruct a commander's pre-match VTSR-C by walking the duel log
+   * Reconstruct a commander's pre-match VSR-C by walking the duel log
    * for their last duel strictly before this match's date. Used on
    * matches with no duel row of their own (undetermined outcome), where
    * the pre-match read is still meaningful even though nothing was
@@ -505,10 +505,10 @@
   }
 
   /**
-   * Reconstruct a player's pre-match VTSR-T by walking `elo_history` for
+   * Reconstruct a player's pre-match VSR-T by walking `elo_history` for
    * their last rated delta strictly before this match's date.
    *
-   * This is EXACT, not an approximation: VTSR-T only ever moves when a
+   * This is EXACT, not an approximation: VSR-T only ever moves when a
    * player appears in a rated match, so `after` on their previous delta
    * IS the rating they carried into this one. (The v2.9-era inactivity
    * mechanism in scripts/elo.py boosts the K-FACTOR by days idle, not
@@ -562,7 +562,7 @@
   }
 
   /**
-   * The VTSR-C K-factor curve from scripts/elo_commander.py::k_factor,
+   * The VSR-C K-factor curve from scripts/elo_commander.py::k_factor,
    * with every constant read from the emitted JSON rather than hardcoded.
    */
   function cmdrKFactor(games, consts) {
@@ -699,7 +699,7 @@
 
     // A what-if with no shadow block has nothing to average, so the
     // handicap is rebuilt from the leaderboard using the pipeline's own
-    // predicate: thugs only (commanders are priced by VTSR-C) and rated
+    // predicate: thugs only (commanders are priced by VSR-C) and rated
     // rows only, so a camera-pod spectator, an idle thug, or a mid-match
     // dropout cannot drag a side's mean. Mirrors `_team_thug_means` plus
     // the v2.5 row gates. When a shadow block IS present the loop above already used
@@ -720,7 +720,7 @@
       t2Mean = meanFor(2);
     }
 
-    // Commander VTSR-C before the match.
+    // Commander VSR-C before the match.
     const cmdrBefore = { 1: null, 2: null };
     const cmdrAfter = { 1: null, 2: null };
     if (duel && duel.commanders) {
@@ -748,7 +748,7 @@
       scale: consts.scale,
     });
 
-    // Commander VTSR-T (display only — never in the probability).
+    // Commander VSR-T (display only — never in the probability).
     const cmdrThugElo = { 1: null, 2: null };
     for (const side of [1, 2]) {
       const row = commanders[side];
@@ -794,7 +794,7 @@
   }
 
   // Thug-team strength shown as its effect on win chance, never as a
-  // VTSR-T number: the same logistic as computeWinProb with the
+  // VSR-T number: the same logistic as computeWinProb with the
   // commander term removed.
   function thugWinShift(thugGap, consts) {
     const lambda = isNum(consts.lambda) ? consts.lambda : 1;
@@ -861,7 +861,7 @@
    *          teamLabel: (side: 1|2) => string, cmdrName: (side: 1|2) => ?string,
    *          validation?: object}} opts
    *   cmdrGap = Rc1 - Rc2 (null when the commander term is not in play);
-   *   thugGap = T1 - T2 (mean pre-match thug VTSR-T, null when unknown).
+   *   thugGap = T1 - T2 (mean pre-match thug VSR-T, null when unknown).
    * @returns {{key, label, favored: 1|2|null, text, tip}}
    */
   function mainReason(opts) {
@@ -884,7 +884,7 @@
     const thugSide = thugTerm > 0 ? 1 : 2;
     const cmdrSide = cmdrTerm > 0 ? 1 : 2;
 
-    const cl = o.cmdrLabel || 'VTSR-C';
+    const cl = o.cmdrLabel || 'VSR-C';
     const thugs = o.thugNoun || 'thugs';
     let text;
     if (key === 'even' || !favored) {
@@ -955,7 +955,7 @@
     const parts = [];
     if (isNum(cmdrGap)) {
       parts.push(`<span class="vt-balonce-part" data-bs-toggle="tooltip" data-bs-placement="top"
-        title="Commander rating gap (VTSR-C), team 1 minus team 2. The dominant term in the prediction.">Cmdr gap <span class="vt-mono">${fmtSigned(cmdrGap)}</span></span>`);
+        title="Commander rating gap (VSR-C), team 1 minus team 2. The dominant term in the prediction.">Cmdr gap <span class="vt-mono">${fmtSigned(cmdrGap)}</span></span>`);
     }
     if (isNum(thugGap)) {
       parts.push(thugEdgePartHtml(joined, thugGap, consts));
@@ -969,7 +969,7 @@
     // them, and the reader has to know that before reading any further.
     const chip = joined.hypothetical
       ? `<span class="vt-balonce-notrated" data-bs-toggle="tooltip" data-bs-placement="top"
-           title="${esc(notRatedSentence(joined))}, so it is excluded from VTSR-T and the commander ladder. The ratings below are the real ones both sides brought into it \u2014 only a rated result is missing.">
+           title="${esc(notRatedSentence(joined))}, so it is excluded from VSR-T and the commander ladder. The ratings below are the real ones both sides brought into it \u2014 only a rated result is missing.">
            <i class="bi bi-slash-circle me-1" aria-hidden="true"></i>Not rated \u00b7 ${esc(notRatedWord(joined))}</span>`
       : '';
 
@@ -1039,7 +1039,7 @@
     return {
       reason: joined.exclusionReason,
       sentence: notRatedSentence(joined)
-        + '. Neither branch happened, so VTSR-C did not change.',
+        + '. Neither branch happened, so VSR-C did not change.',
       rows,
     };
   }
@@ -1073,7 +1073,7 @@
         </div>
         <div class="vt-balonce-whatif-note">
           Neither branch happened. ${esc(notRatedSentence(joined))}, so no
-          commander rating moved and nobody's VTSR-T changed \u2014 this is
+          commander rating moved and nobody's VSR-T changed \u2014 this is
           only what a win or a loss would have been worth.
         </div>
         ${body}
@@ -1083,7 +1083,7 @@
   /**
    * "How it was going" — the shadow read on a cancelled or drawn match.
    *
-   * The result was lost, but the VTSR-T match score still measured the whole
+   * The result was lost, but the VSR-T match score still measured the whole
    * game, so this answers the question the crash left hanging: who was
    * actually out-playing their rating when the plug got pulled. Every
    * number comes from the never-applied `shadow` block in elo_history
@@ -1106,7 +1106,7 @@
         : diff < -0.05 ? 'was under-performing'
           : 'was playing to form';
       return `<div class="vt-balonce-perf ${cls}" data-bs-toggle="tooltip" data-bs-placement="top"
-        title="Mean of this side\u2019s players: what the VTSR-T match score (share of enemy damage) measured over the whole game, against what their pre-match ratings predicted for this lobby. Measured but never applied \u2014 the match was not rated.">
+        title="Mean of this side\u2019s players: what the VSR-T match score (share of enemy damage) measured over the whole game, against what their pre-match ratings predicted for this lobby. Measured but never applied \u2014 the match was not rated.">
         <span class="vt-balonce-perf-team">${phrase}</span>
         <span class="vt-balonce-perf-verdict">${verdict}</span>
         <span class="vt-mono">${fmtSigned(diff, 2)}</span>
@@ -1144,7 +1144,7 @@
       </div>`;
     }).join('');
 
-    // Per-player would-be VTSR-T moves, biggest swing first.
+    // Per-player would-be VSR-T moves, biggest swing first.
     const movers = joined.shadowDeltas
       .filter((d) => isNum(d.would_delta))
       .slice()
@@ -1168,7 +1168,7 @@
         </div>
         <div class="vt-balonce-whatif-note">
           The result does not rate, but the whole game was still recorded. This is
-          what the VTSR-T match score measured over those
+          what the VSR-T match score measured over those
           ${Math.round((joined.match.duration_sec || 0) / 60)} minutes \u2014
           measured, never applied.
         </div>
@@ -1387,7 +1387,7 @@
       const delta = (c.after - c.before);
       const cls = delta > 0 ? 'vt-vtsr-delta-positive' : delta < 0 ? 'vt-vtsr-delta-negative' : '';
       bits.push(`<span class="vt-balonce-chip" data-bs-toggle="tooltip" data-bs-placement="top"
-        title="Commander rating (VTSR-C) movement from this duel.">
+        title="Commander rating (VSR-C) movement from this duel.">
         ${esc(commanderName(joined, side) || `Team ${side}`)}
         <span class="vt-mono">${Math.round(c.before)} \u2192 ${Math.round(c.after)}</span>
         <span class="${cls} vt-mono">${fmtSigned(delta, 1)}</span></span>`);
@@ -1398,7 +1398,7 @@
 
   // Commander duel, first in "How it actually played out": the result
   // against the pre-match call, whether the main reason held, and the
-  // VTSR-C moves.
+  // VSR-C moves.
   const REASON_HELD = {
     commander_edge: ['the commander edge held', 'the commander edge did not hold'],
     thug_edge: ['the thug edge held', 'the thug edge did not hold'],
@@ -1488,7 +1488,7 @@
       const cls = diff > 0.05 ? 'is-positive' : diff < -0.05 ? 'is-negative' : '';
       const verdict = diff > 0.05 ? 'over-performed' : diff < -0.05 ? 'under-performed' : 'played to form';
       return `<div class="vt-balonce-perf ${cls}" data-bs-toggle="tooltip" data-bs-placement="top"
-        title="Mean of this side\u2019s rated players: what the VTSR-T match score (share of enemy damage) measured this match, against what their pre-match ratings predicted for this lobby.">
+        title="Mean of this side\u2019s rated players: what the VSR-T match score (share of enemy damage) measured this match, against what their pre-match ratings predicted for this lobby.">
         <span class="vt-balonce-perf-team">${phrase}</span>
         <span class="vt-balonce-perf-verdict">${verdict}</span>
         <span class="vt-mono">${fmtSigned(diff, 2)}</span>
@@ -1518,12 +1518,12 @@
   }
 
   // ---- 2v2 branch --------------------------------------------------
-  // A rated 2v2 has fewer than three a side, so VTSR-T and VTSR-C both
+  // A rated 2v2 has fewer than three a side, so VSR-T and VSR-C both
   // exclude it and the main join is unavailable. The separate 2v2
   // ladders carry the read instead: gauge and verdict from the stored
   // win/loss expectation, the commander and thug win/loss moves, and the
   // thugs' performance duel. Only games with a recorded winner are rated
-  // (ELO_2V2_SCHEMA_VERSION 4). VTSR-2v2T is not VTSR-T, so its numbers
+  // (ELO_2V2_SCHEMA_VERSION 4). VSR-2v2T is not VSR-T, so its numbers
   // are printed.
 
   function join2v2(currentData, g) {
@@ -1556,7 +1556,7 @@
 
   function twoVTwoChipHtml() {
     return `<a class="vt-balonce-notrated" href="elo/?tab=2v2c" data-bs-toggle="tooltip" data-bs-placement="top"
-         title="A 2v2 is rated on its own ladders (VTSR-2v2C for commanders, VTSR-2v2T for thugs), never on VTSR-T or VTSR-C. Those ladders are experimental.">
+         title="A 2v2 is rated on its own ladders (VSR-2v2C for commanders, VSR-2v2T for thugs), never on VSR-T or VSR-C. Those ladders are experimental.">
          <i class="bi bi-people me-1" aria-hidden="true"></i>2v2 ladder \u00b7 experimental</a>`;
   }
 
@@ -1567,11 +1567,11 @@
     const parts = [];
     if (isNum(cmdrGap)) {
       parts.push(`<span class="vt-balonce-part" data-bs-toggle="tooltip" data-bs-placement="top"
-        title="Commander 2v2 rating gap (VTSR-2v2C), Team 1 minus Team 2.">Cmdr gap <span class="vt-mono">${fmtSigned(cmdrGap)}</span></span>`);
+        title="Commander 2v2 rating gap (VSR-2v2C), Team 1 minus Team 2.">Cmdr gap <span class="vt-mono">${fmtSigned(cmdrGap)}</span></span>`);
     }
     if (isNum(thugGap)) {
       parts.push(`<span class="vt-balonce-part" data-bs-toggle="tooltip" data-bs-placement="top"
-        title="Thug 2v2 win/loss rating gap (VTSR-2v2T), Team 1 minus Team 2. It enters the prediction at lambda ${esc(String(j.consts.lambda))}.">Thug gap <span class="vt-mono">${fmtSigned(thugGap)}</span></span>`);
+        title="Thug 2v2 win/loss rating gap (VSR-2v2T), Team 1 minus Team 2. It enters the prediction at lambda ${esc(String(j.consts.lambda))}.">Thug gap <span class="vt-mono">${fmtSigned(thugGap)}</span></span>`);
     }
     const headline = fav.team
       ? `${esc(teamPhrase(j, fav.team))} favored <span class="vt-balonce-prob vt-mono">${fmtPct(fav.prob)}</span>`
@@ -1585,7 +1585,7 @@
       cmdrName: (s) => commanderName(j, s),
       // The corpus record per reason class is a team-game record.
       validation: {},
-      cmdrLabel: 'VTSR-2v2C',
+      cmdrLabel: 'VSR-2v2C',
       thugNoun: 'thug',
     });
     return `
@@ -1630,7 +1630,7 @@
         const c = j.commanders[s];
         const t = j.thugs[s];
         chips.push(move2v2ChipHtml(c, c && c.wl, '2v2C',
-          'Commander 2v2 rating (VTSR-2v2C) movement from this game.'));
+          'Commander 2v2 rating (VSR-2v2C) movement from this game.'));
         chips.push(move2v2ChipHtml(t, t && t.wl, '2v2T W/L',
           'Thug 2v2 win/loss rating movement. Commander and thug on a side move by the same amount here.'));
       }
@@ -1808,10 +1808,10 @@
 
   /**
    * Pre-match ratings for the Outcome team panels. Match-global: the
-   * player filter does not recompute these. Thug VTSR-T is each rated
-   * row's `before`. Commander VTSR-C is the duel (or reconstructed)
-   * rating the gauge uses; commander VTSR-T is context only. `avgT` is
-   * the mean thug VTSR-T, commander excluded — the handicap term.
+   * player filter does not recompute these. Thug VSR-T is each rated
+   * row's `before`. Commander VSR-C is the duel (or reconstructed)
+   * rating the gauge uses; commander VSR-T is context only. `avgT` is
+   * the mean thug VSR-T, commander excluded — the handicap term.
    */
   function rosterRatings(currentData) {
     const joined = joinMatch(currentData);

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VT Stats -- YouTube VOD timestamp mapper (operator tool).
+VSR -- YouTube VOD timestamp mapper (operator tool).
 
 Maps dashboard match-seconds ((tick - tick_range[0]) / tick_rate) onto
 YouTube video-seconds so any timestamped surface can emit
@@ -1485,7 +1485,7 @@ def run_self_test() -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="Map a YouTube VOD onto a VT Stats match clock.")
+        description="Map a YouTube VOD onto a VSR match clock.")
     p.add_argument("--match", help="match id (e.g. 2026-09-13T02-32-33)")
     p.add_argument("--video", help="YouTube URL or 11-char id")
     p.add_argument("--input", help="local video file (skip yt-dlp stream)")

@@ -1,5 +1,5 @@
 /**
- * VT Stats - Game Watch - Keyed DOM Reconciler (the no-flicker engine)
+ * VSR - Game Watch - Keyed DOM Reconciler (the no-flicker engine)
  *
  * Continuously-polled lists normally re-render via wholesale `innerHTML`,
  * which destroys DOM nodes every tick -> flicker, lost :hover/focus/expanded

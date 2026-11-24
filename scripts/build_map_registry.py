@@ -71,8 +71,8 @@ CATALOG_EXTRA_PATH = PROJECT_ROOT / "data" / "map-catalog-extra.json"
 
 IONDRIVER_BASE = "https://gamelistassets.iondriver.com/bzcc"
 USER_AGENT = (
-    "vt-stats registry-builder "
-    "(https://github.com/sevsunday/vt-stats)"
+    "vsr.bz registry-builder "
+    "(https://github.com/sevsunday/vsr.bz)"
 )
 HTTP_TIMEOUT_SEC = 10
 HTTP_RETRIES = 3

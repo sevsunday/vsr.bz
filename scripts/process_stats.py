@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VT Stats Processing Pipeline
+VSR Processing Pipeline
 
 Reads .binpb.gz protobuf session files from data/sessions/<username>/,
 aggregates match statistics, and outputs pre-computed JSON files to
@@ -12205,7 +12205,7 @@ def _parse_args():
     """CLI surface. Sync is default-on; opt out via --no-sync. See module docs."""
     parser = argparse.ArgumentParser(
         description=(
-            "VT Stats pipeline. Default behavior: sync upstream statsgate "
+            "VSR pipeline. Default behavior: sync upstream statsgate "
             "+ process only changed matches. Re-run after VTrider uploads "
             "with no flags."
         ),
@@ -12272,7 +12272,7 @@ def main():
     args = _parse_args()
     t0 = time.perf_counter()
 
-    print("VT Stats Processing Pipeline")
+    print("VSR Processing Pipeline")
     print("=" * 40)
 
     # --sync-only --force is allowed by argparse but --force is a no-op
@@ -13086,7 +13086,7 @@ def main():
 
     # Drop a stale seen-players.json from previous pipeline runs (the
     # PIPELINE_VERSION 5 -> 6 bump shipped a `seen-players.json` emit
-    # that fed the now-removed [VTstats] chip in the active-game modal).
+    # that fed the now-removed [VSR] chip in the active-game modal).
     # Reverting the emit but keeping the version bump avoids a third
     # forced reprocess.
     legacy_seen = OUTPUT_DIR / "seen-players.json"

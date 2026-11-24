@@ -1,5 +1,5 @@
 /**
- * VT Stats — front page for a bare visit to index.html.
+ * VSR — front page for a bare visit to index.html.
  *
  * Fetches matches.json, the two current rating files and player_slugs.json.
  * Live lobbies reuse the Game Watch card, loaded on demand. Rating history
@@ -917,7 +917,7 @@
   }
 
   // Last-10 bars for the personal cards. Rising lists keep the flat pills.
-  // Thug bars use the verdict words. Commander bars use the signed VTSR-C change.
+  // Thug bars use the verdict words. Commander bars use the signed VSR-C change.
   function formChart(hist, kind) {
     const vals = [];
     for (let i = 0; i < hist.length; i++) {
@@ -962,13 +962,13 @@
       let sum = 0;
       for (let i = 0; i < vals.length; i++) sum += vals[i];
       net = Math.round(sum);
-      netTitle = 'Net VTSR-C change over these games.';
+      netTitle = 'Net VSR-C change over these games.';
     }
     const sign = net > 0 ? 'up' : net < 0 ? 'down' : 'flat';
     const netText = (net > 0 ? '+' : '') + net;
     const label = kind === 'thug'
       ? 'Last ' + vals.length + ' games: ' + up + ' beat expectation, ' + flat + ' on par, ' + down + ' below. Net ' + netText
-      : 'Last ' + vals.length + ' commanded games. Net VTSR-C ' + netText;
+      : 'Last ' + vals.length + ' commanded games. Net VSR-C ' + netText;
     return {
       chart: '<div class="vt-home-form" role="img" aria-label="' + esc(label) + '">'
         + bars + '<i class="vt-home-form-zero" aria-hidden="true"></i></div>',

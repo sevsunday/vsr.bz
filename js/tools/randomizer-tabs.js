@@ -1,5 +1,5 @@
 /**
- * VT Stats - Tools Page - Randomizer Tabs
+ * VSR - Tools Page - Randomizer Tabs
  *
  * Wires up Bootstrap nav-pills behaviour on #vt-tools-randomizer-pills and
  * dispatches a `vt-tools:tab-shown` CustomEvent so each tool can re-paint

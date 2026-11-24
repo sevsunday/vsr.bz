@@ -1,5 +1,5 @@
 /**
- * VT Stats - Custom Cursor + Settings gear
+ * VSR - Custom Cursor + Settings gear
  *
  * Site-wide BZCC in-game cursor as a browser custom cursor, plus a topnav
  * "Settings" gear that toggles it on/off and tunes size + spin speed. All
@@ -308,17 +308,17 @@
       <div class="modal-content">
         <div class="modal-header border-bottom">
           <h5 class="modal-title" id="about-modal-title">
-            <i class="bi bi-info-circle me-2"></i>About VT Stats
+            <i class="bi bi-info-circle me-2"></i>About VSR
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <p class="mb-3 small text-muted">
-            VT Stats is a static dashboard for Battlezone: Combat Commander match statistics,
-            built on top of VT's protobuf-based stats collector.
+            VSR is a static dashboard for Battlezone: Combat Commander VSR match statistics.
+            The match data comes from VTrider's statsgate collector.
           </p>
-          ${aboutEntryHtml('Source repository', 'https://github.com/sevsunday/vt-stats', 'bi-github',
-            'sevsunday/vt-stats', "This website's source code.", true)}
+          ${aboutEntryHtml('Source repository', 'https://github.com/sevsunday/vsr.bz', 'bi-github',
+            'sevsunday/vsr.bz', "This website's source code.", true)}
           ${aboutEntryHtml("Stats collector (VT's repo)", 'https://github.com/VTrider/statsgate', 'bi-github',
             'VTrider/statsgate',
             'In-game client that captures match data and writes the <code>.binpb</code> sessions this dashboard consumes.', true)}

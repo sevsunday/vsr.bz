@@ -6,7 +6,7 @@
   <!-- Relative URLs resolve at the site root, so shared js/ and data/
        paths keep working from /matches/. -->
   <base href="../">
-  <title>VT Stats — Matches</title>
+  <title>VSR — Matches</title>
   <link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
   <link rel="stylesheet" href="css/theme-system.css">
@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="css/replay-quality.css">
   <link rel="stylesheet" href="css/gw.css">
   <link rel="stylesheet" href="css/matches.css">
-  <!-- KaTeX (vendored, v0.16.11). Used to pre-render VTSR-T methodology
+  <!-- KaTeX (vendored, v0.16.11). Used to pre-render VSR-T methodology
        math in the modal via katex.renderToString(); auto-render contrib is loaded
        only on docs/index.html. Fonts live in vendor/katex/fonts/ (woff2 only;
        modern browsers fall back through the @font-face source list). -->
@@ -32,7 +32,7 @@
     <nav class="navbar navbar-expand-md border-bottom">
     <div class="container-fluid px-3 px-md-4 gap-2">
       <a class="navbar-brand fw-bold" href="index.html" id="brand-home" style="color: var(--kb-text-primary); text-decoration: none;">
-        <i class="bi bi-crosshair me-1" style="color: var(--kb-primary);"></i>VT Stats
+        <i class="bi bi-crosshair me-1" style="color: var(--kb-primary);"></i>VSR
       </a>
 
       <!-- Active Game Indicator. Polls the live BZ2 lobby via window.BZ2API
@@ -245,7 +245,7 @@
       <div class="vt-preloader-ring" role="status">
         <span class="visually-hidden">Loading...</span>
       </div>
-      <div class="vt-preloader-brand"><i class="bi bi-crosshair me-1" style="color: var(--kb-primary);"></i>VT Stats</div>
+      <div class="vt-preloader-brand"><i class="bi bi-crosshair me-1" style="color: var(--kb-primary);"></i>VSR</div>
       <div class="vt-preloader-detail">
         <div class="vt-preloader-status" id="vt-boot-title" aria-live="polite">Loading match data</div>
         <ol class="vt-preloader-log" id="vt-boot-log"></ol>
@@ -388,7 +388,7 @@
         <li class="nav-item d-none" role="presentation" id="tab-economy-li">
           <button class="nav-link" id="tab-economy-btn" data-bs-toggle="pill" data-bs-target="#tab-economy" type="button" role="tab" aria-controls="tab-economy" aria-selected="false">Economy</button>
         </li>
-        <!-- Per-match Elo (VTSR-T). Always visible; empty-state when the
+        <!-- Per-match Elo (VSR-T). Always visible; empty-state when the
              match was excluded from rating or elo_history is missing.
              Match-global (highlights passthrough) — the player filter only
              preselects a row. -->
@@ -553,10 +553,10 @@
                   <th data-sort="kills" class="text-end">Kills</th>
                   <th data-sort="deaths" class="text-end">Deaths</th>
                   <th data-sort="elo_delta" class="text-end">
-                    <i class="bi bi-graph-up-arrow me-1"></i>VTSR-T
+                    <i class="bi bi-graph-up-arrow me-1"></i>VSR-T
                     <i class="bi bi-info-circle vt-col-info ms-1"
                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
-                       title="<strong>VTSR-T this game</strong><br>How this match went against what the player&rsquo;s rating expected: Beat expectation, On par, or Below expectation.<br>On a cancelled or drawn match the chip was measured and not applied &mdash; VTSR-T did not change.<br>&mdash; when the lobby never entered rating."></i>
+                       title="<strong>VSR-T this game</strong><br>How this match went against what the player&rsquo;s rating expected: Beat expectation, On par, or Below expectation.<br>On a cancelled or drawn match the chip was measured and not applied &mdash; VSR-T did not change.<br>&mdash; when the lobby never entered rating."></i>
                   </th>
                   <th data-sort="asset_dealt" class="text-end">
                     Unit Dmg
@@ -718,7 +718,7 @@
       </div>
 
       <!-- Tab: Elo (commander duel first when one exists, then per-match
-           VTSR-T). Rendered by js/match-elo.js (window.VTMatchElo).
+           VSR-T). Rendered by js/match-elo.js (window.VTMatchElo).
            Match-global, always unfiltered (highlights passthrough); the
            player filter only preselects. A cancelled or drawn match with
            a shadow block shows that preview and says neither rating
@@ -755,7 +755,7 @@
         <div class="card mb-4 d-none" id="section-match-elo-lobby">
           <div class="card-header d-flex align-items-center justify-content-between">
             <h5 class="mb-0">Lobby rating moves</h5>
-            <span class="vt-match-elo-why d-none d-md-inline" id="match-elo-lobby-why">how this match changed each player's VTSR-T — click a row</span>
+            <span class="vt-match-elo-why d-none d-md-inline" id="match-elo-lobby-why">how this match changed each player's VSR-T — click a row</span>
           </div>
           <div class="card-body" id="match-elo-lobby-body"></div>
         </div>
@@ -1000,7 +1000,7 @@
                     T-Key
                     <i class="bi bi-info-circle vt-col-info ms-1"
                        data-bs-toggle="tooltip" data-bs-placement="top"
-                       title="Share of the match with a T-key target lock active. Display only; not part of VTSR-T."></i>
+                       title="Share of the match with a T-key target lock active. Display only; not part of VSR-T."></i>
                   </th>
                 </tr>
               </thead>
@@ -1587,8 +1587,8 @@
   <script src="js/vtsr-display.js"></script>
   <script src="js/match-elo.js"></script>
   <script src="js/match-you.js"></script>
-  <!-- Balonce Meter: shared win-probability model (VTSR-C commander gap +
-       thug VTSR-T handicap) + the per-match Outcome-card read
+  <!-- Balonce Meter: shared win-probability model (VSR-C commander gap +
+       thug VSR-T handicap) + the per-match Outcome-card read
        (#outcome-read / #outcome-after inside #section-faction).
        Also loaded by tools/index.html, where Team Balonce renders the same
        gauge. Owns the shared 404-safe elo_commander_history loader that
@@ -1620,7 +1620,7 @@
        gear dropdown into .vt-nav-menu and runs the BZCC cursor overlay. -->
   <script src="js/cursor-settings.js"></script>
   <script type="module" src="js/replay-quality.js?v=rqsite2"></script>
-  <!-- Shared VTSR-T explainer content + annotated-stage engine (also
+  <!-- Shared VSR-T explainer content + annotated-stage engine (also
        loaded by elo/index.html). Must precede app.js: renderVtsrTeaser()
        reads window.VTSRExplain for the methodology modal body. -->
   <script src="js/vtsr-explainers.js"></script>

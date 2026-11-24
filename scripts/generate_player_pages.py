@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VT Stats — Player Profile Page Generator
+VSR — Player Profile Page Generator
 
 Owns two concerns:
 
@@ -39,7 +39,7 @@ import vtsr_bands
 # Production host. Used to build absolute URLs (og:url, twitter:url,
 # canonical) so embedded link previews resolve even when shared without
 # the host prefix. CNAME in repo root is the source of truth.
-SITE_URL = "https://vtstats.bz"
+SITE_URL = "https://vsr.bz"
 
 # Bumped whenever the rendered stub HTML changes shape (new meta tag,
 # new template placeholder, new section in the static fold, etc.).
@@ -85,7 +85,8 @@ SITE_URL = "https://vtstats.bz"
 # v33 replaces the Dashboard link with a Matches dropdown
 # (Browse matches, Most recent).
 # v34 adds YouTube to the Tools dropdown, after Discord Time.
-PLAYER_TEMPLATE_VERSION = 34
+# v35 rebrands the site to VSR on vsr.bz.
+PLAYER_TEMPLATE_VERSION = 35
 
 # Pre-gen stub path within the repo. Each player slug becomes
 # `player/<slug>/index.html`. The directory is created if missing,
@@ -528,7 +529,7 @@ def run(
 # Sentinel value emitted into og:description when the player has no
 # rated matches yet. We still build a stub so the slug-URL exists for
 # cross-linking, but the OG copy needs to be honest about the absence.
-_NO_VTSR_FALLBACK_DESC = "VT Stats career profile."
+_NO_VTSR_FALLBACK_DESC = "VSR career profile."
 
 
 def _load_template(project_root: Path) -> str:
@@ -606,7 +607,7 @@ def _player_og_summary(rating: dict, slug_map: dict) -> dict:
     desc_parts.append(role)
     description = " · ".join(desc_parts) if desc_parts else _NO_VTSR_FALLBACK_DESC
 
-    og_title = f"{name} — VT Stats"
+    og_title = f"{name} — VSR"
     og_description = description
 
     return {
@@ -740,7 +741,7 @@ def _alias_trampoline_html(target_slug: str) -> str:
         '<html lang="en">\n'
         "<head>\n"
         '  <meta charset="utf-8">\n'
-        "  <title>VT Stats</title>\n"
+        "  <title>VSR</title>\n"
         '  <meta name="robots" content="noindex">\n'
         f'  <meta http-equiv="refresh" content="0;url={_html_escape(dest)}">\n'
         f'  <link rel="canonical" href="{_html_escape(canonical)}">\n'

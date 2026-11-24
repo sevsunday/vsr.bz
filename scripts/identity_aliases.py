@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VT Stats — Silent Steam64 identity aliases.
+VSR — Silent Steam64 identity aliases.
 
 Single source of truth for "these two Steam accounts are the same person,
 merge them SILENTLY". An alias rewrites the SOURCE Steam64 to the TARGET

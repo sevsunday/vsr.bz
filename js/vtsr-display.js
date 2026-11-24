@@ -1,10 +1,10 @@
 /*
- * VT Stats — shared VTSR-T display layer (window.VTSRDisplay).
+ * VSR — shared VSR-T display layer (window.VTSRDisplay).
  *
- * VTSR-T is never shown to players as a number. Every surface renders
+ * VSR-T is never shown to players as a number. Every surface renders
  * it as a band (tier + Upper / Lower half), a fuzzy position bar inside
  * the tier, and per-game changes as Beat / On par / Below expectation.
- * Team VTSR-T gaps are shown as their effect on win chance, through the
+ * Team VSR-T gaps are shown as their effect on win chance, through the
  * same logistic the Balonce gauge uses.
  *
  * Band rules come from elo_current.json `band_config` (scripts/vtsr_bands.py)
@@ -244,7 +244,7 @@
     return out;
   }
 
-  // Effect of a team VTSR-T gap on win chance, in [-0.5, 0.5]. Same
+  // Effect of a team VSR-T gap on win chance, in [-0.5, 0.5]. Same
   // logistic as scripts/elo_commander.py expected_score with the
   // commander term removed.
   function gapToWinShift(gap, lambda, scale) {

@@ -1,5 +1,5 @@
 /**
- * VT Stats — Effects Engine
+ * VSR — Effects Engine
  *
  * Runtime visual effects: animated number counters, staggered card entrances,
  * tab-entrance animations, heatmap cell stagger, Chart.js shadow plugin,

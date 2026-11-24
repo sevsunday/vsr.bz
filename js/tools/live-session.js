@@ -1,5 +1,5 @@
 /**
- * VT Stats - Tools Page - Live Session module
+ * VSR - Tools Page - Live Session module
  *
  * Polls the MultiplayerSessionList API via the vendored `BZ2API`, filters to
  * known-host VSR sessions, fills team names from the local map registry

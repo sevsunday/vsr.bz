@@ -1,5 +1,5 @@
 /**
- * VT Stats - Game Watch - Main orchestration
+ * VSR - Game Watch - Main orchestration
  *
  * Wires the poller, the local map enricher, the identity resolver, and the
  * keyed reconciler into the /gw page:

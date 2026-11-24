@@ -1,5 +1,5 @@
 /**
- * VT Stats - Tools Page - Drand Source
+ * VSR - Tools Page - Drand Source
  *
  * Application-layer wrapper around vendor/drand/drand-quicknet.js plus
  * a built-in health monitor. Single source of truth for ALL verifiable

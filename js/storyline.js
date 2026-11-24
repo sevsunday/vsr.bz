@@ -1,4 +1,4 @@
-// VT Stats — Storyline tab renderer.
+// VSR — Storyline tab renderer.
 //
 // Renders the pipeline-computed `storyline` block (match.schema_version 22:
 // bucketed lanes + wire-enum band segments + curated beats + typed facts +

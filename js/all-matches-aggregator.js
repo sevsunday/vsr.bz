@@ -1,5 +1,5 @@
 /**
- * VT Stats - All Matches Aggregator (client-side)
+ * VSR - All Matches Aggregator (client-side)
  *
  * Pure, deterministic re-implementation of the cross-match aggregation
  * step that used to live in scripts/process_stats.py's
@@ -74,7 +74,7 @@
       total_deaths: 0,
       // v2.3: PvP/PvE kill+death split. Drives the Career Leaderboard's
       // compact `TOTAL (PvP/PvE)` chips on Kills/Deaths cells and the
-      // VTSR-T leaderboard's PvP K/D column.
+      // VSR-T leaderboard's PvP K/D column.
       total_pvp_kills: 0,
       total_pve_kills: 0,
       total_pvp_deaths: 0,
@@ -1151,7 +1151,7 @@
         total_deaths:        c.total_deaths,
         // v2.3: PvP/PvE kill+death career totals. Drive the Career
         // Leaderboard's compact `TOTAL (PvP/PvE)` chips and the
-        // VTSR-T leaderboard's PvP K/D column.
+        // VSR-T leaderboard's PvP K/D column.
         total_pvp_kills:     c.total_pvp_kills,
         total_pve_kills:     c.total_pve_kills,
         total_pvp_deaths:    c.total_pvp_deaths,
@@ -1686,7 +1686,7 @@
     }
 
     // ---------- Flavor B: cross-match-only (11) ----------
-    // No VTSR-T card: VTSR-T renders as a band, never a ranked number.
+    // No VSR-T card: VSR-T renders as a band, never a ranked number.
 
     cards.push(makeCard('the_veteran',
       [...careerStatsKept].sort((a, b) => (b.matches_played || 0) - (a.matches_played || 0)),

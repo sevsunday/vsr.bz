@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Human outcome adjudication for the VT Stats pipeline.
+"""Human outcome adjudication for the VSR pipeline.
 
 The proto v3 collector asks the match HOST for the outcome via an in-game
 dialog, but the first real batch proved that attestation is noisy human

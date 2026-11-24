@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VT Stats -- batch inbox for YouTube VOD mappings.
+VSR -- batch inbox for YouTube VOD mappings.
 
 Reads data/external/match_video_queue.json (operator-edited match ->
 channel/url pairs) and runs scripts/map_match_video.py for each pair

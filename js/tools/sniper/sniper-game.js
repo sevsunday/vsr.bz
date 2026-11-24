@@ -1,5 +1,5 @@
 /**
- * VT Stats - Tools Page - Sniper Picker Game (Three.js scene)
+ * VSR - Tools Page - Sniper Picker Game (Three.js scene)
  *
  * ES module. Mounts a Three.js scene inside a stage element and runs
  * a first-person scope-aim mini-game where each silhouette target on

@@ -1,5 +1,5 @@
 /**
- * VT Stats - Tools Page - Main Bootstrap
+ * VSR - Tools Page - Main Bootstrap
  *
  * Owns the page-level state machine, wires every section module, and
  * implements the cross-cutting toggles (Mode, Lock lobby, Ignore live,
@@ -281,13 +281,13 @@
     renderRosterManualControls();
   }
 
-  // VTSR-T band chip for a resolved player (never the number). Falls back
+  // VSR-T band chip for a resolved player (never the number). Falls back
   // to the raw band for players without a pipeline band.
   function bandBadgeHtml(p) {
     if (!window.VTSRDisplay) return p.tier != null ? `T${p.tier}` : '?';
     const band = p.band || (Number.isFinite(p.vtsr) ? VTSRDisplay.rawBandFor(p.vtsr) : null);
     if (!band) return '?';
-    return VTSRDisplay.bandChipHtml(band, { compact: true, bsTooltip: false, title: `VTSR-T ${band.label}` });
+    return VTSRDisplay.bandChipHtml(band, { compact: true, bsTooltip: false, title: `VSR-T ${band.label}` });
   }
 
   function renderRosterRow(p, idx) {
@@ -306,7 +306,7 @@
       : '';
     const vtstatsLink = p.vtstatsUrl
       ? `<a href="${escapeHtml(p.vtstatsUrl)}" target="_blank" rel="noopener noreferrer"
-            class="vt-tools-roster-row-iconlink" title="Open VT Stats profile" aria-label="Open VT Stats profile">
+            class="vt-tools-roster-row-iconlink" title="Open VSR profile" aria-label="Open VSR profile">
            <i class="bi bi-bar-chart-fill"></i>
          </a>`
       : '';
@@ -593,7 +593,7 @@
     const sorted = list.slice();
     switch (pickerSortMode) {
       case 'vtsrc-desc':
-        // VTSR-C (commander win/loss rating). VTSR-T is never a sort key.
+        // VSR-C (commander win/loss rating). VSR-T is never a sort key.
         sorted.sort((a, b) => {
           const va = Number.isFinite(a.vtsrC) ? a.vtsrC : -Infinity;
           const vb = Number.isFinite(b.vtsrC) ? b.vtsrC : -Infinity;

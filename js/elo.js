@@ -1,14 +1,14 @@
 /* js/elo.js — dedicated ELO page controller (elo/index.html).
  *
  * The project's canonical home for both rating ladders: the full sortable
- * VTSR-T leaderboard with per-row expandable detail panels (moved here from
+ * VSR-T leaderboard with per-row expandable detail panels (moved here from
  * the dashboard's All Matches view, which now shows a top-5 teaser), the
- * VTSR-C commander ladder, and four explainer tabs that present the ratings
+ * VSR-C commander ladder, and four explainer tabs that present the ratings
  * in layman-first language:
  *
- *   VTSR-C Elo (default)    — sortable experimental commander-ladder
+ *   VSR-C Elo (default)    — sortable experimental commander-ladder
  *                             table (explainer lives on How).
- *   VTSR-T                  — tier-grouped ladder + detail panels
+ *   VSR-T                  — tier-grouped ladder + detail panels
  *                             (no # ranks; noise-band tie chips).
  *   How it works            — annotated ΔR = K(P−E) stage + the 13.1
  *                             α-blend stage + the commander-ladder section
@@ -24,25 +24,26 @@
  * player_slugs.json (player links), validation_summary.json (noise band
  * + accuracy tab), and match_contributions.json -> VTAggregate.build()
  * for the corpus-wide career_stats[] the leaderboard joins its Ship /
- * K/D / Acc columns from. VTSR-T renders as bands and verdicts through
- * js/vtsr-display.js, never as a number; VTSR-C keeps its numbers.
+ * K/D / Acc columns from. VSR-T renders as bands and verdicts through
+ * js/vtsr-display.js, never as a number; VSR-C keeps its numbers.
  *
- * Corpus-wide and picker-unaware (mirrors the VTSR-T contract). The
+ * Corpus-wide and picker-unaware (mirrors the VSR-T contract). The
  * v2.7 thug-only alt pair and the wins-weighted preview are retired.
- * Published VTSR-T is always elo_current.json (alpha 0).
+ * Published VSR-T is always elo_current.json (alpha 0).
  *
- * The 1v1 pill (VTSR-1v1, elo_1v1_current.json + elo_1v1_history.json)
+ * The 1v1 pill (VSR-1v1, elo_1v1_current.json + elo_1v1_history.json)
  * is a third, separate ladder: plain Elo over recorded head-to-head games.
  * The 2v2C and 2v2T pills (elo_2v2_current.json + elo_2v2_history.json)
  * are separate top-level pills. The thug pane switches between its two
  * ratings with &view=perf|wl|compare. The four explainer pills stay in
  * the markup with d-none; their panes and ?tab= links still work.
  *
- * URL routing: ?tab=vtsr-c|vtsr-t|1v1|2v2c|2v2t|how|axes|fairness|accuracy (replaceState
+ * URL routing: ?tab=vsr-c|vsr-t|1v1|2v2c|2v2t|how|axes|fairness|accuracy (replaceState
  * sync on pill change; deep links boot straight into the right pane). The
- * VTSR-C pane is the default and writes no ?tab= at all. `vtsr-t` opens
- * the thug board; `leaderboard` is a permanent inbound alias rewritten to
- * `vtsr-t`. A legacy ?rating=wins with no tab still opens the thug board
+ * VSR-C pane is the default and writes no ?tab= at all. `vsr-t` opens
+ * the thug board; `vtsr-c` / `vtsr-t` (pre-rebrand) and `leaderboard`
+ * (pre-split) are permanent inbound aliases rewritten to the canonical
+ * slug. A legacy ?rating=wins with no tab still opens the thug board
  * and the param is dropped.
  */
 (function () {
@@ -158,7 +159,7 @@
   const state = {
     elo: null,            // canonical elo_current.json (null on 404)
     eloHistory: null,
-    cmdrElo: null,        // elo_commander_current.json (null on 404 — VTSR-C card hides)
+    cmdrElo: null,        // elo_commander_current.json (null on 404 — VSR-C card hides)
     cmdrHistory: null,    // elo_commander_history.json (null on 404 — detail panels degrade)
     v1Elo: null,          // elo_1v1_current.json (null on 404 — 1v1 card hides)
     v1History: null,      // elo_1v1_history.json (null on 404 — game logs degrade)
@@ -649,7 +650,7 @@
     const winRateStr = winN > 0 ? `${Math.round(((winW + 0.5 * winD) / winN) * 100)}%` : '\u2014';
     const winRecordStr = winD > 0 ? `${winW}\u2013${winL}\u2013${winD}` : `${winW}\u2013${winL}`;
     const winRateTip = winN > 0
-      ? `${winRecordStr} \u00b7 ${winN} decided rated ${winN === 1 ? 'match' : 'matches'}. How often this player's team won. Camera-pod, partial, and idle rows are left out; only matches with a recorded winner are rated. This does not move VTSR-T.`
+      ? `${winRecordStr} \u00b7 ${winN} decided rated ${winN === 1 ? 'match' : 'matches'}. How often this player's team won. Camera-pod, partial, and idle rows are left out; only matches with a recorded winner are rated. This does not move VSR-T.`
       : 'No decided rated matches';
 
     const peakBand = VTSRDisplay.rawBandFor(r.peak_vtsr || r.vtsr);
@@ -762,7 +763,7 @@
     const $banner = document.getElementById('vtsr-ladder-banner');
     if ($banner) {
       $banner.innerHTML = `<div class="alert alert-secondary py-2 px-3 mb-3 small">
-        VTSR-T is a performance rating, not a win/loss Elo. It moves when you play better or worse than expected, and winning the game does not move it.
+        VSR-T is a performance rating, not a win/loss Elo. It moves when you play better or worse than expected, and winning the game does not move it.
       </div>`;
     }
 
@@ -825,14 +826,14 @@
   }
 
   // ----------------------------------------------------------------------
-  // VTSR-C commander ladder (experimental). Separate ladder from VTSR-T:
+  // VSR-C commander ladder (experimental). Separate ladder from VSR-T:
   // outcome-pure win/loss ELO between the two commanders of every
   // determined match, with a team-strength handicap in the expected
   // score. 404-safe (card hidden when elo_commander_current.json is
   // absent).
   // ----------------------------------------------------------------------
 
-  // Friendly labels for the VTSR-C economy axes (mirror of the frozen
+  // Friendly labels for the VSR-C economy axes (mirror of the frozen
   // formulas in critique/decisions/vtsr-c-v2-composite.md, 2026-10-23).
   // Every axis is measured across the whole game.
   const CMDR_ECON_AXIS_META = {
@@ -877,7 +878,7 @@
     return out;
   }
 
-  /** Expandable detail panel for one VTSR-C ladder row: duel log (last 5)
+  /** Expandable detail panel for one VSR-C ladder row: duel log (last 5)
       + the most recent telemetry duel's econ-axis breakdown (v2). */
   function renderCmdrDetail(r) {
     const entries = cmdrDuelsFor(r);
@@ -1160,7 +1161,7 @@
             <th>#</th>
             <th data-sort="name">Commander</th>
             <th data-sort="vtsr_c" class="text-end${cmdrSortState.key === 'vtsr_c' ? ' sort-active' : ''}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
-                title="<strong>VTSR-C</strong><br>Commander rating. Classic win/loss ELO (anchor 1500, scale 400, symmetric K 40&rarr;20) with a team-strength handicap in the expected score.">VTSR-C</th>
+                title="<strong>VSR-C</strong><br>Commander rating. Classic win/loss ELO (anchor 1500, scale 400, symmetric K 40&rarr;20) with a team-strength handicap in the expected score.">VSR-C</th>
             <th data-sort="record" class="text-end${cmdrSortState.key === 'record' ? ' sort-active' : ''}">Record</th>
             <th data-sort="win_pct" class="text-end${cmdrSortState.key === 'win_pct' ? ' sort-active' : ''}">Win %</th>
             <th data-sort="matches_commanded_rated" class="text-end${cmdrSortState.key === 'matches_commanded_rated' ? ' sort-active' : ''}" data-bs-toggle="tooltip" data-bs-placement="top"
@@ -1175,7 +1176,7 @@
     </div>`;
   }
 
-  // The VTSR-C pill is a sortable table (mirrors the VTSR-T pane); the
+  // The VSR-C pill is a sortable table (mirrors the VSR-T pane); the
   // ladder's explainer lives on the How-it-works pill. Lazy first paint
   // like the explainer tabs — sort clicks re-call this directly.
   // Ranked vs Unranked is a display split (schema 4 eligibility flag);
@@ -1274,8 +1275,8 @@
   }
 
   // ----------------------------------------------------------------------
-  // 1v1 ladder (VTSR-1v1). Same Ranked / Unranked split and expandable
-  // rows as VTSR-C; no handicap, no telemetry chips, no F9 games.
+  // 1v1 ladder (VSR-1v1). Same Ranked / Unranked split and expandable
+  // rows as VSR-C; no handicap, no telemetry chips, no F9 games.
   // ----------------------------------------------------------------------
 
   let v1SortState = { key: 'rating', asc: false };
@@ -1442,7 +1443,7 @@
           <th class="vt-vtsr-expand-col"></th>
           <th>#</th>
           <th data-sort="name">Player</th>
-          ${th('rating', 'Rating', ` data-bs-toggle="tooltip" data-bs-placement="top" title="VTSR-1v1: plain win/loss Elo over recorded 1v1s (anchor 1500, scale 400, shared K 40 to 20)."`)}
+          ${th('rating', 'Rating', ` data-bs-toggle="tooltip" data-bs-placement="top" title="VSR-1v1: plain win/loss Elo over recorded 1v1s (anchor 1500, scale 400, shared K 40 to 20)."`)}
           ${th('record', 'W-L-D')}
           ${th('win_pct', 'Win %')}
           ${th('games', 'Games')}
@@ -1478,7 +1479,7 @@
 
     const banner = `<div class="alert alert-secondary py-2 px-3 mb-3 small">
       Head-to-head games only: one player on each side, both commanding. Plain Elo, no thug handicap,
-      and separate from VTSR-C and VTSR-T. Ranked players have at least ${fmt(min)} rated 1v1s and a game
+      and separate from VSR-C and VSR-T. Ranked players have at least ${fmt(min)} rated 1v1s and a game
       of any kind within ${fmt(win)} days of the newest match. Players with fewer than ${fmt(provN)} rated
       1v1s are still settling in.
     </div>`;
@@ -1527,7 +1528,7 @@
   }
 
   // ----------------------------------------------------------------------
-  // 2v2 ladders (VTSR-2v2C + VTSR-2v2T). Three ratings from
+  // 2v2 ladders (VSR-2v2C + VSR-2v2T). Three ratings from
   // elo_2v2_current.json `ladders`: commander (win/loss), thug_wl
   // (win/loss, same walk) and thug_perf (thug-vs-thug damage duel).
   // ----------------------------------------------------------------------
@@ -1685,9 +1686,9 @@
   }
 
   const V2_RATING_TIPS = {
-    commander: 'VTSR-2v2C: win/loss Elo for 2v2 commanders. The win chance counts both commanders and both thugs (anchor 1500, scale 400, K 40 to 20).',
-    thug_wl: 'VTSR-2v2T (win/loss): the thug moves with the game result, in the same walk as the commanders.',
-    thug_perf: 'VTSR-2v2T (performance): each game is a duel between the two thugs over their share of the enemy damage. The result does not move it.',
+    commander: 'VSR-2v2C: win/loss Elo for 2v2 commanders. The win chance counts both commanders and both thugs (anchor 1500, scale 400, K 40 to 20).',
+    thug_wl: 'VSR-2v2T (win/loss): the thug moves with the game result, in the same walk as the commanders.',
+    thug_perf: 'VSR-2v2T (performance): each game is a duel between the two thugs over their share of the enemy damage. The result does not move it.',
   };
 
   function renderV2Row(r, c, rank, ladder) {
@@ -1846,7 +1847,7 @@
       ? 'Two commanders, each with one thug. Win/loss Elo for the commander; the win chance counts both commanders and both thugs.'
       : 'Two commanders, each with one thug. Two thug ratings run side by side for now.';
     return `<div class="alert alert-secondary py-2 px-3 mb-3 small">
-      ${lead} Separate from VTSR-C, VTSR-T and VTSR-1v1. Camera-pod spectators don&rsquo;t count as players;
+      ${lead} Separate from VSR-C, VSR-T and VSR-1v1. Camera-pod spectators don&rsquo;t count as players;
       a 2v2 where someone was idle or left early isn&rsquo;t rated. Built from ${fmt(rec)} recorded
       2v2${rec === 1 ? '' : 's'}. Experimental: everyone started at 1500 and most players have only a few games.
     </div>`;
@@ -1946,14 +1947,15 @@
   // Tab routing (?tab=) + lazy renderers.
   // ----------------------------------------------------------------------
 
-  // The VTSR-C pane is the default: it never writes a ?tab= at all.
-  // `vtsr-t` is listed before `leaderboard` so the thug pane emits vtsr-t.
-  // `leaderboard` stays as a permanent inbound alias for pre-split links.
+  // The VSR-C pane is the default: it never writes a ?tab= at all.
+  // The first key per target is the slug that pane emits, so canonical
+  // slugs come before their aliases. `vtsr-c` / `vtsr-t` (pre-rebrand) and
+  // `leaderboard` (pre-split) stay as permanent inbound aliases.
   const DEFAULT_TAB_TARGET = '#elo-tab-vtsr-c';
   const THUG_TAB_TARGET = '#elo-tab-leaderboard';
   const TAB_SLUGS = {
-    'vtsr-c': DEFAULT_TAB_TARGET,
-    'vtsr-t': THUG_TAB_TARGET,
+    'vsr-c': DEFAULT_TAB_TARGET,
+    'vsr-t': THUG_TAB_TARGET,
     '1v1': '#elo-tab-1v1',
     '2v2c': '#elo-tab-2v2c',
     '2v2t': '#elo-tab-2v2t',
@@ -1962,6 +1964,8 @@
     axes: '#elo-tab-axes',
     fairness: '#elo-tab-fairness',
     accuracy: '#elo-tab-accuracy',
+    'vtsr-c': DEFAULT_TAB_TARGET,
+    'vtsr-t': THUG_TAB_TARGET,
     leaderboard: THUG_TAB_TARGET,
   };
   const tabRendered = {};
@@ -1986,12 +1990,12 @@
   }
 
   function slugForTarget(target) {
-    return Object.keys(TAB_SLUGS).find(k => TAB_SLUGS[k] === target) || 'vtsr-c';
+    return Object.keys(TAB_SLUGS).find(k => TAB_SLUGS[k] === target) || 'vsr-c';
   }
 
-  // No tab, and ?tab=vtsr-c, land on the commander ladder. A wins preview
+  // No tab, and ?tab=vsr-c, land on the commander ladder. A wins preview
   // with no tab still lands on the thug board, because that control lives
-  // there. `leaderboard` is resolved by TAB_SLUGS to the same thug pane.
+  // there. The aliases resolve through TAB_SLUGS to the same panes.
   function landingTargetFromUrl() {
     const q = new URLSearchParams(window.location.search);
     const slug = q.get('tab');
@@ -2034,7 +2038,7 @@
       return;
     }
     // Rewrite inbound aliases to the slug this pane actually emits.
-    if (slug === 'leaderboard' || slug === '2v2') syncUrl(target, 'replace');
+    if (slug && slug !== slugForTarget(target)) syncUrl(target, 'replace');
     const btn = document.querySelector(`#elo-tabs [data-bs-target="${target}"]`);
     if (!btn || btn.classList.contains('active')) return;
     btn._vtQuiet = true;
@@ -2074,7 +2078,7 @@
            on the <a href="?tab=accuracy" data-elo-tab-link="accuracy">Does it work?</a> tab.)</span></p>
          </section>`
       : '';
-    const formLead = `VTSR-T is your <strong>thug form</strong>. Each game it grades your share of the lobby&rsquo;s damage to the enemy (players, scavs, extractors, AI units and buildings all count the same per point) against the people in that lobby. You go up when that grade beats what your current rating predicted, and down when it falls short; each game reads as <strong>Beat expectation</strong>, <strong>On par</strong> or <strong>Below expectation</strong>. Winning the game does not move it; commanders have their own win rating, VTSR-C. The site shows VTSR-T as a band, never a number. Under the hood everyone starts at <strong>1500</strong>. Walk through the formula:`;
+    const formLead = `VSR-T is your <strong>thug form</strong>. Each game it grades your share of the lobby&rsquo;s damage to the enemy (players, scavs, extractors, AI units and buildings all count the same per point) against the people in that lobby. You go up when that grade beats what your current rating predicted, and down when it falls short; each game reads as <strong>Beat expectation</strong>, <strong>On par</strong> or <strong>Below expectation</strong>. Winning the game does not move it; commanders have their own win rating, VSR-C. The site shows VSR-T as a band, never a number. Under the hood everyone starts at <strong>1500</strong>. Walk through the formula:`;
     pane.innerHTML = `<div class="vt-elo-doc">
       <section class="vt-vtsr-doc-section">
         <h6>The one formula</h6>
@@ -2092,19 +2096,19 @@
       </section>
 
       <section class="vt-vtsr-doc-section">
-        <h6>The commander ladder (VTSR-C)</h6>
+        <h6>The commander ladder (VSR-C)</h6>
         ${E.commanderLadderHtml()}
-        <p class="mb-0 mt-2 text-muted small">The ladder itself &mdash; every commander&rsquo;s rating, record and duel log &mdash; is on the <a href="?tab=vtsr-c" data-elo-tab-link="vtsr-c">VTSR-C Elo</a> pill.</p>
+        <p class="mb-0 mt-2 text-muted small">The ladder itself &mdash; every commander&rsquo;s rating, record and duel log &mdash; is on the <a href="?tab=vsr-c" data-elo-tab-link="vsr-c">VSR-C Elo</a> pill.</p>
       </section>
 
       <section class="vt-vtsr-doc-section">
-        <h6>The 1v1 ladder (VTSR-1v1)</h6>
+        <h6>The 1v1 ladder (VSR-1v1)</h6>
         ${E.oneVOneLadderHtml ? E.oneVOneLadderHtml() : ''}
         <p class="mb-0 mt-2 text-muted small">Every player&rsquo;s 1v1 rating, record and game log is on the <a href="?tab=1v1" data-elo-tab-link="1v1">1v1</a> pill.</p>
       </section>
 
       <section class="vt-vtsr-doc-section">
-        <h6>The 2v2 ladders (VTSR-2v2C and VTSR-2v2T)</h6>
+        <h6>The 2v2 ladders (VSR-2v2C and VSR-2v2T)</h6>
         ${E.twoVTwoLaddersHtml ? E.twoVTwoLaddersHtml() : ''}
         <p class="mb-0 mt-2 text-muted small">The ladders are the <a href="?tab=2v2c" data-elo-tab-link="2v2c">2v2C</a> and <a href="?tab=2v2t" data-elo-tab-link="2v2t">2v2T</a> pills.</p>
       </section>
@@ -2116,7 +2120,7 @@
 
       <section class="vt-vtsr-doc-section">
         <h6>Tier ladder</h6>
-        <p class="mb-2">Tiers are <strong>absolute</strong> VTSR-T thresholds &mdash; they don&rsquo;t track percentile, so a thin top tier is a thin top tier. Players with fewer than 10 rated matches show a <strong>Provisional</strong> badge instead of a tier. To appear on the ladder requires <strong>25 rated matches</strong> and a game within 90 days of the newest match in the corpus (or 3 games after returning); everyone else stays visible under <strong>Not on the ladder yet</strong>.</p>
+        <p class="mb-2">Tiers are <strong>absolute</strong> VSR-T thresholds &mdash; they don&rsquo;t track percentile, so a thin top tier is a thin top tier. Players with fewer than 10 rated matches show a <strong>Provisional</strong> badge instead of a tier. To appear on the ladder requires <strong>25 rated matches</strong> and a game within 90 days of the newest match in the corpus (or 3 games after returning); everyone else stays visible under <strong>Not on the ladder yet</strong>.</p>
         <p class="mb-2">Each tier splits at its midpoint into an <strong>Upper</strong> and a <strong>Lower</strong> half, and that band is what every page shows. A label only moves after the rating clears the line by <strong>${fmt((window.VTSRDisplay && VTSRDisplay.config.buffer_pts) || 20)} points</strong>, so one noisy game rarely flips it. That margin applies to tier lines too, so a player who dips just under a line keeps their tier until the drop is clear.</p>
         ${E.tierTableHtml()}
       </section>
@@ -2155,8 +2159,8 @@
       </section>
 
       <section class="vt-vtsr-doc-section">
-        <h6>What about VTSR-C?</h6>
-        <p class="mb-1">Enemy damage powers <strong>VTSR-T only</strong>. The commander ladder (<a href="?tab=vtsr-c" data-elo-tab-link="vtsr-c">VTSR-C</a>) scores on <strong>wins and losses alone</strong>. Newer matches also record a commander economy read across the whole game &mdash; pools held, time the scrap bank spent out of green, scrap spent on real combat ships (empty scouts excluded), and upgrades held, plus unscored ships-per-loss and loose-share readouts &mdash; but it is <strong>recorded, not scored</strong>. It does not move a rating until a fresh batch of matches, recorded after the 23 Oct 2026 rule change, clears a stricter check than &ldquo;the leader of the stat also won that same match.&rdquo;</p>
+        <h6>What about VSR-C?</h6>
+        <p class="mb-1">Enemy damage powers <strong>VSR-T only</strong>. The commander ladder (<a href="?tab=vsr-c" data-elo-tab-link="vsr-c">VSR-C</a>) scores on <strong>wins and losses alone</strong>. Newer matches also record a commander economy read across the whole game &mdash; pools held, time the scrap bank spent out of green, scrap spent on real combat ships (empty scouts excluded), and upgrades held, plus unscored ships-per-loss and loose-share readouts &mdash; but it is <strong>recorded, not scored</strong>. It does not move a rating until a fresh batch of matches, recorded after the 23 Oct 2026 rule change, clears a stricter check than &ldquo;the leader of the stat also won that same match.&rdquo;</p>
         <p class="mb-0 text-muted small">The choice was <strong>checked against real match outcomes</strong> before it shipped (see <code>critique/decisions/vtsr-t-enemy-damage.md</code>); how well it lines up with winning lives on the <a href="?tab=accuracy" data-elo-tab-link="accuracy">Does it work?</a> tab.</p>
       </section>
     </div>`;
@@ -2204,9 +2208,9 @@
         verdict: 'Caveat: for low-tier players, time spent outside of base as a pilot still counts against you like normal.',
       },
       {
-        icon: 'bi-person-badge-fill', title: 'The commander ladder (VTSR-C)',
+        icon: 'bi-person-badge-fill', title: 'The commander ladder (VSR-C)',
         body: `<p>Commanders now have a <strong>separate rating built purely on wins and losses</strong> &mdash; every match with a verified outcome is a 1v1 duel between the two commanders. Outcomes only count when they\u2019re <strong>proven</strong>: host-attested, reviewer-confirmed, or physically evident from the recording (base destroyed). Unverifiable matches simply don\u2019t move it.</p>`,
-        verdict: 'Outcome-pure. Full ladder on the <a href="?tab=vtsr-c" data-elo-tab-link="vtsr-c">VTSR-C Elo</a> tab.',
+        verdict: 'Outcome-pure. Full ladder on the <a href="?tab=vsr-c" data-elo-tab-link="vsr-c">VSR-C Elo</a> tab.',
       },
       {
         icon: 'bi-cash-stack', title: 'Economy is recorded, not yet scored',
@@ -2215,13 +2219,13 @@
       },
       {
         icon: 'bi-people', title: 'Stacked thugs don\u2019t inflate your commander rating',
-        body: `<p>VTSR-C\u2019s expected score already knows <strong>which side had the stronger thug team</strong> (each team\u2019s average pre-match VTSR-T feeds the formula). Win with a stacked roster and you were <em>supposed</em> to win \u2014 small gain. Win with the weaker one and the ladder pays out properly; lose with it and the penalty is tiny.</p>`,
+        body: `<p>VSR-C\u2019s expected score already knows <strong>which side had the stronger thug team</strong> (each team\u2019s average pre-match VSR-T feeds the formula). Win with a stacked roster and you were <em>supposed</em> to win \u2014 small gain. Win with the weaker one and the ladder pays out properly; lose with it and the penalty is tiny.</p>`,
         verdict: 'Commanding the underdog team is never a rating trap.',
       },
       {
         icon: 'bi-arrow-down-circle', title: 'Losses sting less, and there\u2019s a floor',
-        body: `<p>On <strong>VTSR-T</strong>, rating losses are scaled to <strong>85%</strong> of what the formula says (chasing people off the ladder helps nobody), and no rating can fall below <strong>1000</strong> &mdash; a soft floor with a gradual taper, not a cliff.</p>`,
-        verdict: 'VTSR-C has neither \u2014 a commander duel is zero-sum, so what one side wins the other loses exactly.',
+        body: `<p>On <strong>VSR-T</strong>, rating losses are scaled to <strong>85%</strong> of what the formula says (chasing people off the ladder helps nobody), and no rating can fall below <strong>1000</strong> &mdash; a soft floor with a gradual taper, not a cliff.</p>`,
+        verdict: 'VSR-C has neither \u2014 a commander duel is zero-sum, so what one side wins the other loses exactly.',
       },
     ].map(c => `<div class="vt-elo-fairness-card">
         <h6><i class="bi ${c.icon}"></i>${c.title}</h6>
@@ -2229,7 +2233,7 @@
         ${c.verdict ? `<div class="vt-elo-fairness-verdict">${c.verdict}</div>` : ''}
       </div>`).join('');
     pane.innerHTML = `<div class="vt-elo-doc" style="max-width: 1200px;">
-      <p class="mb-3">A skill rating is only as good as its blind spots. These are the rules that keep the <strong>two ladders</strong> &mdash; VTSR-T for thug play, VTSR-C for commanding &mdash; from punishing people for things that aren&rsquo;t skill. Each one is a <strong>pure omission</strong> (the affected match simply doesn&rsquo;t move the rating) or a measured adjustment, never a bonus pool.</p>
+      <p class="mb-3">A skill rating is only as good as its blind spots. These are the rules that keep the <strong>two ladders</strong> &mdash; VSR-T for thug play, VSR-C for commanding &mdash; from punishing people for things that aren&rsquo;t skill. Each one is a <strong>pure omission</strong> (the affected match simply doesn&rsquo;t move the rating) or a measured adjustment, never a bonus pool.</p>
       <div class="vt-elo-fairness-grid">${cards}</div>
     </div>`;
     wireTabLinks(pane);
@@ -2257,7 +2261,7 @@
     const rows = [
       ['Commander edge', 'The stronger commander is the bigger term.', c.commander_edge],
       ['\u2026 against stronger thugs', 'The stronger commander faced the stronger thugs and still counted for more.', c.commander_edge && c.commander_edge.vs_stronger_thugs],
-      ['Stacked', `A commander at least ${gap} VTSR-C weaker, carried by thugs that outweigh the gap.`, c.stacked],
+      ['Stacked', `A commander at least ${gap} VSR-C weaker, carried by thugs that outweigh the gap.`, c.stacked],
       ['Thug edge', 'The thugs are the bigger term; the commanders are close.', c.thug_edge],
       ['Both edges', 'One side has the stronger commander and the stronger thugs.', c.both],
       ['Even', 'Neither term gives a real edge.', c.even],
@@ -2404,7 +2408,7 @@
         <h6>Which matches count</h6>
         <p class="vt-elo-acc-blurb">A match counts toward prediction stats when we can <strong>prove</strong> who won. Three things qualify: the recording shows it physically (one team\u2019s base destroyed, the other\u2019s untouched), the host answered the end-of-game dialog, or a reviewer signed the result off afterwards. Host quits, timeouts, and rebuild ambiguity are a gap in the early recordings. <strong>${unprovable} of ${total}</strong> rated matches still have no provable winner.${recentLine}</p>
         <div class="vt-elo-funnel">${rows}</div>
-        <p class="vt-elo-acc-blurb mb-0 mt-2 text-muted small">Contested matches (both bases fell) and draws sit in the unprovable bar because there\u2019s no single winner to predict here &mdash; the <a href="?tab=vtsr-c" data-elo-tab-link="vtsr-c">commander ladder</a> does still rate contested games. That card\u2019s duel count also includes community-logged games; this chart is recorded matches only.</p>
+        <p class="vt-elo-acc-blurb mb-0 mt-2 text-muted small">Contested matches (both bases fell) and draws sit in the unprovable bar because there\u2019s no single winner to predict here &mdash; the <a href="?tab=vsr-c" data-elo-tab-link="vsr-c">commander ladder</a> does still rate contested games. That card\u2019s duel count also includes community-logged games; this chart is recorded matches only.</p>
       </div>`;
     }
 
@@ -2436,7 +2440,7 @@
       </div>`;
     }
 
-    // ---- VTSR-C commander-ladder accuracy (v1.2; absent-safe). ----
+    // ---- VSR-C commander-ladder accuracy (v1.2; absent-safe). ----
     const vc = (v.latest_detail && v.latest_detail.vtsr_c) || null;
     let cmdrAccHtml = '';
     if (vc && vc.available) {
@@ -2449,7 +2453,7 @@
         </tr>`;
       }).join('');
       cmdrAccHtml = `<div class="vt-elo-acc-section">
-        <h6>Commander ladder accuracy (VTSR-C)</h6>
+        <h6>Commander ladder accuracy (VSR-C)</h6>
         <p class="vt-elo-acc-blurb">Replaying the commander ladder match-by-match: knowing only the two commanders\u2019 pre-match ratings and their teams\u2019 thug strength, how often did it pick the actual winner of the ${vc.n_scored ?? 0} rated duels (telemetry + community-logged)? (Coin flip = 50%.)</p>
         <div class="vt-elo-statgrid" style="margin-bottom: 0.85rem;">
           <div class="vt-elo-statcard">
@@ -2500,7 +2504,7 @@
       </div>`;
     }
 
-    // ---- VTSR-C v2 economy composite proof sections (v1.3; absent-safe). ----
+    // ---- VSR-C v2 economy composite proof sections (v1.3; absent-safe). ----
     const vcp = (v.latest_detail && v.latest_detail.vtsr_c_perf) || null;
     let cmdrEconHtml = '';
     if (vcp && vcp.econ_axes && vcp.econ_axes.available

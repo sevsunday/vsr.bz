@@ -1,4 +1,4 @@
-"""VTSR-T (VT Stats Rating - Thug): pipeline-side Thug ELO.
+"""VSR-T (VSR Rating - Thug; `vtsr` in code): pipeline-side Thug ELO.
 
 Computes a per-player rating from chronological match data using the
 player's share of the lobby's enemy damage (v2.14; one axis, every enemy

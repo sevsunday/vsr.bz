@@ -3,12 +3,13 @@
  *
  * Fetches multiplayer session data from Nielk1's MultiplayerSessionList (MSL)
  * aggregation API (the same source bz2vsr.com / the BZCC-Website use) and
- * parses it into the session shape the VT Stats consumers read (gw page,
+ * parses it into the session shape the VSR consumers read (gw page,
  * Tools live-session card, topnav Tools pulse).
  *
  * Transport strategy is MSL-ONLY. MSL enforces a CORS origin ALLOWLIST;
- * vtstats.bz is already on it (alongside bz2vsr.com and
- * battlezonescrapfield.github.io). Localhost never is.
+ * the site's production origin must be on it (alongside bz2vsr.com and
+ * battlezonescrapfield.github.io); until it is, real hosts fall back to the
+ * public proxies. Localhost never is.
  *   - mode 'auto' (default): on localhost / file: contexts the direct fetch is
  *     guaranteed-blocked, so we go proxy-first (local dev proxy from
  *     scripts/dev_server.py, then public proxies). On real hosts we try
@@ -905,7 +906,7 @@ const BZ2API = (function() {
       // skip it entirely — local dev proxy first, then public proxies.
       candidates = getProxyBases().map(proxyCandidate);
     } else {
-      // auto @ real host: direct first (works the day vtstats.bz is
+      // auto @ real host: direct first (works the day vsr.bz is
       // allowlisted), then public proxies.
       candidates = [direct, ...getProxyBases().map(proxyCandidate)];
     }

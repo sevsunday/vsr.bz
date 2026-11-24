@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ELO — VT Stats</title>
-  <meta name="description" content="The VTSR-T thug leaderboard and VTSR-C commander ladder, how both ratings work, and how well they predict matches.">
+  <title>ELO — VSR</title>
+  <meta name="description" content="The VSR-T thug leaderboard and VSR-C commander ladder, how both ratings work, and how well they predict matches.">
 
-  <link rel="canonical" href="https://vtstats.bz/elo/">
+  <link rel="canonical" href="https://vsr.bz/elo/">
 
   <!-- Open Graph. -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="ELO — VT Stats">
-  <meta property="og:description" content="The VTSR-T thug leaderboard and VTSR-C commander ladder, how both ratings work, and how well they predict matches.">
-  <meta property="og:url" content="https://vtstats.bz/elo/">
-  <meta property="og:site_name" content="VT Stats">
+  <meta property="og:title" content="ELO — VSR">
+  <meta property="og:description" content="The VSR-T thug leaderboard and VSR-C commander ladder, how both ratings work, and how well they predict matches.">
+  <meta property="og:url" content="https://vsr.bz/elo/">
+  <meta property="og:site_name" content="VSR">
 
   <link rel="stylesheet" href="../vendor/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet" href="../vendor/bootstrap-icons/bootstrap-icons.min.css">
@@ -36,7 +36,7 @@
   <nav class="navbar navbar-expand-md sticky-top border-bottom">
     <div class="container-fluid px-3 px-md-4 gap-2">
       <a class="navbar-brand fw-bold" href="../index.html" style="color: var(--kb-text-primary); text-decoration: none;">
-        <i class="bi bi-crosshair me-1" style="color: var(--kb-primary);"></i>VT Stats
+        <i class="bi bi-crosshair me-1" style="color: var(--kb-primary);"></i>VSR
       </a>
 
       <button class="vt-nav-icon-btn vt-navbar-toggler d-md-none ms-auto" type="button"
@@ -153,7 +153,7 @@
 
     <div class="mb-3">
       <h1 class="vt-elo-title mb-0"><i class="bi bi-trophy me-2"></i>ELO</h1>
-      <div class="text-muted vt-elo-subtitle">VT Stats Rating &mdash; thug and commander ladders</div>
+      <div class="text-muted vt-elo-subtitle">VSR Ratings &mdash; thug and commander ladders</div>
     </div>
 
     <!-- Tab pills. URL-routed via ?tab= (see js/elo.js). -->
@@ -163,14 +163,14 @@
           <button class="nav-link active" id="elo-tab-vtsr-c-btn" data-bs-toggle="pill"
                   data-bs-target="#elo-tab-vtsr-c" type="button" role="tab"
                   aria-controls="elo-tab-vtsr-c" aria-selected="true">
-            <i class="bi bi-person-badge me-1"></i>VTSR-C Elo
+            <i class="bi bi-person-badge me-1"></i>VSR-C Elo
           </button>
         </li>
         <li class="nav-item" role="presentation">
           <button class="nav-link" id="elo-tab-leaderboard-btn" data-bs-toggle="pill"
                   data-bs-target="#elo-tab-leaderboard" type="button" role="tab"
                   aria-controls="elo-tab-leaderboard" aria-selected="false">
-            <i class="bi bi-list-ol me-1"></i>VTSR-T
+            <i class="bi bi-list-ol me-1"></i>VSR-T
           </button>
         </li>
         <li class="nav-item vt-elo-tab-sep" role="presentation" aria-hidden="true"></li>
@@ -231,8 +231,8 @@
 
     <div class="tab-content" id="elo-tab-content">
 
-      <!-- Tab: VTSR-C Elo (default). The commander ladder is a SEPARATE
-           ladder from VTSR-T. Table only, mirroring the VTSR-T pane. The
+      <!-- Tab: VSR-C Elo (default). The commander ladder is a SEPARATE
+           ladder from VSR-T. Table only, mirroring the VSR-T pane. The
            explainer lives on the How-it-works pill (no How button here).
            404-safe: the ladder card stays hidden and the empty state shows
            when elo_commander_current.json is absent. -->
@@ -240,7 +240,7 @@
         <div class="card mb-4 d-none" id="section-vtsr-c">
           <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
             <h5 class="mb-0">
-              <i class="bi bi-person-badge me-2"></i>Commander Ratings &mdash; VTSR-C
+              <i class="bi bi-person-badge me-2"></i>Commander Ratings &mdash; VSR-C
             </h5>
             <span id="vtsr-c-f9-credit" class="text-muted small" hidden></span>
           </div>
@@ -256,12 +256,12 @@
 
       <!-- Tab: Leaderboard. The full sortable table with expandable
            per-row detail panels — moved here from the dashboard's All
-           Matches view. Eager at boot; opened by ?tab=vtsr-t. -->
+           Matches view. Eager at boot; opened by ?tab=vsr-t. -->
       <div class="tab-pane fade" id="elo-tab-leaderboard" role="tabpanel"
            aria-labelledby="elo-tab-leaderboard-btn">
         <div class="card mb-4 d-none" id="section-vtsr">
           <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <h5 class="mb-0" id="vtsr-card-title"><i class="bi bi-stars me-2"></i>VTSR-T Ladder</h5>
+            <h5 class="mb-0" id="vtsr-card-title"><i class="bi bi-stars me-2"></i>VSR-T Ladder</h5>
             <div class="d-flex align-items-center flex-wrap gap-2">
               <button type="button" class="btn btn-sm vt-vtsr-info-btn" id="vtsr-how-link">
                 <i class="bi bi-info-circle me-1"></i>How It's Calculated
@@ -279,7 +279,7 @@
                   ></th>
                   <th data-sort="band" class="vt-vtsr-tier-col"
                       data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
-                      title="<strong>Band</strong><br>VTSR-T tier and its Upper or Lower half. VTSR-T is thug form: each match grades your share of the lobby&#39;s damage to the enemy against that lobby. Six tiers from Tier 0 (top) to Tier 5. Winning the game does not move it. A label only moves after a clear margin, so one game rarely changes it. Players with fewer than 10 rated matches show <strong>Provisional</strong>."
+                      title="<strong>Band</strong><br>VSR-T tier and its Upper or Lower half. VSR-T is thug form: each match grades your share of the lobby&#39;s damage to the enemy against that lobby. Six tiers from Tier 0 (top) to Tier 5. Winning the game does not move it. A label only moves after a clear margin, so one game rarely changes it. Players with fewer than 10 rated matches show <strong>Provisional</strong>."
                   >Band</th>
                   <th data-sort="name"
                       data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
@@ -291,7 +291,7 @@
                   >Position</th>
                   <th data-sort="win_rate" class="text-end"
                       data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
-                      title="<strong>Win%</strong><br>How often this player's team won in rated matches. Only matches with a recorded winner are rated. Camera-pod, partial, and idle rows are left out. This does not move VTSR-T. Hover a cell for the W&ndash;L record."
+                      title="<strong>Win%</strong><br>How often this player's team won in rated matches. Only matches with a recorded winner are rated. Camera-pod, partial, and idle rows are left out. This does not move VSR-T. Hover a cell for the W&ndash;L record."
                   >Win%</th>
                   <th data-sort="pvp_kd" class="text-end"
                       data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
@@ -324,14 +324,14 @@
         </div>
       </div>
 
-      <!-- Tab: 1v1 (lazy). The head-to-head ladder, separate from VTSR-T
-           and VTSR-C. Recorded games only. 404-safe: the card stays hidden
+      <!-- Tab: 1v1 (lazy). The head-to-head ladder, separate from VSR-T
+           and VSR-C. Recorded games only. 404-safe: the card stays hidden
            and the empty state shows when elo_1v1_current.json is absent. -->
       <div class="tab-pane fade" id="elo-tab-1v1" role="tabpanel" aria-labelledby="elo-tab-1v1-btn">
         <div class="card mb-4 d-none" id="section-vtsr-1v1">
           <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
             <h5 class="mb-0">
-              <i class="bi bi-person me-2"></i>1v1 Ratings &mdash; VTSR-1v1
+              <i class="bi bi-person me-2"></i>1v1 Ratings &mdash; VSR-1v1
             </h5>
             <button type="button" class="btn btn-sm vt-vtsr-info-btn" id="vtsr-1v1-how-link">
               <i class="bi bi-info-circle me-1"></i>How It's Calculated
@@ -353,7 +353,7 @@
         <div class="card mb-4 d-none" id="section-vtsr-2v2c">
           <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
             <h5 class="mb-0">
-              <i class="bi bi-person-badge me-2"></i>2v2 Commander Ratings &mdash; VTSR-2v2C
+              <i class="bi bi-person-badge me-2"></i>2v2 Commander Ratings &mdash; VSR-2v2C
               <span class="vt-elo-exp-chip ms-1">Experimental</span>
             </h5>
             <button type="button" class="btn btn-sm vt-vtsr-info-btn" data-elo-how-link="1">
@@ -374,7 +374,7 @@
         <div class="card mb-4 d-none" id="section-vtsr-2v2t">
           <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
             <h5 class="mb-0">
-              <i class="bi bi-people me-2"></i>2v2 Thug Ratings &mdash; VTSR-2v2T
+              <i class="bi bi-people me-2"></i>2v2 Thug Ratings &mdash; VSR-2v2T
               <span class="vt-elo-exp-chip ms-1">Experimental</span>
             </h5>
             <div class="d-flex align-items-center flex-wrap gap-2">
@@ -418,7 +418,7 @@
     </div>
   </main>
 
-  <!-- F9bomber import explainer. Opened from the VTSR-C card-header
+  <!-- F9bomber import explainer. Opened from the VSR-C card-header
        credit ("Includes N games from F9bomber"). Footer buttons are
        the credit-anchor (f9bomber.com) and F9's public stats page. -->
   <div class="modal fade" id="vtsr-c-f9-modal" tabindex="-1"
@@ -435,16 +435,16 @@
           <p>F9stats merge started with F9bomber&rsquo;s hand-kept match stats from
             <strong>January 2, 2025</strong> through <strong>September 7, 2026</strong>
             (a bit over 1,300 games). We kept only the <strong>3v3, 4v4, and 5v5</strong>
-            games to maintain consistency with our current VTstats pipeline; dropped games
+            games to maintain consistency with our current stats pipeline; dropped games
             with stragglers to avoid ambiguity and any game we already had a recording of
             &mdash; which result in ~500 games left. Game length does not matter.</p>
           <p class="mb-0">Note that the imported F9 matches are wins-based only, but because
-            VTSR-C is also currently a wins ladder &mdash; it&rsquo;s considered good data.
+            VSR-C is also currently a wins ladder &mdash; it&rsquo;s considered good data.
             F9 matches also include team thugs, so we still use each side&rsquo;s
-            <strong>thug rating (VTSR-T)</strong> to weight the result: beating a stronger
+            <strong>thug rating (VSR-T)</strong> to weight the result: beating a stronger
             group of teammates is worth more than beating a weaker one. Games from before
             we had thug ratings don&rsquo;t get that adjustment yet, same as our own earliest
-            matches. F9 games feed VTSR-C only; they do not change anyone&rsquo;s thug rating.</p>
+            matches. F9 games feed VSR-C only; they do not change anyone&rsquo;s thug rating.</p>
         </div>
         <div class="modal-footer border-top">
           <a href="https://f9bomber.com" target="_blank" rel="noopener"

@@ -1,9 +1,9 @@
 /**
- * VT Stats - Tools Page - Match lobby seed
+ * VSR - Tools Page - Match lobby seed
  *
  * Reads `?from=<match id>&ratings=then|now` and builds a manual roster
  * from that match's rated lobby: the players who carried a pre-match
- * VTSR-T into the game (elo_history deltas, or the cancelled-match
+ * VSR-T into the game (elo_history deltas, or the cancelled-match
  * shadow block). Each player keeps both rating eras so the Team Balonce
  * card can flip As played / Today without rebuilding the lineup.
  *

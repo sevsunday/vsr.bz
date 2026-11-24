@@ -1,5 +1,5 @@
 /**
- * VT Stats - Game Watch - Card renderer (dedicated, fixed-band layout)
+ * VSR - Game Watch - Card renderer (dedicated, fixed-band layout)
  *
  * Bespoke card markup for the /gw page, modeled on the BZCC-Website GameWatch
  * reference for dimensional consistency. Each card is a 4-band CSS grid

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VT Stats -- F9bomber external-ledger importer (one-shot).
+VSR -- F9bomber external-ledger importer (one-shot).
 
 Reads F9bomber's hand-kept match spreadsheet (f9stats/*.xlsx), applies the
 locked eligibility funnel, resolves identities against the project's

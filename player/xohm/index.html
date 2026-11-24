@@ -3,27 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Xohm — VT Stats</title>
+  <title>Xohm — VSR</title>
   <meta name="description" content="Provisional · 7 career matches · Commander-leaning">
 
-  <link rel="canonical" href="https://vtstats.bz/player/xohm/">
+  <link rel="canonical" href="https://vsr.bz/player/xohm/">
 
   <!-- Open Graph (Facebook, LinkedIn, Slack, Discord) -->
   <meta property="og:type" content="profile">
-  <meta property="og:title" content="Xohm — VT Stats">
+  <meta property="og:title" content="Xohm — VSR">
   <meta property="og:description" content="Provisional · 7 career matches · Commander-leaning">
-  <meta property="og:url" content="https://vtstats.bz/player/xohm/">
-  <meta property="og:image" content="https://vtstats.bz/data/og/player-card.png">
+  <meta property="og:url" content="https://vsr.bz/player/xohm/">
+  <meta property="og:image" content="https://vsr.bz/data/og/player-card.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:site_name" content="VT Stats">
+  <meta property="og:site_name" content="VSR">
   <meta property="profile:username" content="Xohm">
 
   <!-- Twitter card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Xohm — VT Stats">
+  <meta name="twitter:title" content="Xohm — VSR">
   <meta name="twitter:description" content="Provisional · 7 career matches · Commander-leaning">
-  <meta name="twitter:image" content="https://vtstats.bz/data/og/player-card.png">
+  <meta name="twitter:image" content="https://vsr.bz/data/og/player-card.png">
 
   <link rel="stylesheet" href="../../vendor/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet" href="../../vendor/bootstrap-icons/bootstrap-icons.min.css">
@@ -43,7 +43,7 @@
       steam64: "76561198846500539",
       slug:    "xohm",
       name:    "Xohm",
-      template_version: 34
+      template_version: 35
     };
   </script>
 </head>
@@ -55,7 +55,7 @@
   <nav class="navbar navbar-expand-md sticky-top border-bottom">
     <div class="container-fluid px-3 px-md-4 gap-2">
       <a class="navbar-brand fw-bold" href="../../index.html" style="color: var(--kb-text-primary); text-decoration: none;">
-        <i class="bi bi-crosshair me-1" style="color: var(--kb-primary);"></i>VT Stats
+        <i class="bi bi-crosshair me-1" style="color: var(--kb-primary);"></i>VSR
       </a>
 
       <button class="vt-nav-icon-btn vt-navbar-toggler d-md-none ms-auto" type="button"
@@ -291,7 +291,7 @@
 
                 <!-- Roster scope: ranked players only (default) or also
                      unranked players above the career floor in scope. -->
-                <div class="form-check form-switch vt-player-unranked-switch" title="Also list players who are not on the VTSR-T or VTSR-C ladder but have enough matches in the current scope">
+                <div class="form-check form-switch vt-player-unranked-switch" title="Also list players who are not on the VSR-T or VSR-C ladder but have enough matches in the current scope">
                   <input class="form-check-input" type="checkbox" role="switch" id="vt-player-unranked-toggle">
                   <label class="form-check-label small" for="vt-player-unranked-toggle">Include unranked</label>
                 </div>
@@ -308,8 +308,8 @@
                 <div class="vt-player-filter-actions ms-md-auto d-flex gap-2 align-items-center">
                   <label for="vt-player-sort" class="form-label mb-0 small text-secondary">Sort by</label>
                   <select id="vt-player-sort" class="form-select form-select-sm vt-player-sort-select">
-                    <option value="vtsrt-desc" selected>VTSR-T (highest)</option>
-                    <option value="vtsrc-desc">VTSR-C (highest)</option>
+                    <option value="vtsrt-desc" selected>VSR-T (highest)</option>
+                    <option value="vtsrc-desc">VSR-C (highest)</option>
                     <option value="net-desc">Net damage / match</option>
                     <option value="name-asc">Name (A–Z)</option>
                     <option value="matches-desc">Matches played</option>
@@ -367,7 +367,7 @@
 
       <!-- Hub tabs rendered by js/players-hub.js on first activation.
            Leaderboards = Career Leaderboard + Ship specialists + Role
-           boards + VTSR-T ladder teaser; Commanders = cohort strip,
+           boards + VSR-T ladder teaser; Commanders = cohort strip,
            leaderboard, Economy Leaders, H2H, faction picks; Trends =
            absolute-stat quarterly trends, ship & faction meta,
            activity, schedule strength / quarterly form / climbers
@@ -403,7 +403,7 @@
             </div>
           </div>
           <div class="card-body">
-            <p class="text-secondary small">Who has faced stronger or weaker opposition. The default bar is how much the opposing thugs cost in win chance, measured against a typical schedule in this view. Harder schedules sit to the right. Choosing another column header redraws the bar from that column. Thug gap is how much own thugs moved the win chance against opposing thugs, with that player left out of their own side. On the chart, a negative gap points right, because opposing thugs were stronger. VTSR-T shows as win chance or a band, never as a number; VTSR-C keeps its numbers. Recorded games use the rating from that day. Community games use each opponent's rating today. Only team games (3 or more a side) count; 1v1s and 2v2s have their own ladders. The list starts as the ranked ladder for that pill. This is the full corpus; the hub filter bar does not change it.</p>
+            <p class="text-secondary small">Who has faced stronger or weaker opposition. The default bar is how much the opposing thugs cost in win chance, measured against a typical schedule in this view. Harder schedules sit to the right. Choosing another column header redraws the bar from that column. Thug gap is how much own thugs moved the win chance against opposing thugs, with that player left out of their own side. On the chart, a negative gap points right, because opposing thugs were stronger. VSR-T shows as win chance or a band, never as a number; VSR-C keeps its numbers. Recorded games use the rating from that day. Community games use each opponent's rating today. Only team games (3 or more a side) count; 1v1s and 2v2s have their own ladders. The list starts as the ranked ladder for that pill. This is the full corpus; the hub filter bar does not change it.</p>
             <div class="vt-players-schedule-scroll">
               <div class="chart-container" id="vt-players-schedule-chart-wrap">
                 <canvas id="vt-players-schedule-chart"></canvas>
@@ -418,8 +418,8 @@
                     <th data-vt-sort="matches" class="text-end">Matches</th>
                     <th data-vt-sort="oppThug" class="text-end is-sorted" title="Win chance against a typical schedule: negative means the opposing thugs were stronger than usual">Opp. thugs</th>
                     <th data-vt-sort="gap" class="text-end" title="Win chance from own thugs against opposing thugs">Thug gap</th>
-                    <th data-vt-sort="oppCmdr" class="text-end">Opp. cmdr VTSR-C</th>
-                    <th data-vt-sort="own" class="text-end" id="vt-players-own-heading">Current VTSR-C</th>
+                    <th data-vt-sort="oppCmdr" class="text-end">Opp. cmdr VSR-C</th>
+                    <th data-vt-sort="own" class="text-end" id="vt-players-own-heading">Current VSR-C</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
@@ -443,11 +443,11 @@
               <p class="text-secondary small">Pick a player to see determined win rate by quarter, as commander and as a thug. The largest rating climbs over the last two quarters are below. Each name has at least 8 matches in that role under the format selected above.</p>
               <div class="row g-4">
                 <div class="col-md-6">
-                  <h6 class="text-secondary">VTSR-C climb</h6>
+                  <h6 class="text-secondary">VSR-C climb</h6>
                   <div id="vt-players-climb-c"></div>
                 </div>
                 <div class="col-md-6">
-                  <h6 class="text-secondary">VTSR-T climb</h6>
+                  <h6 class="text-secondary">VSR-T climb</h6>
                   <div id="vt-players-climb-t"></div>
                 </div>
               </div>
@@ -467,7 +467,7 @@
                 <canvas id="vt-players-thug-chart"></canvas>
               </div>
               <p class="text-secondary small d-none" id="vt-players-thug-empty">No determined thug games for this player.</p>
-              <p class="text-secondary small mb-0 mt-2"><span class="vt-players-thin-mark" aria-hidden="true"></span> A hollow bar is a quarter with one or two games. The line is the rating at the end of that quarter (VTSR-T on a tier axis). VTSR-C moves on community duels. VTSR-T holds through a quarter that is only community games. Community games are from <a href="https://f9bomber.com" target="_blank" rel="noopener">F9bomber</a>.</p>
+              <p class="text-secondary small mb-0 mt-2"><span class="vt-players-thin-mark" aria-hidden="true"></span> A hollow bar is a quarter with one or two games. The line is the rating at the end of that quarter (VSR-T on a tier axis). VSR-C moves on community duels. VSR-T holds through a quarter that is only community games. Community games are from <a href="https://f9bomber.com" target="_blank" rel="noopener">F9bomber</a>.</p>
             </div>
           </div>
         </div>

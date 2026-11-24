@@ -1,7 +1,7 @@
 /* =============================================================================
    css/elo.css — dedicated ELO page (elo/index.html + js/elo.js)
    Builds on css/vtstats-theme.css (which carries the shared .vt-eq-* annotated
-   stage, .vt-axesboard-*, the VTSR table/detail-panel styles, and all theme
+   stage, .vt-axesboard-*, the VSR table/detail-panel styles, and all theme
    tokens). This file adds only page-local chrome:
      1. Page header + tab pills
      2. Explainer tab sections (How / Axes / Fairness)
@@ -292,7 +292,7 @@
     .vt-elo-funnel-label { font-size: 0.78rem; }
 }
 
-/* Unranked section (VTSR-T + VTSR-C): same table, muted heading, no #. */
+/* Unranked section (VSR-T + VSR-C): same table, muted heading, no #. */
 .vt-vtsr-unranked,
 .vt-vtsr-c-unranked {
     margin-top: 1.5rem;
@@ -316,7 +316,7 @@
     max-width: 52rem;
 }
 
-/* Tier group header rows on the VTSR-T ladder (no # ranks). */
+/* Tier group header rows on the VSR-T ladder (no # ranks). */
 .vt-vtsr-tier-group td {
     background: color-mix(in oklab, var(--kb-bg-subtle) 85%, var(--kb-primary) 15%);
     border-top: 1px solid color-mix(in oklab, var(--kb-border-subtle) 70%, transparent);
@@ -361,7 +361,7 @@
     width: 9rem;
 }
 
-/* Vertical rules splitting the row into VTSR-C / VTSR-T, the 2v2 pair, and 1v1. */
+/* Vertical rules splitting the row into VSR-C / VSR-T, the 2v2 pair, and 1v1. */
 .vt-elo-tab-sep {
     width: 1px;
     flex: 0 0 1px;

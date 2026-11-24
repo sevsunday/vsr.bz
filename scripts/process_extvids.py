@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VT Stats -- YouTube channel VOD discovery.
+VSR -- YouTube channel VOD discovery.
 
 Lists configured channels, matches new uploads to corpus matches, confirms
 the last in-game HUD frame, and writes a timestamp mapping for each

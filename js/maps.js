@@ -1,5 +1,5 @@
 /**
- * VT Stats — Map Browser (js/maps.js)
+ * VSR — Map Browser (js/maps.js)
  *
  * Boots map/index.html and per-map pre-gen stubs at /map/<slug>/ in three
  * URL modes:
@@ -24,7 +24,7 @@
  *                                         into /player/<slug>/
  *
  * Filter contract: this page is corpus-wide and NOT picker-filter aware
- * (matches the VTSR-T leaderboard contract). The picker is for narrowing a
+ * (matches the VSR-T leaderboard contract). The picker is for narrowing a
  * single match-set; the map browser is for catalog browsing.
  */
 (function () {
@@ -1339,7 +1339,7 @@
         : `<span class="vt-map-cmdr-name">${escapeHtml(p.name)}</span>`;
       const games = safeNum(p.matches);
       const beat = p.beat != null ? safeNum(p.beat) : null;
-      const tip = 'Thug games on this map that beat what the player\u2019s VTSR-T expected. Ordered by how far those games beat it overall.';
+      const tip = 'Thug games on this map that beat what the player\u2019s VSR-T expected. Ordered by how far those games beat it overall.';
       const line = beat != null
         ? `Beat expectation in <span class="num">${formatNumber(beat)}</span> of <span class="num">${formatNumber(games)}</span> games`
         : `<span class="num">${formatNumber(games)}</span> games`;

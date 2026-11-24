@@ -178,7 +178,7 @@
                 aria-pressed="${sel}"
                 data-disabled="${disabled}"
                 ${styleSel}
-                title="${escapeHtml(p.name)} — ${p.matches_played} matches · VTSR-T ${p.current_vtsr.toFixed(0)}">
+                title="${escapeHtml(p.name)} — ${p.matches_played} matches · VSR-T ${p.current_vtsr.toFixed(0)}">
           ${swatch}
           <span>${escapeHtml(p.name)}</span>
           <span class="vt-axis-chip-meta">${p.matches_played}</span>

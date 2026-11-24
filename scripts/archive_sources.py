@@ -60,7 +60,7 @@ EDGE_CANDIDATES = [
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
     r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
 ]
-UNPAYWALL_EMAIL = "vt-stats-archive@vtstats.bz"
+UNPAYWALL_EMAIL = "archive@vsr.bz"
 MIN_PDF_BYTES = 10_000
 MIN_TXT_BYTES = 500
 FETCH_TIMEOUT_SEC = 60

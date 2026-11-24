@@ -1,9 +1,9 @@
 /**
- * VT Stats — per-match For you tab (window.VTMatchYou).
+ * VSR — per-match For you tab (window.VTMatchYou).
  *
  * One scan of the followed player across the match tabs. Reads the
  * unfiltered match (currentData), never the player-filtered view.
- * VTSR-T stays a band and a verdict. VTSR-C, VTSR-1v1 and VTSR-2v2
+ * VSR-T stays a band and a verdict. VSR-C, VSR-1v1 and VSR-2v2
  * keep their numbers. No new JSON.
  */
 (function () {
@@ -88,10 +88,10 @@
 
   function exclusionText(reason) {
     if (reason === 'low_player_count') {
-      return 'This match had fewer than 6 players, so VTSR-T and VTSR-C did not rate it.';
+      return 'This match had fewer than 6 players, so VSR-T and VSR-C did not rate it.';
     }
     if (reason === 'short_side') {
-      return 'A side had fewer than 3 players, so VTSR-T and VTSR-C did not rate it.';
+      return 'A side had fewer than 3 players, so VSR-T and VSR-C did not rate it.';
     }
     if (reason === 'no_winner') {
       return 'No winner was recorded for this match (no host result and no recycler or factory loss), so it was not rated.';
@@ -105,13 +105,13 @@
     if (reason === 'cancelled') {
       return 'This match was cancelled, so it was not rated.';
     }
-    return 'This match was not included in VTSR-T.';
+    return 'This match was not included in VSR-T.';
   }
 
   function omitSentence(row) {
-    if (row.is_campod) return 'You were in a camera pod, so this match left you out of the VTSR-T rating.';
-    if (row.is_low_activity) return 'You were only in part of this match, so VTSR-T left you out.';
-    if (row.is_zero_damage && !row.is_commander) return 'You dealt no damage, so VTSR-T left you out.';
+    if (row.is_campod) return 'You were in a camera pod, so this match left you out of the VSR-T rating.';
+    if (row.is_low_activity) return 'You were only in part of this match, so VSR-T left you out.';
+    if (row.is_zero_damage && !row.is_commander) return 'You dealt no damage, so VSR-T left you out.';
     return '';
   }
 
@@ -156,19 +156,19 @@
       ? display.bandChipHtml(before, {
         compact: true,
         bsTooltip: false,
-        title: before.label + ', unchanged. VTSR-T did not change.',
+        title: before.label + ', unchanged. VSR-T did not change.',
       })
       : '';
     const verdict = display && display.verdictChipHtml
       ? display.verdictChipHtml(raw.would_delta, {
         long: true,
         bsTooltip: false,
-        title: 'Measured, not applied. VTSR-T did not change.',
+        title: 'Measured, not applied. VSR-T did not change.',
       })
       : '';
-    return '<div class="vt-you-rate"><span class="vt-you-rate-k">VTSR-T</span>'
+    return '<div class="vt-you-rate"><span class="vt-you-rate-k">VSR-T</span>'
       + chip + verdict + '</div>'
-      + '<p class="vt-you-note">This is how the match would have read. VTSR-T did not change.</p>';
+      + '<p class="vt-you-note">This is how the match would have read. VSR-T did not change.</p>';
   }
 
   function thugRatingHtml(data, row) {
@@ -185,8 +185,8 @@
     if (!delta) {
       const why = omitSentence(row);
       if (why) return '<p class="vt-you-note">' + esc(why) + '</p>';
-      if (!entry) return '<p class="vt-you-note">No VTSR-T result for this match.</p>';
-      return '<p class="vt-you-note">This match did not move your VTSR-T.</p>';
+      if (!entry) return '<p class="vt-you-note">No VSR-T result for this match.</p>';
+      return '<p class="vt-you-note">This match did not move your VSR-T.</p>';
     }
     const display = window.VTSRDisplay;
     if (display && display.setConfig && window.__vtElo) display.setConfig(window.__vtElo);
@@ -198,7 +198,7 @@
       ? display.bandChipHtml(after, { compact: true, bsTooltip: false }) : '';
     const verdict = display && display.verdictChipHtml
       ? display.verdictChipHtml(delta.delta, { long: true, bsTooltip: false }) : '';
-    return '<div class="vt-you-rate"><span class="vt-you-rate-k">VTSR-T</span>'
+    return '<div class="vt-you-rate"><span class="vt-you-rate-k">VSR-T</span>'
       + beforeChip + '<span class="vt-you-arrow" aria-hidden="true">→</span>' + afterChip
       + verdict + '</div>';
   }
@@ -227,7 +227,7 @@
     if (!preview) return '';
     const sid = String(row.steam64 || '');
     const mine = (preview.rows || []).find((r) => String(r.steam64 || '') === sid);
-    let html = '<p class="vt-you-note">VTSR-C did not change.</p>';
+    let html = '<p class="vt-you-note">VSR-C did not change.</p>';
     if (mine) {
       html += commanderBranchHtml('Had you won', mine.before, mine.onWin)
         + commanderBranchHtml('Had you lost', mine.before, mine.onLoss)
@@ -246,7 +246,7 @@
         if (hist.duels[i] && hist.duels[i].match_id === matchId) { duel = hist.duels[i]; break; }
       }
       const cmdr = findDuelSide(duel, sid);
-      if (cmdr) return ratingLine('VTSR-C', cmdr.before, cmdr.after, cmdr.delta);
+      if (cmdr) return ratingLine('VSR-C', cmdr.before, cmdr.after, cmdr.delta);
     }
     return commanderPreviewHtml(data, row);
   }
@@ -263,7 +263,7 @@
     for (let i = 0; i < players.length; i++) {
       const p = players[i];
       if (p && String(p.steam64 || '') === sid) {
-        return ratingLine('VTSR-1v1', p.before, p.after, p.delta);
+        return ratingLine('VSR-1v1', p.before, p.after, p.delta);
       }
     }
     return '';
@@ -284,11 +284,11 @@
         const p = s[role];
         if (!p || String(p.steam64 || '') !== sid) return;
         if (p.wl) {
-          const label = role === 'commander' ? 'VTSR-2v2C' : 'VTSR-2v2T';
+          const label = role === 'commander' ? 'VSR-2v2C' : 'VSR-2v2T';
           lines.push(ratingLine(label, p.wl.before, p.wl.after, p.wl.delta));
         }
         if (role === 'thug' && p.perf) {
-          lines.push(ratingLine('VTSR-2v2T performance', p.perf.before, p.perf.after, p.perf.delta));
+          lines.push(ratingLine('VSR-2v2T performance', p.perf.before, p.perf.after, p.perf.delta));
         }
       });
     });

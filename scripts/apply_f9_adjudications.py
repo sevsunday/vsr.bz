@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VT Stats -- F9 batch adjudication (gated auto-apply, one-shot).
+VSR -- F9 batch adjudication (gated auto-apply, one-shot).
 
 Writes F9bomber-ledger outcomes into the committed adjudications store
 (data/match_outcome_adjudications.json) for every UNCLEAR match whose

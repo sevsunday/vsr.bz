@@ -1,5 +1,5 @@
 /**
- * VT Stats — who this browser follows (window.VTWho).
+ * VSR — who this browser follows (window.VTWho).
  *
  * Loaded by js/cursor-settings.js (async=false, URL resolved from that
  * script). The stub in cursor-settings.js already assigned VTWho and

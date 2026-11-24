@@ -1,5 +1,5 @@
 /**
- * VT Stats - Live Map Enrichment (Game Watch + Tools)
+ * VSR - Live Map Enrichment (Game Watch + Tools)
  *
  * Fills team names (svar1/svar2) and swaps thumbs to local PNGs from the
  * vendored `data/map-registry.json`. MSL already joins map name / image /

@@ -113,7 +113,7 @@ def fetch(url: str) -> bytes:
     transient errors (429/5xx/timeout). Honors --no-network."""
     if NO_NETWORK:
         raise RuntimeError(f"--no-network set; refusing to fetch {url}")
-    req = urllib.request.Request(url, headers={"User-Agent": "vt-stats-lego-build/1.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "vsr.bz-lego-build/1.0"})
     last = None
     for attempt in range(8):
         try:

@@ -1,5 +1,5 @@
 /*
- * VT Stats — Players hub (window.VTPlayersHub).
+ * VSR — Players hub (window.VTPlayersHub).
  *
  * The /player/ directory landing is a hub with one shared perf filter
  * bar (faction / ship / weapon / role / format / period, js/perf-axes.js)
@@ -8,7 +8,7 @@
  *   Players      — the card grid / sortable table (js/player.js renders
  *                  the cards; this module renders the table)
  *   Leaderboards — Career Leaderboard (Totals | Per match | All column
- *                  views), Ship specialists, Role boards, VTSR-T teaser
+ *                  views), Ship specialists, Role boards, VSR-T teaser
  *   Commanders   — cohort strip, commander leaderboard, Economy Leaders
  *                  (per-match averages), head-to-head, faction picks
  *   Trends       — quarterly trends of ABSOLUTE stats (with a player
@@ -199,7 +199,7 @@
   }
 
   // Clear also drops an explicit card / table sort, so the view returns
-  // to the automatic VTSR-T order.
+  // to the automatic VSR-T order.
   function resetSorts() {
     hub.tableSort = null;
     if (PL() && typeof PL().resetSort === 'function') PL().resetSort();
@@ -280,7 +280,7 @@
       ${UI().filterBarHtml('vt-hub-filterbar', { contributions: all, fileIds: Object.keys(all), filters: f, defaults, counts: { faction: facCounts, format: fmtCounts } })}
       ${UI().scopePillsHtml('vt-hub-scope', f, {
         summary: `<strong>${ids.length}</strong> match${ids.length === 1 ? '' : 'es'} \u00b7 <strong>${players}</strong> player${players === 1 ? '' : 's'} with ${minN()}+ in scope`,
-        note: 'Ratings (VTSR) are corpus-wide and never recomputed by these filters. The scope narrows which matches and rows the stats on this page are summed over.',
+        note: 'Ratings (VSR) are corpus-wide and never recomputed by these filters. The scope narrows which matches and rows the stats on this page are summed over.',
         shipHero: shipHeroUrl(f),
         shipHref: f.ship ? `${s.dataPrefix || ''}odf/index.html?odf=${encodeURIComponent(P().shipStem(f.ship))}` : null,
       })}`;
@@ -367,8 +367,8 @@
 
   const PLAYER_TABLE_COLS = [
     { key: 'name', label: 'Player', cls: '', get: r => r.name, fmt: r => link(r.name, r.steam64) },
-    { key: 'band', label: 'VTSR-T', cls: '', get: r => global.VTSRDisplay.bandFor(r).index, tie: r => (Number.isFinite(r.vtsr) ? r.vtsr : null), fmt: r => global.VTSRDisplay.bandChipHtml(global.VTSRDisplay.bandFor(r), { bsTooltip: false }) },
-    { key: 'vtsr_c', label: 'VTSR-C', cls: 'text-end', get: r => (Number.isFinite(r.vtsr_c) ? r.vtsr_c : null), fmt: r => (Number.isFinite(r.vtsr_c) ? `<span class="num">${Math.round(r.vtsr_c)}</span>${r.vtsr_c_provisional ? ' <span class="text-secondary small">prov</span>' : ''}` : '\u2014') },
+    { key: 'band', label: 'VSR-T', cls: '', get: r => global.VTSRDisplay.bandFor(r).index, tie: r => (Number.isFinite(r.vtsr) ? r.vtsr : null), fmt: r => global.VTSRDisplay.bandChipHtml(global.VTSRDisplay.bandFor(r), { bsTooltip: false }) },
+    { key: 'vtsr_c', label: 'VSR-C', cls: 'text-end', get: r => (Number.isFinite(r.vtsr_c) ? r.vtsr_c : null), fmt: r => (Number.isFinite(r.vtsr_c) ? `<span class="num">${Math.round(r.vtsr_c)}</span>${r.vtsr_c_provisional ? ' <span class="text-secondary small">prov</span>' : ''}` : '\u2014') },
     { key: 'matches', label: 'Matches', cls: 'text-end', get: r => (r.career ? r.career.matches_played : r.matches_played), fmt: r => {
       const c = r.career; const fc = (c && c.format_counts) || {};
       const parts = [];
@@ -423,7 +423,7 @@
 
   // HTML for the Players tab table. `rows` are the directory rows after
   // the search / tier / activity filters; the career rows are hub-scoped.
-  // Automatic table sort, mirroring the cards: VTSR-T at the default
+  // Automatic table sort, mirroring the cards: VSR-T at the default
   // scope, Net/m once the scope narrows.
   function autoTableSort() {
     return atDefaults(filters()) ? { key: 'band', asc: false } : { key: 'net_pm', asc: false };
@@ -615,7 +615,7 @@
       return vals.length ? vals.reduce((x, y) => x + y, 0) / vals.length : null;
     };
     const cTable = cmdrs.length ? `<div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0" style="font-size:0.85rem;">
-      <thead><tr><th>#</th><th>Commander</th><th class="text-end">Win %</th><th class="text-end">W\u2013L</th><th class="text-end">VTSR-C</th><th class="text-end">Income/min</th><th class="text-end">Ships/match</th></tr></thead>
+      <thead><tr><th>#</th><th>Commander</th><th class="text-end">Win %</th><th class="text-end">W\u2013L</th><th class="text-end">VSR-C</th><th class="text-end">Income/min</th><th class="text-end">Ships/match</th></tr></thead>
       <tbody>${cmdrs.map((r, i) => `<tr><td class="text-secondary">${i + 1}</td><td>${link(r.name, r.steam64)}</td>
         <td class="text-end num">${(r.win_pct_as_commander * 100).toFixed(1)}%</td>
         <td class="text-end num">${r.wins_as_commander}\u2013${r.losses_as_commander}</td>
@@ -624,7 +624,7 @@
         <td class="text-end num">${r.avg_ships_built != null ? r.avg_ships_built.toFixed(1) : '\u2014'}</td></tr>`).join('')}</tbody></table></div>`
       : `<p class="text-secondary mb-0">No commander has ${ROLE_BOARD_MIN_DETERMINED}+ decided games in scope.</p>`;
     const tTable = thugs.length ? `<div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0" style="font-size:0.85rem;">
-      <thead><tr><th>#</th><th>Thug</th><th class="text-end">Win %</th><th class="text-end">W\u2013L</th><th class="text-end">VTSR-T</th><th class="text-end" title="Mean of the 10 descriptive axes' mean z">Axes z</th><th class="text-end">K/D</th><th class="text-end">Dealt/match</th></tr></thead>
+      <thead><tr><th>#</th><th>Thug</th><th class="text-end">Win %</th><th class="text-end">W\u2013L</th><th class="text-end">VSR-T</th><th class="text-end" title="Mean of the 10 descriptive axes' mean z">Axes z</th><th class="text-end">K/D</th><th class="text-end">Dealt/match</th></tr></thead>
       <tbody>${thugs.map((r, i) => {
         const c = career.get(String(r.steam64 || r.name));
         const elo = st() && st().elo && st().elo.ratings && st().elo.ratings.find(x => String(x.steam64 || '') === String(r.steam64 || ''));
@@ -643,7 +643,7 @@
       <div class="col-12 col-xl-6"><h6 class="text-secondary mb-2"><i class="bi bi-shield-fill me-1"></i>Best commanders (win %)</h6>${cTable}</div>
       <div class="col-12 col-xl-6"><h6 class="text-secondary mb-2"><i class="bi bi-lightning-charge-fill me-1"></i>Best thugs (win %)</h6>${tTable}</div>
     </div>
-    <p class="text-secondary small mb-0 mt-3">Win % is on decided recorded matches only (${ROLE_BOARD_MIN_DETERMINED}+ needed). Team outcomes, not a skill rating: VTSR-C and VTSR-T are the ratings.</p>`;
+    <p class="text-secondary small mb-0 mt-3">Win % is on decided recorded matches only (${ROLE_BOARD_MIN_DETERMINED}+ needed). Team outcomes, not a skill rating: VSR-C and VSR-T are the ratings.</p>`;
   }
 
   function vtsrTeaserHtml(stats) {
@@ -676,8 +676,8 @@
         <span class="vt-vtsr-teaser-delta">${global.VTSRDisplay.verdictChipHtml(r.last_delta || 0, { title: 'Last rated game against what the rating expected' })}</span></div>`).join('')}
       ${g.more ? `<div class="vt-vtsr-teaser-more text-secondary small">+${g.more} more in ${esc(g.band.label)}</div>` : ''}`).join('')}</div>
       <div class="vt-vtsr-teaser-footer">
-        <a href="${esc(prefix)}elo/?tab=vtsr-t" class="btn btn-sm btn-primary"><i class="bi bi-trophy me-1"></i>View full ladder</a>
-        <span class="text-secondary small">Highest bands first, names A\u2013Z. VTSR-T is corpus-wide; the hub filter only picks who is listed.</span>
+        <a href="${esc(prefix)}elo/?tab=vsr-t" class="btn btn-sm btn-primary"><i class="bi bi-trophy me-1"></i>View full ladder</a>
+        <span class="text-secondary small">Highest bands first, names A\u2013Z. VSR-T is corpus-wide; the hub filter only picks who is listed.</span>
       </div>`;
   }
 
@@ -690,13 +690,13 @@
     pane.innerHTML = `
       ${card('Career Leaderboard', 'bi-list-ol', `<div id="vt-hub-career-wrap">${careerTableHtml(stats)}</div>`, {
         right: careerColsPills(),
-        sub: `Players with ${minN()}+ matches in scope. Click a header to sort. VTSR-T is never a column here (it renders as a band, not a number).`,
+        sub: `Players with ${minN()}+ matches in scope. Click a header to sort. VSR-T is never a column here (it renders as a band, not a number).`,
       })}
       ${card('Ship specialists', 'bi-fuel-pump', `<div id="vt-hub-ships-wrap">${shipSpecialistsHtml(stats)}</div>`, {
         sub: 'Who is best in each ship, from per-ship combat rows (tick-joined to the ship being flown at event time).',
       })}
       ${card('Role boards', 'bi-people', roleBoardsHtml(agg))}
-      ${card('VTSR-T ladder', 'bi-stars', vtsrTeaserHtml(stats) || '<p class="text-secondary mb-0">No ranked players in scope.</p>')}
+      ${card('VSR-T ladder', 'bi-stars', vtsrTeaserHtml(stats) || '<p class="text-secondary mb-0">No ranked players in scope.</p>')}
     `;
     if (pane._vtBound) return;
     pane._vtBound = true;
@@ -744,13 +744,13 @@
     if (!eligible.length) return '';
     const rec = new Map(((agg.commander_stats && agg.commander_stats.rows) || []).map(r => [String(r.steam64 || ''), r]));
     return `<div class="table-responsive"><table class="table table-sm table-hover align-middle mb-2 vt-standings-table">
-      <thead><tr><th>#</th><th>Commander</th><th class="text-end">VTSR-C</th><th class="text-end">Recorded W\u2013L (scope)</th></tr></thead>
+      <thead><tr><th>#</th><th>Commander</th><th class="text-end">VSR-C</th><th class="text-end">Recorded W\u2013L (scope)</th></tr></thead>
       <tbody>${eligible.map((r, i) => {
         const row = rec.get(String(r.steam64 || ''));
         const wl = row && (row.determined_as_commander || 0) > 0 ? `<span class="num">${row.wins_as_commander}\u2013${row.losses_as_commander}</span>` : '<span class="text-secondary">\u2014</span>';
         return `<tr><td class="text-secondary">${i + 1}</td><td>${link(r.name, r.steam64)}${r.provisional ? ' <span class="vt-cohort-prov" title="Provisional">Prov</span>' : ''}</td><td class="text-end num">${Math.round(r.vtsr_c || 0)}</td><td class="text-end">${wl}</td></tr>`;
       }).join('')}</tbody></table></div>
-      <p class="text-secondary small mb-0">VTSR-C is corpus-wide (recorded duels + <a href="https://f9bomber.com" target="_blank" rel="noopener">F9bomber</a>'s ledger). The W\u2013L column follows the hub filter.</p>`;
+      <p class="text-secondary small mb-0">VSR-C is corpus-wide (recorded duels + <a href="https://f9bomber.com" target="_blank" rel="noopener">F9bomber</a>'s ledger). The W\u2013L column follows the hub filter.</p>`;
   }
 
   function cmdrSortFn(key, asc) {
@@ -832,7 +832,7 @@
         : `<div class="vt-econ-leader-value text-secondary">\u2014</div><div class="vt-econ-leader-sub">needs ${ECON_LEADER_MIN_MATCHES}+ telemetry matches</div>`;
       return `<div class="col-md-6 col-xl-3"><div class="vt-econ-leader-tile"><div class="vt-econ-leader-label"><i class="bi ${icon} me-2"></i>${label}</div>${body}</div></div>`;
     }).join('');
-    return `<div class="row g-3">${tiles}</div><p class="text-secondary small mb-0 mt-3">Per-match averages over recorded v4 telemetry games while commanding. Recorded, not scored \u2014 none of this is in VTSR-C.</p>`;
+    return `<div class="row g-3">${tiles}</div><p class="text-secondary small mb-0 mt-3">Per-match averages over recorded v4 telemetry games while commanding. Recorded, not scored \u2014 none of this is in VSR-C.</p>`;
   }
 
   function h2hHtml(pairs) {
@@ -857,9 +857,9 @@
     const standings = commanderStandingsHtml(agg);
     const econ = economyLeadersHtml(rows);
     pane.innerHTML = `
-      ${standings ? card('Commander cohort', 'bi-shield-fill', standings, { sub: 'Top of the VTSR-C ladder (corpus-wide) with their recorded record in the current scope.' }) : ''}
+      ${standings ? card('Commander cohort', 'bi-shield-fill', standings, { sub: 'Top of the VSR-C ladder (corpus-wide) with their recorded record in the current scope.' }) : ''}
       ${card('Commander leaderboard', 'bi-person-badge', `<div id="vt-hub-cmdr-wrap">${commanderTableHtml(rows)}</div>`, {
-        sub: 'Everyone on the VTSR-C ladder, with their role split and per-match averages in scope. Click a header to sort.',
+        sub: 'Everyone on the VSR-C ladder, with their role split and per-match averages in scope. Click a header to sort.',
       })}
       ${econ ? card('Economy leaders', 'bi-cash-stack', econ) : ''}
       <div class="row g-3">

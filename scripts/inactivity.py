@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""VT Stats — display-only activity clocks for the ranked ladders.
+"""VSR — display-only activity clocks for the ranked ladders.
 
 Pure module (no I/O). ``compute_activity(all_match_data,
 external_duels=None)`` walks every corpus ``leaderboard[]`` row (rated

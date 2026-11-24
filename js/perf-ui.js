@@ -1,5 +1,5 @@
 /*
- * VT Stats — shared performance-axes UI (window.VTPerfUI).
+ * VSR — shared performance-axes UI (window.VTPerfUI).
  *
  * Rendering helpers on top of js/perf-axes.js (the pure data layer) used
  * by the single player profile, the player compare view and the Players

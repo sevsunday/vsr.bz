@@ -1,5 +1,5 @@
 """
-VT Stats - Map file analyzer (exploration tool).
+VSR - Map file analyzer (exploration tool).
 
 Parses a Battlezone: Combat Commander map directory (containing some subset of
 .bzn / .inf / .TRN / .des / .TER / .SKY / .WAT / .dds files) and extracts:
@@ -986,7 +986,7 @@ def report_to_json(report: MapReport) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 def main(argv: list[str]) -> int:
-    ap = argparse.ArgumentParser(description="VT Stats - BZ:CC map analyzer")
+    ap = argparse.ArgumentParser(description="VSR - BZ:CC map analyzer")
     ap.add_argument("map_dir", help="Path to a directory holding one map's files")
     ap.add_argument("--out", default=None, help="Write JSON to this path")
     args = ap.parse_args(argv)

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-20T18:24:42Z",
+  "generated_at": "2026-11-24T21:55:07Z",
   "maps": {
     "beyond": {
       "avg_duration_sec": 0.0,
@@ -29824,6 +29824,6 @@
   "max_top_commanders": 10,
   "min_recent_matches_shown": 10,
   "schema_version": 2,
-  "site_url": "https://vtstats.bz",
-  "template_version": 24
+  "site_url": "https://vsr.bz",
+  "template_version": 25
 }

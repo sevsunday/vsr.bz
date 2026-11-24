@@ -1,5 +1,5 @@
 /**
- * VT Stats - Active Game Indicator
+ * VSR - Active Game Indicator
  *
  * Dashboard-only topnav widget. Polls the live BZ2 lobby via
  * BZ2API.fetchSessions and:

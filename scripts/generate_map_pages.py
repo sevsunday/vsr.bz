@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VT Stats — Map Browser Page Generator
+VSR — Map Browser Page Generator
 
 Owns three concerns:
 
@@ -46,7 +46,7 @@ import vtsr_bands
 # canonical) so embedded link previews resolve even when shared without
 # the host prefix. CNAME in repo root is the source of truth. Mirrors
 # generate_player_pages.SITE_URL.
-SITE_URL = "https://vtstats.bz"
+SITE_URL = "https://vsr.bz"
 
 # Bumped whenever the rendered stub HTML changes shape (new meta tag,
 # new template placeholder, new section in the static fold, etc.).
@@ -79,7 +79,8 @@ SITE_URL = "https://vtstats.bz"
 # v23 replaces the Dashboard link with a Matches dropdown
 # (Browse matches, Most recent).
 # v24 adds YouTube to the Tools dropdown, after Discord Time.
-MAP_TEMPLATE_VERSION = 24
+# v25 rebrands the site to VSR on vsr.bz.
+MAP_TEMPLATE_VERSION = 25
 
 # Pre-gen stub path within the repo. Each map slug becomes
 # `map/<slug>/index.html`. Created if missing, written idempotently
@@ -1170,7 +1171,7 @@ def _format_stub_html(
     function: stable output for the same inputs (so idempotent writes
     short-circuit cleanly when nothing material changed)."""
     canonical_url = f"{SITE_URL}/map/{slug}/"
-    og_title = f"{title} \u2014 VT Stats"
+    og_title = f"{title} \u2014 VSR"
     og_desc = _build_og_description(map_entry, map_stats_entry)
     og_image = _resolve_og_image_url(slug, project_root)
 

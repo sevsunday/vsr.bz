@@ -1,5 +1,5 @@
 /**
- * VT Stats — Player Profile Pages (js/player.js)
+ * VSR — Player Profile Pages (js/player.js)
  *
  * Boots player/index.html in three modes:
  *   - directory:     no params -> rich card-grid landing
@@ -78,7 +78,7 @@
     pillar:  { min: 40, label: 'Zoner (40+)' },
   };
 
-  // Sort comparators keyed by select value. VTSR-T sorts on the raw value
+  // Sort comparators keyed by select value. VSR-T sorts on the raw value
   // like Balonce and the ladder do — the ORDER is fine, the NUMBER is what
   // never shows (DEVELOPER_GUIDE §13.8). Unrated players sort last.
   const byName = (a, b) => String(a.name || '').toLowerCase().localeCompare(String(b.name || '').toLowerCase());
@@ -91,7 +91,7 @@
   const SORT_COMPARATORS = {
     'vtsrc-desc':   byRatedDesc('vtsr_c'),
     'vtsrt-desc':   (a, b) => {
-      // Provisional VTSR-T rows carry a number too; keep them below the
+      // Provisional VSR-T rows carry a number too; keep them below the
       // established ladder so the top of the list is the real ladder.
       const pa = !!a.provisional, pb = !!b.provisional;
       if (pa !== pb) return pa ? 1 : -1;
@@ -108,7 +108,7 @@
     'last-desc':    (a, b) => String(b.last_match_id || '').localeCompare(String(a.last_match_id || '')) || byName(a, b),
   };
   // `state.filters.sort` holds only an explicit pick (null = automatic).
-  // The automatic sort is VTSR-T at the hub's default scope and Net/m once
+  // The automatic sort is VSR-T at the hub's default scope and Net/m once
   // the scope narrows (ship, weapon, faction, role, period, format): a
   // rating is corpus-wide, so it cannot rank play inside a filtered scope.
   const DEFAULT_SORT = 'vtsrt-desc';
@@ -387,10 +387,10 @@
     contributions: null,    // parsed data/processed/match_contributions.json (lazy)
     cmdrElo:       undefined, // parsed elo_commander_current.json (lazy; undefined = unfetched, null = 404)
     cmdrEloHistory: undefined, // parsed elo_commander_history.json (lazy; undefined = unfetched, null = 404)
-    cmdrRatingChart: null,   // Chart.js instance for the VTSR-C time-series (Commander tab)
+    cmdrRatingChart: null,   // Chart.js instance for the VSR-C time-series (Commander tab)
     v1Elo:         undefined, // parsed elo_1v1_current.json (lazy; undefined = unfetched, null = 404)
     v1EloHistory:  undefined, // parsed elo_1v1_history.json (lazy; same contract)
-    v1RatingChart: null,     // Chart.js instance for the VTSR-1v1 time-series (Commander tab)
+    v1RatingChart: null,     // Chart.js instance for the VSR-1v1 time-series (Commander tab)
     v2Elo:         undefined, // parsed elo_2v2_current.json (lazy; undefined = unfetched, null = 404)
     v2EloHistory:  undefined, // parsed elo_2v2_history.json (lazy; same contract)
     overviewRadarChart: null, // Chart.js instance for the Overview perf radar
@@ -563,8 +563,8 @@
     for (const c of ((state.cmdrElo && state.cmdrElo.ratings) || [])) {
       if (c.steam64) cmdrBySteam.set(String(c.steam64), c);
     }
-    // The directory lists ranked players only: on the VTSR-T ladder or the
-    // VTSR-C ladder. Profiles, stubs and compare links still resolve anyone.
+    // The directory lists ranked players only: on the VSR-T ladder or the
+    // VSR-C ladder. Profiles, stubs and compare links still resolve anyone.
     // The hub's "Include unranked" switch adds players above the career
     // floor (meta.min_career_matches) in the current scope.
     const isRanked = (r, cmdr) => vtsrLadderEligible(r, state.elo)
@@ -661,7 +661,7 @@
       <span class="vt-player-hero-stat">
         <i class="bi bi-people"></i><span class="num">${rows.length}</span><span>players</span>
       </span>
-      <span class="vt-player-hero-stat" title="Players per VTSR-T tier">
+      <span class="vt-player-hero-stat" title="Players per VSR-T tier">
         <i class="bi bi-layers"></i>${tierPills || '<span>\u2014</span>'}
       </span>
       <span class="vt-player-hero-stat">
@@ -770,7 +770,7 @@
     return sparkSvg(history, 240, 28);
   }
 
-  // The card's VTSR-C row value: the number (muted + dashed when
+  // The card's VSR-C row value: the number (muted + dashed when
   // provisional) or an em-dash for players never rated as commander.
   function cardVtsrCValueHtml(row) {
     if (!Number.isFinite(row.vtsr_c)) {
@@ -778,14 +778,14 @@
     }
     const prov = row.vtsr_c_provisional;
     const games = row.vtsr_c_games || 0;
-    const tip = `VTSR-C ${Math.round(row.vtsr_c)}: commander win/loss rating over ${games} rated commander game${games === 1 ? '' : 's'}${prov ? ' (provisional)' : ''}`;
+    const tip = `VSR-C ${Math.round(row.vtsr_c)}: commander win/loss rating over ${games} rated commander game${games === 1 ? '' : 's'}${prov ? ' (provisional)' : ''}`;
     return `<span class="vt-player-card-vtsrc${prov ? ' is-provisional' : ''}" title="${escapeHtml(tip)}">
       <span class="num">${Math.round(row.vtsr_c)}</span>${prov ? '<span class="vt-player-card-vtsrc-prov">prov.</span>' : ''}
     </span>`;
   }
 
-  // Card layout: name, then the two rating rows (VTSR-C on top with its
-  // number, VTSR-T under it with its band chip + position bar), then the
+  // Card layout: name, then the two rating rows (VSR-C on top with its
+  // number, VSR-T under it with its band chip + position bar), then the
   // last-10 above/below bars for each rating, then role + ship pills
   // and the footer. The bars sit on their own so they get the row's
   // full width instead of a sliver beside the number.
@@ -815,14 +815,14 @@
 
       <div class="vt-player-card-ratings">
         <div class="vt-player-card-rating-row vt-player-card-rating-row--c">
-          <span class="vt-player-card-rating-key" title="VTSR-C: commander win/loss rating">
-            <i class="bi bi-shield-fill"></i>VTSR-C
+          <span class="vt-player-card-rating-key" title="VSR-C: commander win/loss rating">
+            <i class="bi bi-shield-fill"></i>VSR-C
           </span>
           <span class="vt-player-card-rating-value">${cardVtsrCValueHtml(row)}</span>
         </div>
         <div class="vt-player-card-rating-row vt-player-card-rating-row--t">
-          <span class="vt-player-card-rating-key" title="VTSR-T: thug form rating, shown as a band">
-            <i class="bi bi-lightning-charge-fill"></i>VTSR-T
+          <span class="vt-player-card-rating-key" title="VSR-T: thug form rating, shown as a band">
+            <i class="bi bi-lightning-charge-fill"></i>VSR-T
           </span>
           <span class="vt-player-card-rating-value">
             ${VTSRDisplay.bandChipHtml(band, { compact: true, bsTooltip: false })}
@@ -832,11 +832,11 @@
       </div>
 
       <div class="vt-player-card-sparks">
-        <div class="vt-player-card-spark-row" title="${cSeries.length ? `Last ${cSeries.length} VTSR-C commander games: rating won or lost` : 'No rated commander games'}">
+        <div class="vt-player-card-spark-row" title="${cSeries.length ? `Last ${cSeries.length} VSR-C commander games: rating won or lost` : 'No rated commander games'}">
           <span class="vt-player-card-spark-label">C</span>
           <div class="vt-player-card-spark">${cardSparkHtml(cSeries)}</div>
         </div>
-        <div class="vt-player-card-spark-row" title="${tSeries.length ? `Last ${tSeries.length} VTSR-T games: above or below what the rating expected` : 'No rated games yet'}">
+        <div class="vt-player-card-spark-row" title="${tSeries.length ? `Last ${tSeries.length} VSR-T games: above or below what the rating expected` : 'No rated games yet'}">
           <span class="vt-player-card-spark-label">T</span>
           <div class="vt-player-card-spark">${cardSparkHtml(tSeries)}</div>
         </div>
@@ -1087,11 +1087,11 @@
     window.location.href = u.pathname + (u.search || '') + (u.hash || '');
   }
 
-  // ---- VTSR-T axes (the axes the rating is built on) -------------------
+  // ---- VSR-T axes (the axes the rating is built on) -------------------
   //
   // Distinct from RADAR_AXIS_LABELS in charts-radar.js: those are the
   // career_stats-derived visualization axes (All Matches / per-match
-  // radars). These are the elo.py axes that drive the actual VTSR-T
+  // radars). These are the elo.py axes that drive the actual VSR-T
   // number. Overview profile, Compare overlay, strengths/weaknesses,
   // coaching cards, and quick-wins all live in this space. The list is
   // whatever elo_current.weights scores, heaviest first.
@@ -1108,7 +1108,7 @@
       .map(key => ({ key, ...(VTSR_AXIS_CATALOG[key] || { label: key, icon: 'bi-dot' }) }));
   }
 
-  // True when a rating row carries at least one finite VTSR-T axis mean.
+  // True when a rating row carries at least one finite VSR-T axis mean.
   function hasVtsrMeans(rating) {
     const means = rating && rating.axis_means;
     if (!means) return false;
@@ -1302,14 +1302,14 @@
   function renderSingle(rating) {
     const role = roleLabel(rating);
     const band = VTSRDisplay.bandFor(rating);
-    // Title strip only: name, band chip, role, VTSR-C chip when rated,
+    // Title strip only: name, band chip, role, VSR-C chip when rated,
     // Compare button. The rich hero body (position bar, peak, form,
     // ladder status, spark) is the first Overview card so every tab
     // keeps the context line without the height.
     const cRow = cmdrRatingRowQuick(String(rating.steam64 || ''));
     const cChip = cRow
       ? `<span class="vt-player-card-pill vt-player-card-pill--vtsrc${cRow.provisional ? ' is-provisional' : ''}"
-               title="VTSR-C ${Math.round(cRow.vtsr_c)}: commander win/loss rating over ${cRow.games} rated commander game${cRow.games === 1 ? '' : 's'}${cRow.provisional ? ' (provisional)' : ''}">
+               title="VSR-C ${Math.round(cRow.vtsr_c)}: commander win/loss rating over ${cRow.games} rated commander game${cRow.games === 1 ? '' : 's'}${cRow.provisional ? ' (provisional)' : ''}">
            <i class="bi bi-shield-fill"></i>C <span class="num">${Math.round(cRow.vtsr_c)}</span>
          </span>`
       : '';
@@ -1375,7 +1375,7 @@
     activateTabFromUrl();
   }
 
-  // VTSR-C row for the title strip (elo_commander_current is fetched at boot).
+  // VSR-C row for the title strip (elo_commander_current is fetched at boot).
   function cmdrRatingRowQuick(sid) {
     const ratings = (state.cmdrElo && state.cmdrElo.ratings) || [];
     const r = ratings.find(x => String(x.steam64 || '') === sid);
@@ -1394,8 +1394,8 @@
   // ---- Trends tab -----------------------------------------------------------
   //
   // Format control (3v3+ | 2v2 | 1v1; default = the format the player
-  // has played most) over: 3v3+ = VTSR-T band chart + match log + axis
-  // trend picker; 2v2 = the VTSR-2v2 block; 1v1 = the VTSR-1v1 block.
+  // has played most) over: 3v3+ = VSR-T band chart + match log + axis
+  // trend picker; 2v2 = the VSR-2v2 block; 1v1 = the VSR-1v1 block.
   // The 3v3+ shell is rendered up front (the chart + log need
   // elo_history, fetched on first activation); 2v2 / 1v1 lazy-load
   // their ladders when picked.
@@ -1521,7 +1521,7 @@
         <div class="card-body">
           <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
             <h2 class="h6 mb-0 text-secondary text-uppercase" style="letter-spacing:0.08em;">
-              <i class="bi bi-graph-up me-1"></i>VTSR-T history
+              <i class="bi bi-graph-up me-1"></i>VSR-T history
             </h2>
             <div class="ms-auto d-flex flex-wrap align-items-center gap-2 vt-rating-chart-controls">
               ${ratingChartModeChipsHtml()}
@@ -1593,7 +1593,7 @@
                     <th class="vt-matchlog-th text-end" data-sort="dealt">Dealt</th>
                     <th class="vt-matchlog-th text-end" data-sort="acc">Acc</th>
                     <th class="vt-matchlog-th text-end" data-sort="delta" title="How the game went against what the rating expected">Game</th>
-                    <th class="vt-matchlog-th text-end" data-sort="after" title="VTSR-T band after the game">Band after</th>
+                    <th class="vt-matchlog-th text-end" data-sort="after" title="VSR-T band after the game">Band after</th>
                     <th class="vt-matchlog-th vt-matchlog-vod" title="YouTube VOD">VOD</th>
                     <th class="vt-matchlog-th"></th>
                   </tr>
@@ -1776,7 +1776,7 @@
     return tf ? tf.code : null;
   }
 
-  // -- Rating series charts (VTSR-T / VTSR-C / VTSR-1v1) -----------------
+  // -- Rating series charts (VSR-T / VSR-C / VSR-1v1) -----------------
   //
   // Three views over one chronological series of {date, after, delta}:
   //   trend — x = game number, y = a centered moving average of `after`.
@@ -1784,7 +1784,7 @@
   //           the same) and the line is the direction of travel, not
   //           the games. The default.
   //   exact — x = game number, every game's `after`, point colours by
-  //           verdict (VTSR-T) or win / loss (VTSR-C, 1v1).
+  //           verdict (VSR-T) or win / loss (VSR-C, 1v1).
   //   date  — the time axis (ms), wheel zoom + drag pan, 90d / 30d chips.
   // One shared preference (localStorage) so every rating chart on the
   // profile flips together.
@@ -2057,7 +2057,7 @@
         min: 1000,
         ticks: { color: themeMuted },
         grid:  { display: false },
-        title: { display: true, text: 'VTSR-T band', color: themeText },
+        title: { display: true, text: 'VSR-T band', color: themeText },
       }),
       plugins: (ctx) => {
         const list = [
@@ -2750,7 +2750,7 @@
                 Every axis compares the player with the other players <strong>in that same match</strong>:
                 0 is the lobby average, +0.5 is clearly above it, \u22120.5 clearly below (the scale stops at \u00b11).
                 A career value is the average of those per-match scores. It is a <strong>picture, not a rating</strong>
-                \u2014 none of it feeds VTSR-T.
+                \u2014 none of it feeds VSR-T.
               </p>
               <p class="small text-secondary mb-2">
                 The percentile chip ranks that career average against every other player with ${minN}+ matches
@@ -3053,8 +3053,8 @@
 
   // ---- Phase 6c: Rivals tab (incl. Most-commanded-against panel) -------
 
-  // Lazy one-shot fetch of the experimental VTSR-C commander ladder.
-  // Graceful 404: null caches and every VTSR-C surface renders em-dash
+  // Lazy one-shot fetch of the experimental VSR-C commander ladder.
+  // Graceful 404: null caches and every VSR-C surface renders em-dash
   // fallbacks. undefined = not yet fetched.
   let _cmdrEloFetchPromise = null;
   function ensureCmdrEloLoaded() {
@@ -3067,7 +3067,7 @@
     return _cmdrEloFetchPromise;
   }
 
-  // Lazy one-shot fetch of the VTSR-C duel history (elo_commander_history.json)
+  // Lazy one-shot fetch of the VSR-C duel history (elo_commander_history.json)
   // powering the commander rating time-series. Same 404 contract as
   // ensureCmdrEloLoaded: null caches and the chart section self-omits.
   let _cmdrEloHistFetchPromise = null;
@@ -3190,7 +3190,7 @@
     return `<a class="vt-video-link" href="${escapeHtml(href)}" target="_blank" rel="noopener" title="Watch on YouTube \u2014 ${escapeHtml(channel)}${extra}" onclick="event.stopPropagation()"><i class="bi bi-youtube" aria-hidden="true"></i></a>`;
   }
 
-  /** Chronological VTSR-C points for one commander: every duel in
+  /** Chronological VSR-C points for one commander: every duel in
       elo_commander_history.json where they sat on either side. */
   function buildCmdrRatingSeries(sid) {
     const duels = (state.cmdrEloHistory && state.cmdrEloHistory.duels) || [];
@@ -3226,7 +3226,7 @@
     return out;
   }
 
-  // Display-only VTSR-C ladder gate (schema 4). Live mins come from
+  // Display-only VSR-C ladder gate (schema 4). Live mins come from
   // elo_commander_current.json; fallbacks match scripts/elo_commander.py.
   const CMDR_LADDER_MIN_V4_FALLBACK = 8;
   const CMDR_LADDER_MIN_NON_V4_FALLBACK = 25;
@@ -3306,12 +3306,12 @@
   // (The standalone Rivals tab is retired; rivalryTilesHtml() renders the
   // nemesis / favorite-target tiles on the Overview from the same walk.)
 
-  // ---- Commander Rivalries panel (VTSR-C) -------------------------------
+  // ---- Commander Rivalries panel (VSR-C) -------------------------------
   // Duel-lens on the player's commander career: every corpus match where
   // they led a team, keyed by the OPPOSING commander. Head-to-head W/L/D
   // only counts matches with a verified outcome (adjudicated / attested /
   // clean_win / contested; draws count as D); undetermined meetings still
-  // count as "faced". VTSR-C numbers join from the experimental ladder
+  // count as "faced". VSR-C numbers join from the experimental ladder
   // (elo_commander_current.json, 404-safe -> em-dashes).
 
   const CMDR_DETERMINED_DECIDED_BY = new Set(['adjudicated', 'attested', 'clean_win', 'contested']);
@@ -3427,7 +3427,7 @@
     };
     const vtsrBit = (oid) => {
       const tv = oppVtsrC(oid);
-      return tv != null ? `&middot; their VTSR-C <strong>${tv}</strong>` : '';
+      return tv != null ? `&middot; their VSR-C <strong>${tv}</strong>` : '';
     };
     const top = rows[0];
     let html = `<p class="text-secondary small mb-3">
@@ -3448,7 +3448,7 @@
             <th>Opposing commander</th>
             <th class="text-end">Faced</th>
             <th class="text-end" title="Head-to-head record in matches with a verified outcome">W-L-D</th>
-            <th class="text-end">Their VTSR-C</th>
+            <th class="text-end">Their VSR-C</th>
           </tr></thead>
           <tbody>
             ${rows.map(o => {
@@ -3514,7 +3514,7 @@
     const headline = `<div class="vt-cmdr-riv-headline">
       <div class="vt-cmdr-riv-stat">
         <span class="vt-cmdr-riv-stat-value">${ladder ? Math.round(ladder.row.vtsr_c) : '\u2014'}</span>
-        <span class="vt-cmdr-riv-stat-label">VTSR-C ${provChip}</span>
+        <span class="vt-cmdr-riv-stat-label">VSR-C ${provChip}</span>
       </div>
       <div class="vt-cmdr-riv-stat">
         <span class="vt-cmdr-riv-stat-value">${rankValue}</span>
@@ -3543,7 +3543,7 @@
       </div>` : '';
     const opponentsBodyHtml = cmdrOpponentsBodyHtml(name, riv, combined, withF9);
 
-    // VTSR-C rating time-series (c3 quick win): only when the duel
+    // VSR-C rating time-series (c3 quick win): only when the duel
     // history is loaded and this commander has >= 2 rated duels (a
     // one-point line reads as a floating dot). The canvas is drawn by
     // drawCmdrRatingChart() after the panel lands in the DOM.
@@ -3551,11 +3551,11 @@
     const chartHtml = cmdrSeries.length >= 2 ? `
       <div class="vt-cmdr-riv-chart-block">
         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-          <h3 class="vt-cmdr-riv-subhead mb-0"><i class="bi bi-graph-up me-1"></i>VTSR-C history</h3>
+          <h3 class="vt-cmdr-riv-subhead mb-0"><i class="bi bi-graph-up me-1"></i>VSR-C history</h3>
           <div class="ms-auto">${ratingChartModeChipsHtml()}</div>
         </div>
         <div class="vt-cmdr-riv-chart-wrap">
-          <canvas id="vt-cmdr-rating-chart" aria-label="VTSR-C rating time-series"></canvas>
+          <canvas id="vt-cmdr-rating-chart" aria-label="VSR-C rating time-series"></canvas>
         </div>
       </div>` : '';
 
@@ -3580,7 +3580,7 @@
           ${escapeHtml(name)}&rsquo;s record <strong>as a commander</strong> in recorded games.
           Only matches with a verified outcome count toward the W-L-D.
           Ratings come from the
-          <a href="${state.dataPrefix}elo/?tab=vtsr-c">VTSR-C ladder</a>.
+          <a href="${state.dataPrefix}elo/?tab=vsr-c">VSR-C ladder</a>.
         </p>
         ${headline}
         ${cmdrCommunityNoteHtml(ladder)}
@@ -3634,7 +3634,7 @@
         <i class="bi bi-cash-stack me-1"></i>Commander economy
         <span class="vt-cmdr-econ-badge" title="Built from proto v4 resource/build telemetry \u2014 only matches recorded with the new collector count toward these stats.">v4 telemetry &middot; ${denomCaption}</span>
       </h3>
-      <p class="text-secondary small mb-2">Recorded, not scored. Per-match averages over the telemetry matches; none of this is part of the VTSR-C rating.</p>
+      <p class="text-secondary small mb-2">Recorded, not scored. Per-match averages over the telemetry matches; none of this is part of the VSR-C rating.</p>
       <div class="vt-cmdr-econ-grid">
         ${tile('Income / min', fmtR(r.avg_income_per_min), 'scrap generated per minute')}
         ${tile('Income / match', fmtNum(r.avg_scrap_income), `${fmtNum(r.total_scrap_income)} total`)}
@@ -3649,7 +3649,7 @@
     </div>`;
   }
 
-  /** Draw the VTSR-C series into #vt-cmdr-rating-chart (if present)
+  /** Draw the VSR-C series into #vt-cmdr-rating-chart (if present)
       through the shared ratingSeriesChart (Trend | Exact | By date). */
   function drawCmdrRatingChart(rating, sid) {
     const canvas = document.getElementById('vt-cmdr-rating-chart');
@@ -3667,14 +3667,14 @@
     const themeDanger  = getCSSVar('--kb-danger')  || '#e74c3c';
 
     state.cmdrRatingChart = ratingSeriesChart(canvas, points, {
-      label: 'VTSR-C',
+      label: 'VSR-C',
       pointColor: p => ((Number.isFinite(p.delta) && p.delta < 0) ? themeDanger : themeSuccess),
       tooltipLines: (p) => {
         const dStr = Number.isFinite(p.delta)
           ? `${p.delta >= 0 ? '+' : ''}${p.delta.toFixed(1)}` : '\u2014';
         const res = p.score === 1 ? 'Win' : p.score === 0 ? 'Loss' : 'Draw';
         const lines = [
-          `VTSR-C: ${p.after.toFixed(0)} (${dStr})`,
+          `VSR-C: ${p.after.toFixed(0)} (${dStr})`,
           `${res} vs ${p.opponent || 'unknown'}`,
         ];
         if (p.source === 'f9') {
@@ -3682,12 +3682,12 @@
         }
         return lines;
       },
-      trendLine: mean => `Trend: VTSR-C ${Math.round(mean)}`,
+      trendLine: mean => `Trend: VSR-C ${Math.round(mean)}`,
       yScale: {
         beginAtZero: false,
         ticks: { color: themeMuted, maxTicksLimit: 6 },
         grid:  { color: 'rgba(255,255,255,0.05)' },
-        title: { display: true, text: 'VTSR-C', color: themeText },
+        title: { display: true, text: 'VSR-C', color: themeText },
       },
     });
     ratingChartRedraws.c = () => drawCmdrRatingChart(rating, sid);
@@ -3914,7 +3914,7 @@
             <th>Opponent</th>
             <th>Result</th>
             <th class="text-end">Expected</th>
-            <th class="text-end">&Delta; VTSR-C</th>
+            <th class="text-end">&Delta; VSR-C</th>
             <th>Map</th>
           </tr></thead>
           <tbody>
@@ -3956,7 +3956,7 @@
     </div></div>`;
   }
 
-  // ---- VTSR-1v1 block (separate head-to-head ladder) --------------------
+  // ---- VSR-1v1 block (separate head-to-head ladder) --------------------
 
   function v1RatingRowFor(sid) {
     const rows = (state.v1Elo && state.v1Elo.ratings) || [];
@@ -4039,16 +4039,16 @@
 
     const chart = series.length >= 2
       ? `<div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-           <h3 class="vt-cmdr-riv-subhead mb-0"><i class="bi bi-graph-up me-1"></i>VTSR-1v1 history</h3>
+           <h3 class="vt-cmdr-riv-subhead mb-0"><i class="bi bi-graph-up me-1"></i>VSR-1v1 history</h3>
            <div class="ms-auto">${ratingChartModeChipsHtml()}</div>
          </div>
          <div style="position: relative; height: 200px;" class="mb-3"><canvas id="vt-v1-rating-chart"></canvas></div>`
       : '';
     return `<div class="card mb-3" id="vt-player-1v1"><div class="card-body">
       <h2 class="h6 text-secondary text-uppercase mb-2" style="letter-spacing:0.08em;">
-        <i class="bi bi-people me-1"></i>1v1 (VTSR-1v1)
+        <i class="bi bi-people me-1"></i>1v1 (VSR-1v1)
       </h2>
-      <p class="text-secondary small mb-3">A separate head-to-head ladder: recorded 1v1s only, plain Elo, no thug handicap. It does not affect VTSR-C or VTSR-T.
+      <p class="text-secondary small mb-3">A separate head-to-head ladder: recorded 1v1s only, plain Elo, no thug handicap. It does not affect VSR-C or VSR-T.
         <a href="${state.dataPrefix}elo/?tab=1v1">Full 1v1 ladder</a>.</p>
       <div class="d-flex flex-wrap gap-4 mb-3">
         <div><div class="text-secondary small">Rating</div><div class="fs-4 fw-semibold vt-matchlog-num">${Math.round(row.rating)}${prov}</div></div>
@@ -4076,7 +4076,7 @@
     </div></div>`;
   }
 
-  // ---- VTSR-2v2 block (separate 2v2 ladders) ----------------------------
+  // ---- VSR-2v2 block (separate 2v2 ladders) ----------------------------
 
   function v2RatingRowFor(ladder, sid) {
     const l = state.v2Elo && state.v2Elo.ladders && state.v2Elo.ladders[ladder];
@@ -4168,10 +4168,10 @@
 
     return `<div class="card mb-3" id="vt-player-2v2"><div class="card-body">
       <h2 class="h6 text-secondary text-uppercase mb-2" style="letter-spacing:0.08em;">
-        <i class="bi bi-people-fill me-1"></i>2v2 (VTSR-2v2)
+        <i class="bi bi-people-fill me-1"></i>2v2 (VSR-2v2)
       </h2>
       <p class="text-secondary small mb-3">Separate 2v2 ladders: a commander and one thug per side, recorded games only. Thugs carry two ratings for now.
-        None of this affects VTSR-C, VTSR-T or VTSR-1v1. <a href="${state.dataPrefix}elo/?tab=2v2c">Full 2v2 ladders</a>.</p>
+        None of this affects VSR-C, VSR-T or VSR-1v1. <a href="${state.dataPrefix}elo/?tab=2v2c">Full 2v2 ladders</a>.</p>
       <div class="d-flex flex-wrap gap-4 mb-3">
         ${stat('Commander (2v2C)', rows.commander, 'Win/loss Elo for 2v2 commanders.')}
         ${stat('Thug win/loss (2v2T)', rows.thug_wl, 'Win/loss Elo for 2v2 thugs.')}
@@ -4201,22 +4201,22 @@
     const themeSuccess = getCSSVar('--kb-success') || '#2ecc71';
     const themeDanger  = getCSSVar('--kb-danger')  || '#e74c3c';
     state.v1RatingChart = ratingSeriesChart(canvas, points, {
-      label: 'VTSR-1v1',
+      label: 'VSR-1v1',
       pointColor: p => (p.delta < 0 ? themeDanger : themeSuccess),
       tooltipLines: (p) => {
         const res = p.score === 1 ? 'Win' : p.score === 0 ? 'Loss' : 'Draw';
         const dStr = Number.isFinite(p.delta) ? `${p.delta >= 0 ? '+' : ''}${p.delta.toFixed(1)}` : '\u2014';
         return [
-          `VTSR-1v1: ${p.after.toFixed(0)} (${dStr})`,
+          `VSR-1v1: ${p.after.toFixed(0)} (${dStr})`,
           `${res} vs ${p.opponent || 'unknown'}${p.map ? ' \u2014 ' + p.map : ''}`,
         ];
       },
-      trendLine: mean => `Trend: VTSR-1v1 ${Math.round(mean)}`,
+      trendLine: mean => `Trend: VSR-1v1 ${Math.round(mean)}`,
       yScale: {
         beginAtZero: false,
         ticks: { color: themeMuted, maxTicksLimit: 6 },
         grid:  { color: 'rgba(255,255,255,0.05)' },
-        title: { display: true, text: 'VTSR-1v1', color: themeText },
+        title: { display: true, text: 'VSR-1v1', color: themeText },
       },
     });
     ratingChartRedraws.v1 = () => drawV1RatingChart(sid);
@@ -4416,7 +4416,7 @@
               <div class="vt-player-single-hero-body">
                 <div>
                   <div class="vt-player-single-tier-row">
-                    <span class="text-secondary small">VTSR-T</span>
+                    <span class="text-secondary small">VSR-T</span>
                     <span class="text-secondary small">&middot;</span>
                     <span class="text-secondary small">thug form rating, shown as a band</span>
                   </div>
@@ -4522,7 +4522,7 @@
 
     // Community team record (as thug) from F9bomber's hand-kept ledger.
     // Team outcomes only -- NEVER framed as a skill rating and never a
-    // VTSR-T input. 404 / no row / zero games: the strip stays hidden.
+    // VSR-T input. 404 / no row / zero games: the strip stays hidden.
     ensureF9CommunityLoaded().then((comm) => {
       const wrap = $('vt-f9-record-wrap');
       const bodyEl = $('vt-f9-record');
@@ -4762,7 +4762,7 @@
 
   // (Strengths & weaknesses, Performance observations and the coaching
   // copy are retired: the Performance tab's per-axis cards with
-  // vs-player-base percentiles replace them, and the single VTSR-T axis
+  // vs-player-base percentiles replace them, and the single VSR-T axis
   // no longer supports a "what to work on" ranking.)
 
   function renderSingleTabs() {
@@ -5069,7 +5069,7 @@
             <div class="card-body">
               <div class="d-flex flex-wrap gap-2 align-items-baseline justify-content-between mb-2">
                 <h2 class="h6 text-secondary text-uppercase mb-0" style="letter-spacing:0.08em;">
-                  <i class="bi bi-graph-up me-1"></i>VTSR-T band over time
+                  <i class="bi bi-graph-up me-1"></i>VSR-T band over time
                 </h2>
                 <div class="vt-chip-group" role="group" aria-label="X-axis mode" id="vt-compare-x-mode">
                   <button type="button" class="vt-chip" data-x="date" data-selected="${compareState.xAxisMode === 'matches' ? 'false' : 'true'}">By date</button>
@@ -5290,7 +5290,7 @@
             min: 1000,
             ticks: { color: themeMuted },
             grid: { display: false },
-            title: { display: true, text: 'VTSR-T band', color: themeText },
+            title: { display: true, text: 'VSR-T band', color: themeText },
           }),
         },
       },
@@ -5337,7 +5337,7 @@
     const num = (v) => formatNumber(+v);
     const ratio = (v) => Number.isFinite(+v) ? (Math.round(+v * 100) / 100).toFixed(2) : '—';
     return [
-      { label: 'VTSR-T band',    accessor: ({rating}) => VTSRDisplay.bandFor(rating).index,
+      { label: 'VSR-T band',    accessor: ({rating}) => VTSRDisplay.bandFor(rating).index,
                                   format: (v, f) => escapeHtml(VTSRDisplay.bandFor(f.rating).label), dir: 'hi' },
       { label: 'Peak band',      accessor: ({rating}) => (VTSRDisplay.rawBandFor(rating.peak_vtsr || rating.vtsr) || {}).index,
                                   format: (v, f) => escapeHtml((VTSRDisplay.rawBandFor(f.rating.peak_vtsr || f.rating.vtsr) || {}).label || '\u2014'), dir: 'hi' },
@@ -5471,7 +5471,7 @@
       if (perPlayerKeys.every(s => s.has(k))) intersection.push(k);
     }
 
-    // Build per-match metadata + per-player ΔVTSR.
+    // Build per-match metadata + per-player ΔVSR.
     const deltasByMatch = new Map();
     if (state.eloHistory && state.eloHistory.history) {
       for (const entry of state.eloHistory.history) {
@@ -5969,7 +5969,7 @@
         // June 2026 fable review (git history)). Graceful 404: null hides the band.
         fetchJson(`${state.dataPrefix}data/processed/validation_summary.json`).catch(() => null),
         ensureMatchVideosLoaded(),
-        // VTSR-C for the directory sort + card chip (404-safe).
+        // VSR-C for the directory sort + card chip (404-safe).
         ensureCmdrEloLoaded(),
         // Ship display names for the raw loadout stems (404-safe -> stems).
         fetchJson(`${state.dataPrefix}data/processed/ship_names.json`).catch(() => null),

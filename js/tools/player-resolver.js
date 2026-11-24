@@ -1,16 +1,16 @@
 /**
- * VT Stats - Tools Page - Player Resolver
+ * VSR - Tools Page - Player Resolver
  *
- * Resolves Steam64 IDs to player metadata (canonical name, slug, VTSR-T,
+ * Resolves Steam64 IDs to player metadata (canonical name, slug, VSR-T,
  * tier, commander stats, provisional flag, etc.) for the /tools page.
  *
  * Load strategy:
  *   - EAGER (on init):
  *       data/known-hosts.json    (allowlist of community hosts)
- *       data/processed/elo_current.json    (VTSR-T + commander stats)
- *       data/processed/elo_commander_current.json  (VTSR-C ladder — the
+ *       data/processed/elo_current.json    (VSR-T + commander stats)
+ *       data/processed/elo_commander_current.json  (VSR-C ladder — the
  *           dominant term in the Balonce Meter's win probability)
- *       data/processed/elo_2v2_current.json  (VTSR-2v2 ladders, 2v2 mode only)
+ *       data/processed/elo_2v2_current.json  (VSR-2v2 ladders, 2v2 mode only)
  *       data/processed/player_slugs.json   (sticky display name + slug)
  *       data/vsrmaplist.json     (used by live-session-card for map images)
  *   - LAZY (on first resolve of an unknown Steam64):
@@ -33,11 +33,11 @@
  *   (otherwise: no badge)
  *
  * Provisional anchoring (used by team-balonce sum):
- *   - Unrated (no entry in elo_current.ratings[]): VTSR 1500, isProvisional=true,
+ *   - Unrated (no entry in elo_current.ratings[]): VSR 1500, isProvisional=true,
  *     isUnknown=true
- *   - Rated but elo_current.ratings[i].matches_provisional=true: real VTSR
+ *   - Rated but elo_current.ratings[i].matches_provisional=true: real VSR
  *     carries through, isProvisional=true
- *   - Custom entries (no Steam64, user-typed): VTSR 1500, isProvisional=true,
+ *   - Custom entries (no Steam64, user-typed): VSR 1500, isProvisional=true,
  *     isCustom=true
  *
  * Public API (window.VTToolsResolver):
@@ -57,19 +57,19 @@
  *     steam64,               // string or null (custom entries)
  *     displayName,           // resolved display name (string)
  *     lobbyNick,             // pass-through lobby nick (string or null)
- *     slug,                  // VTstats slug or null
+ *     slug,                  // VSR slug or null
  *     steamProfileUrl,       // built from Steam64 or null
  *     vtstatsUrl,            // /player/<slug>/ or runtime-fallback
  *     vtsr,                  // number (anchored at 1500 when provisional/unknown/custom)
  *     thugElo,               // number or null
  *     winsElo,               // number or null
- *     vtsrC,                 // VTSR-C commander rating, or null when unrated
+ *     vtsrC,                 // VSR-C commander rating, or null when unrated
  *     vtsrCEffective,        // vtsrC ?? anchor — what the Balonce Meter feeds the model
  *     vtsrCGames,            // rated commander duels (telemetry + community ledger)
  *     vtsrCProvisional,      // bool — below the ladder's provisional threshold
  *     vtsrCUnrated,          // bool — no entry in the commander ladder at all
  *     vtsrCRecord,           // {w, l, d} or null
- *     vtsr2v2c / vtsr2v2tWl / vtsr2v2tPerf  // VTSR-2v2 ratings, null when no game on that ladder
+ *     vtsr2v2c / vtsr2v2tWl / vtsr2v2tPerf  // VSR-2v2 ratings, null when no game on that ladder
  *     vtsr2v2cEffective / vtsr2v2tWlEffective  // ?? anchor — what 2v2 mode feeds the meter
  *     vtsr2v2{c,tWl,tPerf}{Games,Provisional}
  *     matchesPlayed,         // number or 0
@@ -96,7 +96,7 @@
   const STEAM_ROSTER_URL_CANDIDATES = ['../data/steamid_to_name.txt', 'data/steamid_to_name.txt'];
   const VSR_MAP_LIST_URL_CANDIDATES = ['../data/vsrmaplist.json', 'data/vsrmaplist.json'];
 
-  const SITE_URL = 'https://vtstats.bz';
+  const SITE_URL = 'https://vsr.bz';
   const PROVISIONAL_ANCHOR_VTSR = 1500;
   // Mirrors ELO_PROVISIONAL_THRESHOLD in scripts/elo.py.
   const PROVISIONAL_THRESHOLD = 10;
@@ -180,7 +180,7 @@
     eloMeta = {
       schema_version: data.schema_version,
       anchor: data.anchor || PROVISIONAL_ANCHOR_VTSR,
-      // VTSR-T soft floor — what Team Balonce values an empty seat at
+      // VSR-T soft floor — what Team Balonce values an empty seat at
       // under its uneven-lobby rule. Read from the file, never hardcoded.
       rating_floor: Number.isFinite(data.rating_floor) ? data.rating_floor : 1000,
       ratings_count: Array.isArray(data.ratings) ? data.ratings.length : 0,
@@ -201,9 +201,9 @@
   }
 
   /**
-   * VTSR-C commander ladder. Feeds the Balonce Meter's dominant term: the
+   * VSR-C commander ladder. Feeds the Balonce Meter's dominant term: the
    * validated prediction is driven by the commander rating gap, with thug
-   * VTSR-T only as the handicap. 404-safe: without this file the meter
+   * VSR-T only as the handicap. 404-safe: without this file the meter
    * degrades to the thug-only read (every commander at the anchor).
    */
   async function loadCmdrEloCurrent() {
@@ -233,7 +233,7 @@
   }
 
   /**
-   * VTSR-2v2 ladders (commander + both thug ratings). Feeds Team Balonce's
+   * VSR-2v2 ladders (commander + both thug ratings). Feeds Team Balonce's
    * 2v2 mode only. 404-safe: without the file every player reads as a
    * 2v2 debut at the anchor.
    */
@@ -326,7 +326,7 @@
 
   // ---------------------------------------------------------------- Resolution
 
-  // Raw tier for a VTSR-T value; null when unknown or (with `matches`)
+  // Raw tier for a VSR-T value; null when unknown or (with `matches`)
   // still provisional, so callers render the "?" chip.
   function resolveTier(vtsr, matches) {
     if (!Number.isFinite(vtsr)) return null;
@@ -362,7 +362,7 @@
     return null;
   }
 
-  // The three VTSR-2v2 ratings for one player. Raw values are null when
+  // The three VSR-2v2 ratings for one player. Raw values are null when
   // the player has no game on that ladder; the *Effective values are the
   // anchor then, exactly as scripts/elo_2v2.py debuts a player.
   function v2Fields(ratedId) {
@@ -415,7 +415,7 @@
     const canonicalName = id && canonicalNames ? canonicalNames.get(id) || null : null;
 
     // Alias sources keep the live lobby nick (and the source-account
-    // known name as fallback). ELO / slug / VTstats URL come from the
+    // known name as fallback). ELO / slug / VSR URL come from the
     // TARGET; the Steam community URL stays on the live account.
     const displayName = (isAliasSource && lobbyNick)
       || (sourceSlugEntry && sourceSlugEntry.name)
@@ -437,8 +437,8 @@
       isProvisional = true;
     }
 
-    // VTSR-C (commander ladder). Alias-aware via the same ratedId chain as
-    // VTSR-T. Unrated commanders debut at the anchor, exactly as
+    // VSR-C (commander ladder). Alias-aware via the same ratedId chain as
+    // VSR-T. Unrated commanders debut at the anchor, exactly as
     // elo_commander.py does, so the Balonce Meter can always compute.
     const cmdrEntry = ratedId ? cmdrRatings.get(ratedId) || null : null;
     const cmdrAnchor = (cmdrEloMeta && Number.isFinite(cmdrEloMeta.anchor))
@@ -455,7 +455,7 @@
     const matchesAsCmdr = eloEntry && Number.isFinite(eloEntry.matches_as_commander) ? eloEntry.matches_as_commander : 0;
     const matchesAsThug = eloEntry && Number.isFinite(eloEntry.matches_as_thug) ? eloEntry.matches_as_thug : 0;
     const cmdrShare = matchesPlayed > 0 ? matchesAsCmdr / matchesPlayed : 0;
-    // Displayed VTSR-T band (sticky, from the pipeline); null when the
+    // Displayed VSR-T band (sticky, from the pipeline); null when the
     // player has no rating, so the UI shows "?".
     const band = (eloEntry && window.VTSRDisplay) ? VTSRDisplay.bandFor(eloEntry) : null;
     const tier = band
@@ -472,7 +472,7 @@
       vtsr,
       thugElo: eloEntry && Number.isFinite(eloEntry.thug_elo) ? eloEntry.thug_elo : null,
       winsElo: eloEntry && Number.isFinite(eloEntry.wins_elo) ? eloEntry.wins_elo : null,
-      // --- VTSR-C (commander ladder). `vtsrC` is null when unrated;
+      // --- VSR-C (commander ladder). `vtsrC` is null when unrated;
       // `vtsrCEffective` is what the Balonce Meter feeds the model.
       vtsrC,
       vtsrCEffective: Number.isFinite(vtsrC) ? vtsrC : cmdrAnchor,

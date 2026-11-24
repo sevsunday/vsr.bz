@@ -1,5 +1,5 @@
 /**
- * VT Stats - Positioning Tab Renderers
+ * VSR - Positioning Tab Renderers
  *
  * Static renderers for the Movement Profile feature. Consumes the
  * `positioning` block from processed match JSON.

@@ -1,5 +1,5 @@
 /**
- * VT Stats - Chart.js Renderers
+ * VSR - Chart.js Renderers
  *
  * All chart colors are read from CSS custom properties at render time
  * so they adapt to theme changes automatically on re-render.

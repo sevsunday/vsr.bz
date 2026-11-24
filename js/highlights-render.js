@@ -1,5 +1,5 @@
 /*
- * VT Stats — shared Highlights renderer (window.VTHighlights).
+ * VSR — shared Highlights renderer (window.VTHighlights).
  *
  * The Match Highlights (per-match, `mode = 'match'`) and Career
  * Highlights (`mode = 'career'`) tile grids, extracted from js/app.js so

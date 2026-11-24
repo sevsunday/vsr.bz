@@ -1,5 +1,5 @@
 /**
- * VT Stats - Tools Page - Drand Panel
+ * VSR - Tools Page - Drand Panel
  *
  * Renders the "Provably Random" panel: status pill (4 health states),
  * fallback banner, retry control, verifier form, session log, and the

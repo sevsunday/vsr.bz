@@ -1,5 +1,5 @@
 /* =============================================================================
-   VT Stats - Lobby Tools Page
+   VSR - Lobby Tools Page
    
    Two-column viewport-fit grid layout above 1280px (data-trio left,
    tools-trio right); single-col stacked below. Each card carries an
@@ -177,7 +177,7 @@
     min-width: 120px;
 }
 
-/* Topnav action group (left-side, after VT Stats brand). Holds the
+/* Topnav action group (left-side, after VSR brand). Holds the
    Ignore-live Bootstrap form-switch + the Reset button. */
 .vt-tools-actions {
     display: inline-flex;
@@ -1418,8 +1418,8 @@
     background: none;
 }
 
-/* Commander row carries BOTH ratings: this chip is the VTSR-C (the one
-   in the prediction); the band chip beside it is their thug VTSR-T,
+/* Commander row carries BOTH ratings: this chip is the VSR-C (the one
+   in the prediction); the band chip beside it is their thug VSR-T,
    shown for context only. */
 .vt-tools-balonce-row-cmdrelo {
     flex-shrink: 0;

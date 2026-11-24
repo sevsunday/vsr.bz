@@ -1,4 +1,4 @@
-/* VT Stats — Documentation Search
+/* VSR — Documentation Search
  *
  * Client-side fuzzy section search modeled after Bootstrap's Algolia palette.
  * One-page corpus (docs/DATA_DICTIONARY.md), runtime indexed, sessionStorage-

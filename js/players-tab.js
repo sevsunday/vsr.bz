@@ -3,7 +3,7 @@
  * (Formerly the dashboard's All Matches → Experimental tab.)
  *
  * Display-only join. Recorded games use the pre-match rating. F9bomber
- * ledger games use each opponent's current VTSR, because the ledger has
+ * ledger games use each opponent's current VSR, because the ledger has
  * no thug rating from the day the game was played. Corpus-wide: the hub
  * filter bar does not change these figures. Nothing here is written back,
  * and this file does not feed VTAggregate, elo.py, or elo_commander.py.
@@ -105,8 +105,8 @@
     return n > 0 ? '+' + v : v;
   }
 
-  // VTSR-T never renders as a number: a VTSR-T gap shows as its effect on
-  // win chance, a current VTSR-T as a band. VTSR-C keeps its numbers.
+  // VSR-T never renders as a number: a VSR-T gap shows as its effect on
+  // win chance, a current VSR-T as a band. VSR-C keeps its numbers.
   function winShiftPct(gap) {
     if (gap == null || !isFinite(gap) || !window.VTSRDisplay) return null;
     return VTSRDisplay.gapToWinShift(gap) * 100;
@@ -496,11 +496,11 @@
   }
 
   function metricSpec(metric) {
-    const ownLabel = state.role === 'commander' ? 'Current VTSR-C' : 'Current VTSR-T';
+    const ownLabel = state.role === 'commander' ? 'Current VSR-C' : 'Current VSR-T';
     const specs = {
       oppThug: { label: 'Opp. thug strength', axis: 'win chance lost to opposing thugs, vs a typical schedule', versus: 'win chance vs a typical schedule' },
       gap: { label: 'Thug gap', axis: 'win chance lost to opposing thugs ahead of own', versus: 'win chance from thugs' },
-      oppCmdr: { label: 'Opp. cmdr VTSR-C', axis: 'vs a typical opponent commander', versus: 'vs typical', format: fmtRating },
+      oppCmdr: { label: 'Opp. cmdr VSR-C', axis: 'vs a typical opponent commander', versus: 'vs typical', format: fmtRating },
       matches: { label: 'Matches', axis: 'vs a typical match count', versus: 'vs typical', format: fmtCount },
       own: state.role === 'commander'
         ? { label: ownLabel, axis: 'vs a typical rating', versus: 'vs typical', format: fmtRating }
@@ -509,7 +509,7 @@
     return specs[metric] || specs.oppThug;
   }
 
-  // Mean opposing-thug VTSR-T across the rows on screen: the "typical
+  // Mean opposing-thug VSR-T across the rows on screen: the "typical
   // schedule" both the table and the chart measure against.
   function typicalOppThug(rows) {
     return mean(rows.map(function (r) { return r.oppThug; })
@@ -720,7 +720,7 @@
           },
           {
             type: 'line',
-            label: role === 'commander' ? 'VTSR-C' : 'VTSR-T',
+            label: role === 'commander' ? 'VSR-C' : 'VSR-T',
             data: ratings,
             yAxisID: 'y1',
             borderColor: t.accent,
@@ -747,7 +747,7 @@
                 if (item.datasetIndex === 0) return 'Win rate ' + item.raw.toFixed(1) + '%';
                 if (role !== 'commander') {
                   const b = window.VTSRDisplay && item.raw != null ? VTSRDisplay.rawBandFor(item.raw) : null;
-                  return 'VTSR-T ' + (b ? b.label : '\u2014');
+                  return 'VSR-T ' + (b ? b.label : '\u2014');
                 }
                 return item.dataset.label + ' ' + fmtRating(item.raw);
               },
@@ -776,13 +776,13 @@
           y1: (role === 'commander' || !window.VTSRDisplay)
             ? {
               position: 'right',
-              title: { display: true, text: 'VTSR-C', color: t.textMuted },
+              title: { display: true, text: 'VSR-C', color: t.textMuted },
               ticks: { color: t.textMuted },
               grid: { display: false },
             }
             : VTSRDisplay.applyTierAxis({
               position: 'right',
-              title: { display: true, text: 'VTSR-T band', color: t.textMuted },
+              title: { display: true, text: 'VSR-T band', color: t.textMuted },
               ticks: { color: t.textMuted },
               grid: { display: false },
             }),
@@ -831,7 +831,7 @@
     return out.slice(0, 5);
   }
 
-  // VTSR-T climbs read as a band move; VTSR-C climbs keep points.
+  // VSR-T climbs read as a band move; VSR-C climbs keep points.
   function climbLabelHtml(r) {
     if (r.role === 'commander' || !window.VTSRDisplay) {
       return '<span class="vt-mono">' + fmtSigned(r.climb) + '</span>';
@@ -879,7 +879,7 @@
     const shown = visibleRows(rows);
     const empty = document.getElementById('vt-players-schedule-empty');
     const heading = document.getElementById('vt-players-own-heading');
-    if (heading) heading.textContent = state.role === 'commander' ? 'Current VTSR-C' : 'Current VTSR-T';
+    if (heading) heading.textContent = state.role === 'commander' ? 'Current VSR-C' : 'Current VSR-T';
     document.querySelectorAll('#vt-players-schedule-table th[data-vt-sort]').forEach(function (th) {
       const on = th.getAttribute('data-vt-sort') === state.sortKey;
       th.classList.toggle('is-sorted', on);

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-VT Stats is a static-site dashboard for Battlezone: Combat Commander match statistics. A Python pipeline turns raw protobuf sessions into pre-computed JSON; the browser only renders that JSON.
+VSR is a static-site dashboard for Battlezone: Combat Commander match statistics. A Python pipeline turns raw protobuf sessions into pre-computed JSON; the browser only renders that JSON.
 
 Architecture, data contracts, and per-page behavior live in `.cursor/rules/` and `DEVELOPER_GUIDE.md`. This file is only the entry point. Do not copy long conventions back into it.
 
@@ -37,7 +37,7 @@ Sun shadows for the explorer, the 3D replay and the map page live in `_map-analy
 | `README.md` | Project overview and quick start |
 | `scripts/statsgate.proto` | Current raw schema |
 | `scripts/process_stats.py` | Pipeline entrypoint |
-| `scripts/elo.py` / `scripts/elo_commander.py` | VTSR-T and VTSR-C |
+| `scripts/elo.py` / `scripts/elo_commander.py` | VSR-T and VSR-C |
 | `js/app.js` | Dashboard renderer |
 | `css/vtstats-theme.css` | Shared theme layer |
 | `docs/index.html` | Rendered docs (dictionary + developer guide) |

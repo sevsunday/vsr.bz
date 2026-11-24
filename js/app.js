@@ -1,5 +1,5 @@
 /**
- * VT Stats Dashboard - Main Application
+ * VSR - Main Application
  *
  * Loads pre-computed match stats from data/processed/ and renders
  * all dashboard panels. No raw event parsing happens in the browser.
@@ -1130,9 +1130,9 @@
     if ($facetFormats) {
       const fc = pickerFacets.formatCounts || {};
       const titles = {
-        '1v1': 'One active player per side (VTSR-1v1)',
-        '2v2': 'Two active players per side, a commander and a thug each (VTSR-2v2)',
-        team: 'Three or more active players per side (VTSR-T / VTSR-C)',
+        '1v1': 'One active player per side (VSR-1v1)',
+        '2v2': 'Two active players per side, a commander and a thug each (VSR-2v2)',
+        team: 'Three or more active players per side (VSR-T / VSR-C)',
         other: 'Uneven or too small for any ladder (3v1, 2v1, solo)',
       };
       $facetFormats.innerHTML = MATCH_FORMATS.map(f =>
@@ -1935,7 +1935,7 @@
     });
   }
 
-  // --- VTSR-T ladder gates (tier lines live in elo_current.json
+  // --- VSR-T ladder gates (tier lines live in elo_current.json
   // band_config, read by js/vtsr-display.js). ELO_PROVISIONAL_THRESHOLD
   // (10 rated matches) gates the "?" Provisional chip — separate from
   // MIN_CAREER_MATCHES (5) which gates whether the row is visible at all.
@@ -1982,7 +1982,7 @@
     if (kind === 'deaths') {
       tip = `PvP: ${pvpN} from players · PvE: ${pveN} from AI / world`;
     } else {
-      tip = `PvP: ${pvpN} on players · PvE: ${pveN} on AI / structures (kills are a display stat; VTSR-T scores enemy damage)`;
+      tip = `PvP: ${pvpN} on players · PvE: ${pveN} on AI / structures (kills are a display stat; VSR-T scores enemy damage)`;
       if (eff != null) {
         tip += ` · Effective PvP kills: ${eff.toFixed(2)} (damage-share + finisher-floor weighted)`;
       }
@@ -3222,14 +3222,14 @@
   function hideGallery() {
     mountPickerIn('modal');
     if ($gallery) $gallery.classList.add('d-none');
-    document.title = 'VT Stats Dashboard';
+    document.title = 'VSR';
   }
 
   async function showGallery() {
     mountPickerIn('gallery');
     fitMatchesHeader();
     $dashboard.classList.add('d-none');
-    document.title = 'VT Stats — Matches';
+    document.title = 'VSR — Matches';
     // The gallery is a real history entry, so the first match opened from
     // it pushes ?match= and Back returns here.
     dashboardHistoryLive = true;
@@ -3273,7 +3273,7 @@
     if (killSearch) killSearch.value = '';
 
     // Fire ELO load in parallel with the match-JSON fetch so the
-    // per-match VTSR-T Δ column has data ready by the time the
+    // per-match VSR-T Δ column has data ready by the time the
     // leaderboard renders. ensureEloLoaded() is idempotent and swallows
     // its own fetch errors, so Promise.all only rejects on the match-JSON
     // fetch — preserving the existing error path.
@@ -3386,10 +3386,10 @@
   // Fetches elo_current.json + elo_history.json once per session and caches
   // them on window.__vtElo / window.__vtEloHistory. Idempotent: subsequent
   // calls short-circuit immediately. Called from both loadAllMatches (where
-  // the VTSR-T leaderboard needs both files) and loadMatch (where the new
-  // per-match VTSR-T Δ leaderboard column needs elo_history). Fired in
+  // the VSR-T leaderboard needs both files) and loadMatch (where the new
+  // per-match VSR-T Δ leaderboard column needs elo_history). Fired in
   // parallel with the match-JSON fetch in loadMatch so it adds no latency
-  // on the hot path. Graceful 404: sentinel null hides the VTSR-T card and
+  // on the hot path. Graceful 404: sentinel null hides the VSR-T card and
   // renders "—" in the leaderboard column.
   async function ensureEloLoaded() {
     if (window.__vtElo !== undefined) return;
@@ -3401,7 +3401,7 @@
     // validation_summary.json (improvement #6 / June 2026 fable review (git history)): tiny
     // committed headline-metrics file written by scripts/validate_elo.py on
     // every pipeline run. Supplies the bootstrap resampling noise floor
-    // (±σ ELO) that the VTSR-T leaderboard surfaces as tooltips + a
+    // (±σ ELO) that the VSR-T leaderboard surfaces as tooltips + a
     // "statistical tie" note. Same graceful-404 pattern: null hides all
     // uncertainty UI.
     const historyPrefix = 'Ratings · elo_history.json';
@@ -3448,7 +3448,7 @@
     return Math.round(sigma);
   }
 
-  // ----- VTSR-T getters -----------------------------------------------------
+  // ----- VSR-T getters -----------------------------------------------------
   // Thin aliases onto the canonical pair. The v2.7 thug-only alt pair
   // and page-wide toggle are retired; every elo-dependent surface reads
   // elo_current.json / elo_history.json.
@@ -5243,9 +5243,9 @@
           <span class="vt-profile-name">${esc(player.name)}</span>
           <span class="badge ${fBadge}">Team ${player.faction}</span>
           <span class="small" style="color:var(--kb-text-muted);">Slot ${player.slot}</span>
-          ${player.is_campod ? '<span class="vt-campod-badge" data-bs-toggle="tooltip" title="Spent &gt;25% of the match in a camera-pod — excluded from VTSR-T and career stats">Campod</span>' : ''}
-          ${player.is_low_activity ? '<span class="vt-partial-badge" data-bs-toggle="tooltip" title="Event-stream presence covered &lt;75% of match duration — excluded from VTSR-T and career stats">Partial</span>' : ''}
-          ${(!player.is_campod && !player.is_low_activity && player.is_zero_damage) ? '<span class="vt-idle-badge" data-bs-toggle="tooltip" title="Dealt 0 damage — excluded from VTSR-T and career stats">Idle</span>' : ''}
+          ${player.is_campod ? '<span class="vt-campod-badge" data-bs-toggle="tooltip" title="Spent &gt;25% of the match in a camera-pod — excluded from VSR-T and career stats">Campod</span>' : ''}
+          ${player.is_low_activity ? '<span class="vt-partial-badge" data-bs-toggle="tooltip" title="Event-stream presence covered &lt;75% of match duration — excluded from VSR-T and career stats">Partial</span>' : ''}
+          ${(!player.is_campod && !player.is_low_activity && player.is_zero_damage) ? '<span class="vt-idle-badge" data-bs-toggle="tooltip" title="Dealt 0 damage — excluded from VSR-T and career stats">Idle</span>' : ''}
         </div>
         <div class="d-flex flex-wrap gap-4 mb-3">
           <div class="stat-card"><div class="stat-value">${fmt(ps.dealt)}</div><div class="stat-label">Dealt</div></div>
@@ -5450,7 +5450,7 @@
       const acc = (accRate != null && (hasHitsData || est))
         ? `${est ? '~' : ''}${(accRate * 100).toFixed(1)}%`
         : '—';
-      // PvP Acc = pvp_hits / shots (human hits only; not a VTSR-T axis)
+      // PvP Acc = pvp_hits / shots (human hits only; not a VSR-T axis)
       // at the per-weapon level, NOT pvp_hits / hits which would always
       // be ≤100% and conflate weapon-mix with on-target rate).
       const pvpAcc = (hasHitsData && shots > 0) ? (pvpHits / shots * 100).toFixed(1) + '%' : '—';
@@ -5461,7 +5461,7 @@
         <td class="text-end"${est ? ` title="${ACC_EST_TITLE}"` : ''}>${(hasHitsData || est) ? `${est ? '~' : ''}${hitsShown}` : gapDash}</td>
         <td class="text-end" data-bs-toggle="tooltip" title="Hits that landed on a human player (subset of Hits).">${hasHitsData ? pvpHits : gapDash}</td>
         <td class="text-end">${acc}</td>
-        <td class="text-end" data-bs-toggle="tooltip" title="pvp_hits ÷ shots — human hits only. Not a VTSR-T input.">${pvpAcc}</td>
+        <td class="text-end" data-bs-toggle="tooltip" title="pvp_hits ÷ shots — human hits only. Not a VSR-T input.">${pvpAcc}</td>
       </tr>`;
     }).join('');
     return `
@@ -5477,7 +5477,7 @@
                 <th class="text-end">Hits</th>
                 <th class="text-end" data-bs-toggle="tooltip" title="Hits that landed on a human player.">PvP Hits</th>
                 <th class="text-end">Acc</th>
-                <th class="text-end" data-bs-toggle="tooltip" title="pvp_hits ÷ shots — human hits only. Not a VTSR-T input.">PvP Acc</th>
+                <th class="text-end" data-bs-toggle="tooltip" title="pvp_hits ÷ shots — human hits only. Not a VSR-T input.">PvP Acc</th>
               </tr>
             </thead>
             <tbody>${body}</tbody>
@@ -5568,7 +5568,7 @@
     };
     const eloChipHtml = (p, isCmdr, side) => {
       if (!ratings) return '';
-      // A rated 2v2 carries its own ladders (numbers are not VTSR-T).
+      // A rated 2v2 carries its own ladders (numbers are not VSR-T).
       if (ratings.format === '2v2') {
         const rec = v2RecFor(p);
         if (!rec) return '';
@@ -5576,24 +5576,24 @@
           ? `<span class="vt-faction-elo vt-mono" data-bs-toggle="tooltip" data-bs-placement="top" title="${esc(tip)}">${label} ${Math.round(v)}</span>`
           : '';
         if (rec.role === 'commander') {
-          return chip('2v2C', rec.c, 'Commander 2v2 rating (VTSR-2v2C) going into this match. Used in the prediction.');
+          return chip('2v2C', rec.c, 'Commander 2v2 rating (VSR-2v2C) going into this match. Used in the prediction.');
         }
-        return chip('W/L', rec.tWl, 'Thug 2v2 win/loss rating (VTSR-2v2T) going into this match. Used in the prediction.')
-          + chip('Perf', rec.tPerf, 'Thug 2v2 performance rating (VTSR-2v2T) going into this match. Shown for comparison.');
+        return chip('W/L', rec.tWl, 'Thug 2v2 win/loss rating (VSR-2v2T) going into this match. Used in the prediction.')
+          + chip('Perf', rec.tPerf, 'Thug 2v2 performance rating (VSR-2v2T) going into this match. Shown for comparison.');
       }
       if (isCmdr) {
         const cRaw = ratings.cmdrC[side];
         const rated = isRating(cRaw);
         const c = rated ? Math.round(cRaw) : (VTBalonce.ANCHOR || 1500);
         const cTip = rated
-          ? 'Commander rating (VTSR-C) going into this match. This is the term the prediction uses.'
+          ? 'Commander rating (VSR-C) going into this match. This is the term the prediction uses.'
           : 'No rated commander games before this match, so the model debuts them at the 1500 anchor.';
         return `<span class="vt-faction-elo vt-mono" data-bs-toggle="tooltip" data-bs-placement="top" title="${esc(cTip)}">C ${c}${rated ? '' : '*'}</span>`;
       }
       const t = thugRating(p);
       if (!isRating(t) || !window.VTSRDisplay) return '';
       const band = VTSRDisplay.rawBandFor(t);
-      return VTSRDisplay.bandChipHtml(band, { compact: true, title: `VTSR-T going into this match: ${band.label}` });
+      return VTSRDisplay.bandChipHtml(band, { compact: true, title: `VSR-T going into this match: ${band.label}` });
     };
     // Team thug strength stays in the gauge; the heading no longer
     // prints a mean rating.
@@ -5751,7 +5751,7 @@
   }
 
   // --- Leaderboard ---
-  // --- Per-match VTSR-T Δ helpers ---
+  // --- Per-match VSR-T Δ helpers ---
   // Join the currently-loaded match against elo_history.json and cache
   // the result on currentData.__eloDeltaIndex so sort/filter re-renders
   // don't re-scan the history array. Cache auto-invalidates on every
@@ -5843,7 +5843,7 @@
   function renderEloDeltaCell(d, idx) {
     if (!idx || !idx.available) {
       return `<td class="text-end" data-bs-toggle="tooltip" data-bs-placement="top"
-        title="VTSR-T data unavailable"><span style="color:var(--kb-text-muted);">&mdash;</span></td>`;
+        title="VSR-T data unavailable"><span style="color:var(--kb-text-muted);">&mdash;</span></td>`;
     }
     if (idx.excluded) {
       const reasonText = idx.exclusion_reason === 'low_player_count' ? 'fewer than 6 players'
@@ -5855,7 +5855,7 @@
                        : idx.exclusion_reason === 'cancelled'        ? 'the host cancelled it'
                        : 'excluded from rating';
       return `<td class="text-end" data-bs-toggle="tooltip" data-bs-placement="top"
-        title="Match excluded from VTSR-T (${reasonText})"><span style="color:var(--kb-text-muted);">&mdash;</span></td>`;
+        title="Match excluded from VSR-T (${reasonText})"><span style="color:var(--kb-text-muted);">&mdash;</span></td>`;
     }
     if (!d) {
       return `<td class="text-end" data-bs-toggle="tooltip" data-bs-placement="top"
@@ -5872,7 +5872,7 @@
       .join(' \u00b7 ');
     const verdict = VTSRDisplay.deltaVerdict(d.delta);
     const tipParts = [];
-    if (d.preview) tipParts.push('Measured, not applied. VTSR-T did not change.');
+    if (d.preview) tipParts.push('Measured, not applied. VSR-T did not change.');
     tipParts.push(verdict ? verdict.label : 'No change');
     tipParts.push(`Perf ${d.performance.toFixed(2)} vs expected ${d.expected.toFixed(2)}`);
     if (axes) tipParts.push(`Top axes: ${axes}`);
@@ -5911,13 +5911,13 @@
       const durationMin = Math.floor(durationSec / 60);
       const durationRem = Math.round(durationSec % 60);
       const campodBadge = r.is_campod
-        ? ` <span class="vt-campod-badge" data-bs-toggle="tooltip" title="Spent ${campodPct}% of match in a camera-pod — excluded from VTSR-T and career stats">Campod</span>`
+        ? ` <span class="vt-campod-badge" data-bs-toggle="tooltip" title="Spent ${campodPct}% of match in a camera-pod — excluded from VSR-T and career stats">Campod</span>`
         : '';
       const partialBadge = r.is_low_activity
-        ? ` <span class="vt-partial-badge" data-bs-toggle="tooltip" title="Only present for ${presenceMin}:${String(presenceRem).padStart(2,'0')} of ${durationMin}:${String(durationRem).padStart(2,'0')} — excluded from VTSR-T and career stats">Partial</span>`
+        ? ` <span class="vt-partial-badge" data-bs-toggle="tooltip" title="Only present for ${presenceMin}:${String(presenceRem).padStart(2,'0')} of ${durationMin}:${String(durationRem).padStart(2,'0')} — excluded from VSR-T and career stats">Partial</span>`
         : '';
       const idleBadge = (!r.is_campod && !r.is_low_activity && r.is_zero_damage)
-        ? ` <span class="vt-idle-badge" data-bs-toggle="tooltip" title="Dealt 0 damage — excluded from VTSR-T and career stats">Idle</span>`
+        ? ` <span class="vt-idle-badge" data-bs-toggle="tooltip" title="Dealt 0 damage — excluded from VSR-T and career stats">Idle</span>`
         : '';
       const benchInfo = currentData && currentData.match && currentData.match.bench;
       const benchSec = benchInfo ? Number(benchInfo.effective_end_sec) || 0 : 0;
@@ -5928,7 +5928,7 @@
         || benchInfo.name === r.name
       );
       const benchBadge = benchOn
-        ? ` <span class="vt-bench-badge" data-bs-toggle="tooltip" title="Stopped fighting after ${esc(benchInfo.leaver_name || 'a player')} left. VTSR-T uses play through ${benchMin}:${String(benchRem).padStart(2, '0')}. Career stats still include the whole match.">Benched</span>`
+        ? ` <span class="vt-bench-badge" data-bs-toggle="tooltip" title="Stopped fighting after ${esc(benchInfo.leaver_name || 'a player')} left. VSR-T uses play through ${benchMin}:${String(benchRem).padStart(2, '0')}. Career stats still include the whole match.">Benched</span>`
         : '';
       // v7 (schema_version 7): identity-reroute provenance chip. Set by the
       // pipeline's ACCOUNT_REROUTES mechanism (scripts/process_stats.py)
@@ -6515,10 +6515,10 @@
       return;
     }
     // v15: host-attested cancellation (early RE / crash / restart).
-    // Visible everywhere, excluded from VTSR-T rating.
+    // Visible everywhere, excluded from VSR-T rating.
     if (decidedBy === 'cancelled') {
       badgeEl.setAttribute('data-decided-by', 'cancelled');
-      setTip('The match host marked this game cancelled (early RE, crash, or restart). Excluded from VTSR-T rating.' + adjTip);
+      setTip('The match host marked this game cancelled (early RE, crash, or restart). Excluded from VSR-T rating.' + adjTip);
       badgeEl.innerHTML = `<i class="bi bi-slash-circle me-1"></i>Game cancelled${adjMark}`;
       return;
     }
@@ -6666,7 +6666,7 @@
       // feed for transparency but earn no kill/death credit. Flag them with
       // a muted badge. Pre-v14 entries lack the field and render normally.
       const pilotBadge = entry.is_pilot_victim
-        ? ` <span class="vt-pilot-badge" data-bs-toggle="tooltip" title="On-foot pilot kill \u2014 not counted in kills/deaths or VTSR-T">pilot</span>`
+        ? ` <span class="vt-pilot-badge" data-bs-toggle="tooltip" title="On-foot pilot kill \u2014 not counted in kills/deaths or VSR-T">pilot</span>`
         : '';
       const mineBadge = entry.killer_via_mine
         ? ` <span class="vt-mine-badge" data-bs-toggle="tooltip" title="Laid mine \u2014 credited to the player who had flown a mine-laying ship">mine</span>`
@@ -6793,7 +6793,7 @@
 
   // Per-axis metadata: label + formula + description per ELO axis.
   // Consumed by the per-match leaderboard's top-axis-contributor labels.
-  // (The VTSR-T leaderboard's expand
+  // (The VSR-T leaderboard's expand
   // panel, which also reads this catalog, now lives in js/elo.js on the
   // dedicated /elo/ page with its own copy.) Keys mirror the axis-name
   // keys in elo_current.json `weights` / `axis_means` / `axis_contributions`.
@@ -6809,7 +6809,7 @@
 
 
 
-  // (The Commanders / Career Leaderboard / Career Radar / VTSR teaser
+  // (The Commanders / Career Leaderboard / Career Radar / VSR teaser
   // renderers that used to live here moved to the Players hub,
   // js/players-hub.js.)
 

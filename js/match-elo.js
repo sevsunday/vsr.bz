@@ -1,18 +1,18 @@
-// VT Stats — per-match Elo tab renderer.
+// VSR — per-match Elo tab renderer.
 //
 // Joins the currently loaded match against elo_history.json (already
 // fetched on dashboard boot into window.__vtEloHistory) and explains
-// how this lobby moved VTSR-T: a full-lobby Δ list, a selected-player
+// how this lobby moved VSR-T: a full-lobby Δ list, a selected-player
 // verdict + axis breakdown, and a P-vs-E scatter. A cancelled or drawn
 // match that carries elo_history `shadow.deltas` shows that same read
-// and says VTSR-T did not change; the commander card shows both
-// branches (had they won / had they lost) and says VTSR-C did not
+// and says VSR-T did not change; the commander card shows both
+// branches (had they won / had they lost) and says VSR-C did not
 // change. The view model copies `would_delta` onto `delta` and never
 // writes it back. When elo_commander_history.json has a duel for this
-// match, a compact VTSR-C two-row strip is appended (hidden on the
+// match, a compact VSR-C two-row strip is appended (hidden on the
 // historical undetermined corpus — no empty card). A rated 1v1 (a duel in
-// elo_1v1_history.json) gets its own VTSR-1v1 strip, shown even though
-// VTSR-T excludes the match. A rated 2v2 (a recorded game in
+// elo_1v1_history.json) gets its own VSR-1v1 strip, shown even though
+// VSR-T excludes the match. A rated 2v2 (a recorded game in
 // elo_2v2_history.json) gets the 2v2 card the same way.
 //
 // Contract notes:
@@ -20,9 +20,9 @@
 //   render(currentData, opts) reads currentData.leaderboard, never the
 //   filtered view. opts.filterPlayers (names from filterState) only
 //   preselects a row when exactly one player is in the filter.
-// - Default selection is the biggest VTSR-T gainer (rated[0], already
+// - Default selection is the biggest VSR-T gainer (rated[0], already
 //   sorted Δ descending), not the largest |Δ|.
-// - Snipes and T-key usage are display stats, not VTSR-T axes (v2.11).
+// - Snipes and T-key usage are display stats, not VSR-T axes (v2.11).
 // - No aggregation: every number comes from the pipeline-emitted delta
 //   or the commander-history duel row.
 // - Depends on charts.js globals (activeCharts, glassTooltipConfig,
@@ -41,15 +41,15 @@
 
   const EXPECTED_TIP_HTML =
     '<div><strong>Played vs expected</strong></div>' +
-    '<div>Expected is how a player at your pre-match VTSR-T is predicted to do in this lobby. Played is this match\u2019s share of the lobby\u2019s damage to the enemy, versus everyone here. Above the dashed line means you beat that prediction \u2014 that is what moves VTSR-T, win or lose.</div>';
+    '<div>Expected is how a player at your pre-match VSR-T is predicted to do in this lobby. Played is this match\u2019s share of the lobby\u2019s damage to the enemy, versus everyone here. Above the dashed line means you beat that prediction \u2014 that is what moves VSR-T, win or lose.</div>';
 
   const PREVIEW_EXPECTED_TIP_HTML =
     '<div><strong>Played vs expected</strong></div>' +
-    '<div>Expected is how a player at this pre-match VTSR-T is predicted to do in this lobby. Played is this match\u2019s share of the lobby\u2019s damage to the enemy. The match was not rated, so VTSR-T did not change.</div>';
+    '<div>Expected is how a player at this pre-match VSR-T is predicted to do in this lobby. Played is this match\u2019s share of the lobby\u2019s damage to the enemy. The match was not rated, so VSR-T did not change.</div>';
 
   const PREVIEW_REASONS = new Set(['cancelled', 'draw']);
-  const PREVIEW_VERDICT_TITLE = 'Measured, not applied. VTSR-T did not change.';
-  const LOBBY_WHY_RATED = 'how this match changed each player\u2019s VTSR-T \u2014 click a row';
+  const PREVIEW_VERDICT_TITLE = 'Measured, not applied. VSR-T did not change.';
+  const LOBBY_WHY_RATED = 'how this match changed each player\u2019s VSR-T \u2014 click a row';
   const VTSRC_WHY_RATED = 'win/loss rating \u2014 not the enemy-damage score';
 
   const VTSR_AXIS_META = {
@@ -125,7 +125,7 @@
     const why = document.getElementById('match-elo-lobby-why');
     if (!why) return;
     why.textContent = (joined && joined.preview)
-      ? 'how this match would have read \u2014 VTSR-T did not change'
+      ? 'how this match would have read \u2014 VSR-T did not change'
       : LOBBY_WHY_RATED;
   }
 
@@ -137,7 +137,7 @@
 
   function previewNote(reason) {
     const word = reason === 'draw' ? 'ended in a draw' : 'was cancelled';
-    return `<p class="text-muted small mb-3">This match ${word}. This is how the match would have read. VTSR-T did not change and VTSR-C did not change.</p>`;
+    return `<p class="text-muted small mb-3">This match ${word}. This is how the match would have read. VSR-T did not change and VSR-C did not change.</p>`;
   }
 
   function verdictOpts(joined, long) {
@@ -149,10 +149,10 @@
 
   function exclusionReasonText(reason) {
     if (reason === 'low_player_count') {
-      return 'This match had fewer than 6 players, so VTSR-T and VTSR-C did not rate it.';
+      return 'This match had fewer than 6 players, so VSR-T and VSR-C did not rate it.';
     }
     if (reason === 'short_side') {
-      return 'A side had fewer than 3 players, so VTSR-T and VTSR-C did not rate it.';
+      return 'A side had fewer than 3 players, so VSR-T and VSR-C did not rate it.';
     }
     if (reason === 'no_winner') {
       return 'No winner was recorded for this match (no host result and no recycler or factory loss), so it was not rated.';
@@ -173,7 +173,7 @@
         + 'on the Overview tab still shows the ratings both sides brought into '
         + 'it and what winning would have been worth.';
     }
-    return 'This match was not included in VTSR-T.';
+    return 'This match was not included in VSR-T.';
   }
 
   function destroyScatter() {
@@ -412,7 +412,7 @@
       const benchSec = benchOn ? Number(benchInfo.effective_end_sec) || 0 : 0;
       const benchClock = `${Math.floor(benchSec / 60)}:${String(Math.round(benchSec % 60)).padStart(2, '0')}`;
       const bench = benchOn
-        ? ` <span class="vt-bench-badge" title="Stopped fighting after ${esc(benchInfo.leaver_name || 'a player')} left. VTSR-T uses play through ${benchClock}. Career stats still include the whole match.">Benched</span>`
+        ? ` <span class="vt-bench-badge" title="Stopped fighting after ${esc(benchInfo.leaver_name || 'a player')} left. VSR-T uses play through ${benchClock}. Career stats still include the whole match.">Benched</span>`
         : '';
       let trackInner = '';
       let deltaHtml = '<span class="vt-match-elo-delta text-muted">&mdash;</span>';
@@ -456,7 +456,7 @@
     if (!body) return;
     if (!item || !item.delta) {
       if (title) title.textContent = 'This player\'s rating';
-      body.innerHTML = '<p class="text-muted small mb-0">Select a rated player to see how this match moved their VTSR-T.</p>';
+      body.innerHTML = '<p class="text-muted small mb-0">Select a rated player to see how this match moved their VSR-T.</p>';
       return;
     }
     const d = item.delta;
@@ -479,7 +479,7 @@
       bandMove = bandIn
         ? VTSRDisplay.bandChipHtml(bandIn, {
           bsTooltip: false,
-          title: `${bandIn.label}, unchanged. VTSR-T did not change.`,
+          title: `${bandIn.label}, unchanged. VSR-T did not change.`,
         })
         : '';
     } else {
@@ -490,7 +490,7 @@
         : (bandOut ? VTSRDisplay.bandChipHtml(bandOut, { bsTooltip: false, title: `${bandOut.label}, unchanged` }) : '');
     }
     const heldNote = joined.preview
-      ? '<p class="text-muted small mb-2">VTSR-T did not change.</p>'
+      ? '<p class="text-muted small mb-2">VSR-T did not change.</p>'
       : '';
     const weights = redistributedWeights(d.axis_contributions || {});
     const sentence = axisSentence(d.axis_contributions || {}, weights);
@@ -730,7 +730,7 @@
       setVtsrcWhy(VTSRC_WHY_RATED);
       return;
     }
-    setVtsrcWhy('neither result was applied \u2014 VTSR-C did not change');
+    setVtsrcWhy('neither result was applied \u2014 VSR-C did not change');
     const branch = (cls, label, before, delta) => `
       <span class="vt-balonce-whatif-branch ${cls}">
         <span class="vt-balonce-whatif-label">${esc(label)}</span>
@@ -826,7 +826,7 @@
     card.classList.remove('d-none');
   }
 
-  // ---- VTSR-1v1 strip (separate head-to-head ladder) ------------------
+  // ---- VSR-1v1 strip (separate head-to-head ladder) ------------------
   // window.__vtElo1v1History: undefined = untried, null = unavailable.
 
   let _v1HistPromise = null;
@@ -916,7 +916,7 @@
     paint1v1(matchId);
   }
 
-  // ---- VTSR-2v2 card (separate 2v2 ladders) ----------------------------
+  // ---- VSR-2v2 card (separate 2v2 ladders) ----------------------------
   // window.__vtElo2v2History: same sentinel contract, loaded through
   // VTBalonce so the Outcome card and this card share one request.
 

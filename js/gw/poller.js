@@ -1,5 +1,5 @@
 /**
- * VT Stats - Game Watch - Poller
+ * VSR - Game Watch - Poller
  *
  * Polls the MultiplayerSessionList API via the vendored `BZ2API` and surfaces
  * the FULL worldwide session list (unlike active-game-indicator / tools

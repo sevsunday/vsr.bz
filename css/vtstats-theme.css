@@ -1,5 +1,5 @@
 /**
- * VT Stats — Premium Glassmorphic Theme Layer
+ * VSR — Premium Glassmorphic Theme Layer
  *
  * Additive visual layer: Geist typography, glass surfaces, depth shadows,
  * animations, and ambient effects. Loads AFTER layout.css. Uses --kb-*
@@ -104,7 +104,7 @@ code, pre, .font-monospace {
     letter-spacing: -0.02em;
 }
 
-/* Theme foreground for the "VT Stats" brand link. Bootstrap's own
+/* Theme foreground for the "VSR" brand link. Bootstrap's own
    .navbar-brand colour is near-black, which only shows on a shell that
    omits the inline colour the other pages carry (the Game Explorer). The
    :hover / :focus pair outranks Bootstrap's hover rule so the title stays
@@ -1367,7 +1367,7 @@ body::before {
    ACTIVE GAME MODAL
    Click-through detail card mirroring the bz2api demo: header badges
    (state, mode, VSR) -> map thumbnail + map line + host -> player table
-   with HOST/CMDR badges + Steam profile + VTstats deep-link chips ->
+   with HOST/CMDR badges + Steam profile + VSR deep-link chips ->
    session stats grid -> mods row -> footer (Join, GameWatch, Close).
    Body markup is rendered by js/active-game-indicator.js on
    shown.bs.modal so a closed modal carries no per-session DOM cost.
@@ -1817,7 +1817,7 @@ body::before {
 }
 
 /* Player profile cross-link. Wraps any player display name across the
-   dashboard (leaderboard, VTSR-T leaderboard, career table, kill feed,
+   dashboard (leaderboard, VSR-T leaderboard, career table, kill feed,
    match/career highlights, commander head-to-head, global rivalries)
    so a click drops the user onto /player/<slug>/. Twin of .vt-odf-link,
    defined here (not in css/player.css) so the dashboard picks it up
@@ -2713,7 +2713,7 @@ body::before {
 
 /* Campod + Partial row badges (v2.5). Sit inside the Player Leaderboard
    "Player" cell next to the player name when the row is excluded from
-   VTSR-T and career stats for one of three reasons:
+   VSR-T and career stats for one of three reasons:
      - Campod : spent >25% of match wall-clock in a camera-pod ship.
      - Partial: event-stream presence window covered <75% of match
                 duration (late joiner or mid-match disconnect).
@@ -4050,7 +4050,7 @@ body.vt-replay-expand-active .tab-content {
     --bs-tooltip-opacity: 1;
 }
 
-/* Wider tooltip for the per-axis bar rows in the VTSR-T expand panel.
+/* Wider tooltip for the per-axis bar rows in the VSR-T expand panel.
    The body carries label + formula (in <code>) + description + per-row
    sigma interpretation; 260px wraps the formula awkwardly. */
 .tooltip.vt-axis-tooltip {
@@ -5889,7 +5889,7 @@ td.vt-col-split {
 }
 
 /* ============================================================================
-   VTSR-T LEADERBOARD + 5-TIER LADDER
+   VSR-T LEADERBOARD + 5-TIER LADDER
    Render-layer presentation for the All Matches → Overview tab.
    Tier color tokens lean on the existing --kb-* palette where possible
    (Tier 3 picks up project blue so the anchor band matches the brand).
@@ -5950,8 +5950,8 @@ td.vt-col-split {
 }
 
 /* ============================================================================
-   VTSR-T display layer (js/vtsr-display.js): band chip, fuzzy position bar,
-   per-game verdict chip. VTSR-T never renders as a number.
+   VSR-T display layer (js/vtsr-display.js): band chip, fuzzy position bar,
+   per-game verdict chip. VSR-T never renders as a number.
    ============================================================================ */
 :is(.vt-band-chip, .vt-band-bar)[data-tier="0"] { --vt-band-color: var(--vt-tier-0); }
 :is(.vt-band-chip, .vt-band-bar)[data-tier="1"] { --vt-band-color: var(--vt-tier-1); }
@@ -6060,7 +6060,7 @@ td.vt-col-split {
 .vt-verdict-chip[data-verdict="par"]   { --vt-verdict-color: var(--kb-text-secondary); }
 .vt-verdict-chip[data-verdict="below"] { --vt-verdict-color: var(--kb-danger); }
 
-/* VTSR-C v4-telemetry chip (ladder rows + duel-log entries) */
+/* VSR-C v4-telemetry chip (ladder rows + duel-log entries) */
 .vt-cmdr-telem-chip {
     font-family: 'Geist Mono', ui-monospace, monospace;
     font-size: 0.62rem;
@@ -6074,7 +6074,7 @@ td.vt-col-split {
     cursor: default;
 }
 
-/* VTSR-C unranked progress chip (Elo ladder + player-page rank).
+/* VSR-C unranked progress chip (Elo ladder + player-page rank).
    Muted on purpose — "how close to the gate", not a rank. */
 .vt-cmdr-progress-chip {
     display: inline-block;
@@ -6122,7 +6122,7 @@ td.vt-col-split {
     border: 1px solid color-mix(in oklab, var(--kb-warning) 28%, transparent);
 }
 
-/* F9bomber community-ledger chip (VTSR-C ladder Games cell, duel-log
+/* F9bomber community-ledger chip (VSR-C ladder Games cell, duel-log
    rows, detail stats). Deliberately muted — provenance marker, not an
    accent. Sibling of .vt-cmdr-telem-chip. */
 .vt-f9-chip {
@@ -6156,7 +6156,7 @@ td.vt-col-split {
     cursor: pointer;
 }
 
-/* "How It's Calculated" button next to the VTSR-T fullscreen icon. Borderless,
+/* "How It's Calculated" button next to the VSR-T fullscreen icon. Borderless,
    muted, with the same hover treatment as the surrounding card-header icon
    buttons so the pair reads as a single control cluster. */
 .vt-vtsr-info-btn {
@@ -6180,7 +6180,7 @@ td.vt-col-split {
    up the theme foreground in both light and dark modes.
 
    The shared .vt-katex-tooltip class is reused on the modal body that
-   opens from the VTSR-T Leaderboard's "How It's Calculated" button so it
+   opens from the VSR-T Leaderboard's "How It's Calculated" button so it
    inherits the same equation-spacing rules below. The width cap is
    scoped to tooltip context only — applying max-width: 600px to a modal
    body would visually shrink the dialog content even though the dialog
@@ -6247,7 +6247,7 @@ td.vt-col-split {
 
 .vt-katex-tooltip a { color: var(--kb-primary); }
 
-/* Modal variant — the VTSR-T methodology button opens #vtsr-methodology-modal
+/* Modal variant — the VSR-T methodology button opens #vtsr-methodology-modal
    whose body carries .vt-katex-tooltip so the equation-spacing rules above
    apply inside the modal too. The modal body has much more room than a
    tooltip, so restore a comfortable reading size for the prose. */
@@ -6258,7 +6258,7 @@ td.vt-col-split {
 
 .modal-body.vt-katex-tooltip .vt-katex-tooltip-body { line-height: 1.55; }
 
-/* VTSR-T methodology modal — v2 (Phase 12) structured-reference layout.
+/* VSR-T methodology modal — v2 (Phase 12) structured-reference layout.
    The body is divided into six titled <section class="vt-vtsr-doc-section">
    blocks (golden equation / expected curve / composite / K & hope / tiers /
    worked example). Each section is separated by a subtle bottom border so
@@ -6593,7 +6593,7 @@ td.vt-col-split {
     .vt-axesboard-seg-label { display: none; }
 }
 
-/* ===== VTSR-T teaser card (dashboard) ================================
+/* ===== VSR-T teaser card (dashboard) ================================
    Compact top-5 list + provisional chip row + View-full-ladder
    footer. The full tier-grouped ladder lives on the /elo/ page. */
 .vt-vtsr-teaser-row {
@@ -6646,7 +6646,7 @@ td.vt-col-split {
     margin-top: 0.85rem;
 }
 
-/* ===== VTSR-T v2.3 — Loadout Profile + Per-Class Combat + chips ===== */
+/* ===== VSR-T v2.3 — Loadout Profile + Per-Class Combat + chips ===== */
 
 /* Compact PvP/PvE chip rendered next to the kills/deaths total in the
    Player Leaderboard + Career Leaderboard tables. The total stays as
@@ -6794,7 +6794,7 @@ td.vt-col-split {
     border-top: 0;
 }
 
-/* VTSR-T leaderboard expandable rows + detail panel (v2.3 polish).
+/* VSR-T leaderboard expandable rows + detail panel (v2.3 polish).
    Replaces the prior popover/tooltip pattern with always-discoverable
    inline drill-down. Each visible row pairs with a sibling
    `<tr class="collapse vt-vtsr-detail">` that hosts a 5-section panel
@@ -7010,7 +7010,7 @@ td.vt-col-split {
     font-size: 0.78rem;
 }
 
-/* Primary ship chip on the VTSR-T leaderboard. Small badge sized
+/* Primary ship chip on the VSR-T leaderboard. Small badge sized
    to align with the existing Tier badge column. (Token name kept as
    `vt-vtsr-primary-class` for backwards-CSS-token-stability; renders
    ship names like "Tank", "Scout" in v2.3+.) */
@@ -7073,7 +7073,7 @@ td.vt-col-split {
 .vt-cohort-cell.vt-cohort-pos { color: var(--kb-success); }
 .vt-cohort-cell.vt-cohort-neg { color: var(--kb-danger); }
 
-/* Header row: per-player summary stack (name, share, VTSR-T, peak). */
+/* Header row: per-player summary stack (name, share, VSR-T, peak). */
 .vt-cohort-header-row .vt-cohort-axis-cell {
     border-bottom: 2px solid color-mix(in srgb, var(--kb-text-muted) 22%, transparent);
 }
@@ -7125,7 +7125,7 @@ td.vt-col-split {
     vertical-align: middle;
 }
 
-/* Headline VTSR-C-prev cell in each column header. Mirrors the sign-coded
+/* Headline VSR-C-prev cell in each column header. Mirrors the sign-coded
    look of body cells but slightly larger/bolder so it reads as a leaderboard
    number. Neutral-band (near-zero composite) uses the primary text color. */
 .vt-cohort-col-vtsrc {
@@ -7150,7 +7150,7 @@ td.vt-col-split {
     vertical-align: middle;
 }
 
-/* Title tag on the card header ("VTSR-C preview" sub-label). */
+/* Title tag on the card header ("VSR-C preview" sub-label). */
 .vt-cohort-title-tag {
     display: inline-block;
     margin-left: 0.5rem;
@@ -7165,7 +7165,7 @@ td.vt-col-split {
     vertical-align: middle;
 }
 
-/* VTSR-C top-5 ladder strip (experimental commander rating) prepended
+/* VSR-C top-5 ladder strip (experimental commander rating) prepended
    above the cohort grid. Compact glass band: header line with title +
    sub + full-ladder link, then one row per top-5 commander. */
 .vt-cohort-vtsrc-strip {
@@ -8116,7 +8116,7 @@ html.vt-cursor-active * {
 /* ------------------------------------------------------------------
    Per-match Elo tab (#tab-elo / js/match-elo.js)
    Lobby Δ list, selected-player verdict + axis bars, P-vs-E scatter,
-   compact VTSR-C duel strip (hidden when this match has no duel).
+   compact VSR-C duel strip (hidden when this match has no duel).
    ------------------------------------------------------------------ */
 .vt-match-elo-why {
     font-size: 0.78rem;

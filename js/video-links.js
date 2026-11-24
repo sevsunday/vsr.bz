@@ -1,5 +1,5 @@
 /**
- * VT Stats — YouTube VOD timestamp links (window.VTVideoLinks).
+ * VSR — YouTube VOD timestamp links (window.VTVideoLinks).
  *
  * Display-only join over committed data/external/match_videos.json.
  * Maps dashboard match-seconds ((tick - tick_range[0]) / tick_rate) onto

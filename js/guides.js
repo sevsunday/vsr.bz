@@ -1,5 +1,5 @@
 /**
- * VT Stats - How-to guide pages (/beta/, /ports/)
+ * VSR - How-to guide pages (/beta/, /ports/)
  *
  * 1. Lightbox: any [data-vt-lightbox] frame opens its <img> in the page's
  *    #vt-guide-lightbox Bootstrap modal. Small crops render at up to

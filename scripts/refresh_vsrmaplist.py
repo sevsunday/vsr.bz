@@ -41,8 +41,8 @@ UPSTREAM_URL = (
     "https://battlezonescrapfield.github.io/BZCC-Website/data/maps/vsrmaplist.json"
 )
 USER_AGENT = (
-    "vt-stats vsrmaplist-refresher "
-    "(https://github.com/sevsunday/vt-stats)"
+    "vsr.bz vsrmaplist-refresher "
+    "(https://github.com/sevsunday/vsr.bz)"
 )
 HTTP_TIMEOUT_SEC = 10
 REQUIRED_KEYS = ("Name", "File", "Image", "Size")

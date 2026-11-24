@@ -37,8 +37,8 @@ MAPS_DIR = PROJECT_ROOT / "data" / "maps"
 
 IONDRIVER_HOST = "gamelistassets.iondriver.com"
 USER_AGENT = (
-    "vt-stats map-image-prefetch "
-    "(https://github.com/sevsunday/vt-stats)"
+    "vsr.bz map-image-prefetch "
+    "(https://github.com/sevsunday/vsr.bz)"
 )
 HTTP_TIMEOUT_SEC = 10
 HTTP_RETRIES = 3

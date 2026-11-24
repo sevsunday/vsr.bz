@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VT Stats — local dev server with CORS relay.
+VSR — local dev server with CORS relay.
 
 Serves the repository as a static site (like `python -m http.server`) AND
 exposes a tiny same-origin proxy at `/__proxy?url=<encoded>` that relays GET
@@ -9,7 +9,7 @@ requests to an allowlisted set of upstream hosts, returning the body with
 
 Why: the MultiplayerSessionList API (live lobby data for /gw, the Tools
 live-session card, and the topnav Tools pulse) enforces a CORS origin
-ALLOWLIST — vtstats.bz is on it, localhost never will be. `js/bz2api.js`
+ALLOWLIST — the production origin must be on it, localhost never will be. `js/bz2api.js`
 detects localhost contexts and routes MSL through this relay first, so local
 development never depends on flaky public CORS proxies. JS never fetches
 GameListAssets getdata.php (no CORS); that host stays on the relay allowlist
@@ -215,7 +215,7 @@ class DevHandler(SimpleHTTPRequestHandler):
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="VT Stats dev server (static + CORS relay)")
+    ap = argparse.ArgumentParser(description="VSR dev server (static + CORS relay)")
     ap.add_argument("--port", type=int, default=8000, help="listen port (default 8000)")
     ap.add_argument("--root", default=str(REPO_ROOT), help="static root (default: repo root)")
     args = ap.parse_args()
@@ -223,7 +223,7 @@ def main() -> int:
     handler = partial(DevHandler, directory=args.root)
     server = ThreadingHTTPServer(("0.0.0.0", args.port), handler)
 
-    print(f"VT Stats dev server")
+    print(f"VSR dev server")
     print(f"  static root : {args.root}")
     print(f"  site        : http://localhost:{args.port}/")
     print(f"  game watch  : http://localhost:{args.port}/gw/")

@@ -1,5 +1,5 @@
 /* =============================================================================
-   VT Stats — Player Profile Pages (css/player.css)
+   VSR — Player Profile Pages (css/player.css)
 
    Used by player/index.html and every pre-generated /player/<slug>/index.html.
    Builds on top of css/vtstats-theme.css; only defines what doesn't already
@@ -424,8 +424,8 @@
 }
 .vt-player-card-tier-wrap { flex: 0 0 auto; }
 
-/* Two rating rows, one skeleton: key | value. VTSR-C (top) shows its
-   number; VTSR-T shows the band chip + position bar. The last-10
+/* Two rating rows, one skeleton: key | value. VSR-C (top) shows its
+   number; VSR-T shows the band chip + position bar. The last-10
    above/below bars live in their own block under the rows. */
 .vt-player-card-ratings {
   display: flex;
@@ -604,7 +604,7 @@
 }
 
 /* List view. Same card markup, reoriented. Column order follows the
-   DOM: tier+name, VTSR-T, role, sparkline, matches+delta.
+   DOM: tier+name, VSR-T, role, sparkline, matches+delta.
    The sparkline is capped so a wide window does not stretch the bars.
    Attribute lives on <html> so the pre-paint script can set it. */
 [data-player-view="list"] .vt-player-grid {
@@ -1211,7 +1211,7 @@
   border-radius: 999px 0 0 999px;
 }
 
-/* Commander Rivalries panel (Rivals tab, VTSR-C experimental) */
+/* Commander Rivalries panel (Rivals tab, VSR-C experimental) */
 .vt-cmdr-riv-tag {
   display: inline-block;
   margin-left: 0.4rem;
@@ -1286,7 +1286,7 @@
   color: var(--kb-text-secondary);
 }
 
-/* VTSR-C rating time-series inside the Commander Rivalries panel (c3) */
+/* VSR-C rating time-series inside the Commander Rivalries panel (c3) */
 .vt-cmdr-riv-subhead {
   font-size: 0.72rem;
   font-weight: 600;

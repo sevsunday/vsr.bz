@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""VT Stats — display-only VTSR-T bands (tier + Upper / Lower half).
+"""VSR — display-only VTSR-T bands (tier + Upper / Lower half).
 
 Pure module (no I/O). VTSR-T is shown to players as a band, never as a
 number: each tier splits at its midpoint into an Upper and a Lower half,

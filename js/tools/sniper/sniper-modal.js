@@ -1,5 +1,5 @@
 /**
- * VT Stats - Tools Page - Sniper Picker Modal
+ * VSR - Tools Page - Sniper Picker Modal
  *
  * Non-module shim that orchestrates the Sniper picker mode.
  * Owns: the method-radio listener (Wheel <-> Sniper toggle),
@@ -320,10 +320,10 @@
             : '';
         const tier = '';
         const provisional = player.isProvisional
-            ? `<span class="vt-tools-wheel-result-provisional badge ms-2" title="VTSR is provisional / anchored">${player.isCustom ? 'custom' : 'provisional'}</span>`
+            ? `<span class="vt-tools-wheel-result-provisional badge ms-2" title="VSR is provisional / anchored">${player.isCustom ? 'custom' : 'provisional'}</span>`
             : '';
         const vtsr = (player.band && window.VTSRDisplay)
-            ? `<div class="vt-tools-wheel-result-vtsr text-secondary small mt-1">VTSR-T ${VTSRDisplay.bandChipHtml(player.band, { bsTooltip: false })}</div>`
+            ? `<div class="vt-tools-wheel-result-vtsr text-secondary small mt-1">VSR-T ${VTSRDisplay.bandChipHtml(player.band, { bsTooltip: false })}</div>`
             : '';
 
         const steamLink = player.steamProfileUrl
@@ -333,7 +333,7 @@
             : '';
         const vtstatsLink = player.vtstatsUrl
             ? `<a class="btn btn-outline-secondary btn-sm" href="${escapeHtml(player.vtstatsUrl)}" target="_blank" rel="noopener noreferrer">
-                 <i class="bi bi-bar-chart-fill me-1"></i>VT Stats profile
+                 <i class="bi bi-bar-chart-fill me-1"></i>VSR profile
                </a>`
             : '';
 

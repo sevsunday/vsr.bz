@@ -1,5 +1,5 @@
 /**
- * VT Stats - Tools Page - Player Wheel
+ * VSR - Tools Page - Player Wheel
  *
  * Canvas-based player picker wheel. Slice colors alternate between
  * `--kb-primary` and `--kb-secondary` (theme-reactive via MutationObserver
@@ -16,7 +16,7 @@
  * them).
  *
  * Result modal: extravagant reveal with display name + tier pill +
- * lobbyNick subtext + Steam profile icon + VTstats profile icon +
+ * lobbyNick subtext + Steam profile icon + VSR profile icon +
  * Remove-from-wheel + Spin again.
  *
  * Empty states:
@@ -586,10 +586,10 @@
     const lobbyNick = winner.lobbyNick ? `<div class="vt-tools-wheel-result-nick text-secondary small mt-1">aka <code>${escapeHtml(winner.lobbyNick)}</code></div>` : '';
     const tier = '';
     const provisional = winner.isProvisional
-      ? `<span class="vt-tools-wheel-result-provisional badge ms-2" title="VTSR is provisional / anchored">${winner.isCustom ? 'custom' : 'provisional'}</span>`
+      ? `<span class="vt-tools-wheel-result-provisional badge ms-2" title="VSR is provisional / anchored">${winner.isCustom ? 'custom' : 'provisional'}</span>`
       : '';
     const vtsr = (winner.band && window.VTSRDisplay)
-      ? `<div class="vt-tools-wheel-result-vtsr text-secondary small mt-1">VTSR-T ${VTSRDisplay.bandChipHtml(winner.band, { bsTooltip: false })}</div>`
+      ? `<div class="vt-tools-wheel-result-vtsr text-secondary small mt-1">VSR-T ${VTSRDisplay.bandChipHtml(winner.band, { bsTooltip: false })}</div>`
       : '';
 
     const steamLink = winner.steamProfileUrl
@@ -599,7 +599,7 @@
       : '';
     const vtstatsLink = winner.vtstatsUrl
       ? `<a class="btn btn-outline-secondary btn-sm" href="${escapeHtml(winner.vtstatsUrl)}" target="_blank" rel="noopener noreferrer">
-           <i class="bi bi-bar-chart-fill me-1"></i>VT Stats profile
+           <i class="bi bi-bar-chart-fill me-1"></i>VSR profile
          </a>`
       : '';
 
@@ -720,7 +720,7 @@
   //
   // Surface used by sibling picker modes (e.g. the Sniper picker)
   // so they can hand a chosen player back to the existing wheel
-  // result modal without reimplementing the Steam / VTstats / remove
+  // result modal without reimplementing the Steam / VSR / remove
   // / spin-again pipeline. Safe to delete if the Sniper feature is
   // ever removed — it's a harmless extra surface otherwise.
   window.VTToolsWheel = {

@@ -112,7 +112,7 @@ function renderDirectoryShell() {
 
   dir.innerHTML = `
     <div class="directory-header">
-      <h1>VT Stats &mdash; Match Replays
+      <h1>VSR &mdash; Match Replays
         <span class="directory-count" id="directory-count">${totalCount} matches</span>
       </h1>
       <div class="picker-toolbar">

@@ -1,5 +1,5 @@
 /**
- * VT Stats - Tools Page - Toast Manager
+ * VSR - Tools Page - Toast Manager
  *
  * Thin Bootstrap-toast wrapper for the lobby join/leave notifications.
  * Stacks in #vt-tools-toast-container (fixed top-right). Max 5 visible;

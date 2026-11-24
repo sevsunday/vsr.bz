@@ -114,7 +114,7 @@ export function scaleToMillimeters(local, hull, targetMm) {
 export function buildStl(tri) {
   const buf = new ArrayBuffer(84 + tri.count * 50);
   const view = new DataView(buf);
-  const header = new TextEncoder().encode('VT Stats visual mesh, millimeters');
+  const header = new TextEncoder().encode('VSR visual mesh, millimeters');
   new Uint8Array(buf, 0, 80).set(header.subarray(0, Math.min(80, header.length)));
   view.setUint32(80, tri.count, true);
   let p = 84;

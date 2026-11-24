@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VT Stats -- YouTube inbox catalog.
+VSR -- YouTube inbox catalog.
 
 Reads data/external/youtube_inbox.txt, fills title and description with
 yt-dlp, and writes data/external/youtube.json. Each channel handle has

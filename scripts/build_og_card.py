@@ -3,7 +3,7 @@
 Build the static OG card used by the Player Profile pages.
 
 One-shot tool — produces a single `data/og/player-card.png` (1200x630)
-from `isdf-logo.png` plus a "VT STATS — Players" text overlay. Re-run
+from `isdf-logo.png` plus a "VSR — Players" text overlay. Re-run
 this script when the dashboard theme changes or the logo gets a refresh:
 
     python scripts/build_og_card.py
@@ -19,10 +19,10 @@ attention in the chat embed, so legibility beats decoration):
 
   ┌────────────────────────────────────────────────────────┐
   │                                                        │
-  │        ▣  VT STATS                                     │
+  │        ▣  VSR                                          │
   │      LOGO                                              │
   │        ▣  Players                                      │
-  │            Career profiles · VTSR-T · comparisons      │
+  │            Career profiles · VSR-T · comparisons       │
   │                                                        │
   └────────────────────────────────────────────────────────┘
 """
@@ -88,8 +88,8 @@ def main() -> None:
     text_x = logo_x + target_w + 60
     text_w_avail = OG_WIDTH - text_x - 60
 
-    # "VT STATS"
-    draw.text((text_x, 200), "VT STATS",
+    # "VSR"
+    draw.text((text_x, 200), "VSR",
               font=title_font, fill=TEXT_PRIMARY)
 
     # "Players" (accented)
@@ -98,7 +98,7 @@ def main() -> None:
 
     # tagline
     draw.text((text_x, 200 + 110 + 80),
-              "Career profiles · VTSR-T · comparisons",
+              "Career profiles · VSR-T · comparisons",
               font=tag_font, fill=TEXT_MUTED)
 
     # 4. A 4-pixel accent stripe along the bottom for visual seasoning.
