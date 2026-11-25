@@ -10,6 +10,9 @@
  *
  * Every clip, positioned or 2D, ends in one master GainNode so the page's
  * volume slider (setVolume) scales sounds already playing as well as new ones.
+ * Clips played with `channel: 'lock'` (lock-on tones) pass through their own
+ * GainNode first (setLockVolume): they are 2D and unattenuated, so at the
+ * tuned gain they sit far above the positioned weapon reports.
  */
 const AUDIO_BASE = '../data/audio/';
 const AUDIO_GAIN = 0.6;            // base gain for every clip
@@ -21,7 +24,9 @@ export function createAudio(opts) {
     const urls = (opts && opts.urls) || {};
     let ctx = null;
     let master = null;
+    let lockBus = null;
     let volume = 1;
+    let lockVolume = 1;
     const buffers = new Map();
     const raw = new Map();
     const loops = new Map();
@@ -33,19 +38,34 @@ export function createAudio(opts) {
             master = ctx.createGain();
             master.gain.value = volume;
             master.connect(ctx.destination);
+            lockBus = ctx.createGain();
+            lockBus.gain.value = lockVolume;
+            lockBus.connect(master);
         }
         if (ctx.state === 'suspended') ctx.resume();
         return ctx;
     }
 
+    function unit(v) {
+        const n = Number(v);
+        return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 1;
+    }
+
     /* Master volume, 0..1. 1 is the tuned AUDIO_GAIN loudness. */
     function setVolume(v) {
-        const n = Number(v);
-        volume = Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 1;
+        volume = unit(v);
         if (master) master.gain.value = volume;
     }
 
     function getVolume() { return volume; }
+
+    /* Lock-on tone volume, 0..1, applied on top of the master volume. */
+    function setLockVolume(v) {
+        lockVolume = unit(v);
+        if (lockBus) lockBus.gain.value = lockVolume;
+    }
+
+    function getLockVolume() { return lockVolume; }
 
     function stemKey(name) {
         return String(name || '').toLowerCase().replace(/\.wav$/, '');
@@ -178,6 +198,7 @@ export function createAudio(opts) {
             const gain = audio.createGain();
             gain.gain.value = (opts && opts.gain != null ? opts.gain : AUDIO_GAIN) * handle.volume;
             source.connect(gain);
+            const out = opts && opts.channel === 'lock' ? lockBus : master;
             if (handle.at) {
                 const panner = audio.createPanner();
                 panner.panningModel = 'equalpower';
@@ -187,10 +208,10 @@ export function createAudio(opts) {
                 panner.maxDistance = AUDIO_MAX_DISTANCE;
                 placePanner(panner, handle.at);
                 gain.connect(panner);
-                panner.connect(master);
+                panner.connect(out);
                 handle.panner = panner;
             } else {
-                gain.connect(master);
+                gain.connect(out);
             }
             source.start();
             handle.source = source;
@@ -227,7 +248,10 @@ export function createAudio(opts) {
         if (handle.gain) handle.gain.gain.value = AUDIO_GAIN * volume;
     }
 
-    return { unlock: context, play, stopLoop, setRate, setGain, load, preload, setListener, setVolume, getVolume };
+    return {
+        unlock: context, play, stopLoop, setRate, setGain, load, preload, setListener,
+        setVolume, getVolume, setLockVolume, getLockVolume,
+    };
 }
 
 export { AUDIO_GAIN, AUDIO_REF_DISTANCE, AUDIO_ROLLOFF, AUDIO_MAX_DISTANCE };

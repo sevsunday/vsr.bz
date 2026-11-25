@@ -4,34 +4,34 @@ overview: "Six fixes to the Weapons Lab, each tied to the ODF value, guide line 
 todos:
   - id: reach-distance
     content: engagementReach(profile, gravity) + openingCentre(eng, floor) in weapons-weave.js, profile.leader, calc engagementOf() mirror + lockRange default, surface-based start distance, box hit volume, Closing floor, distance UI
-    status: pending
+    status: completed
   - id: lock-signature
     content: Signature-scaled lock time in profile/sim (target.signatures) + calc lockTime(stem, targetStem) -> {seconds, never, signature} + result card Lock-on row
-    status: pending
+    status: completed
   - id: fang-salvo-audio
     content: Banked salvo loop on the sim step, one fireSound per weapon per TURN_SEC (OnlyOneSound / SoundPerShot 2 replace, defensive), shotSound collapse within TURN_SEC
-    status: pending
+    status: completed
   - id: tag-sim
     content: "TAG: ground hit = miss, per-field captured profile, banked salvo, engine re-tag rule (TAG_RETAG_AFTER), survive weapon switch"
-    status: pending
+    status: completed
   - id: tag-weave
     content: "Allow targeting in weave: pull returns true, descriptor tag/busy 0/leader reach/cooldown = TAG cycle, live readyAt, TAG ammo on the shared tank"
-    status: pending
+    status: completed
   - id: eyepoint
     content: Explorer prefix eyepoint lookup, keep fallbacks, fix stale run_cockpits docstring
-    status: pending
+    status: completed
   - id: gui-merge
     content: "Fold Scenario into Shooting range: picker strip + offcanvas reusing renderers, collapsible Numbers panel, tab aliases, boot mount"
-    status: pending
+    status: completed
   - id: theme-pass
     content: "Bootstrap + theme pass: chips/hp to btn, tags/tiers to badge (muted vars), range controls to form-check/form-range, meters to progress, HUD/slot/weave to card, tables to table-sm, status/notes to alert, vt-mono + --vt-anim vars; delete dead CSS; dark/light/mobile check"
-    status: pending
+    status: completed
   - id: gates
     content: "Gates are pre-written: make check_weapons_calc / check_weapon_fx / check_weapon_weave pass (baseline: calc throws at ctx.lockTime, fx cannot import engagementReach, weave 2 of 290 fail); add the synthetic OnlyOneSound check"
-    status: pending
+    status: completed
   - id: docs
     content: DEVELOPER_GUIDE.md section 12 and project-overview.mdc item 12 + Key File Locations, with ODF/guide/engine citations
-    status: pending
+    status: completed
 isProject: false
 ---
 

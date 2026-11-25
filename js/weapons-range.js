@@ -1,34 +1,45 @@
-/* Shooting range tab (`?tab=range`). Lazy-loaded from weapons/index.html.
+/* Shooting range: the Weapons Lab's main pill (also `?tab=range` and the old
+ * `?tab=scenario`). Loaded from weapons/index.html unless the page opens on
+ * the Damage matrix.
  *
  * Composes ObjectViewer (the shooter), a second prop (the target) and the
  * ODF effect runtime. Cameras are fixed views: chase (default), a slow
  * orbit around the ship, and first person on hp_eyepoint with the optional
  * cockpit mesh. The turret tracks the target on its own; there is no mouse
- * control. The loadout panel lets the user mount any fitting armory weapon
- * on each hardpoint and pick which slot fires.
+ * control. The in-view weapon panel (the Explorer's pill rows and status
+ * gauge, js/explorer/hud.js) picks which slot fires, and each pill's swap
+ * button opens the page's weapon drawer on that hardpoint group.
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { ObjectViewer } from './models-viewer.js';
 import { createFxRuntime, SIM_GRAVITY } from './fx/odf-fx.js';
 import { createAudio } from './fx/odf-audio.js';
-import { createRangeSim, lockStartDistance } from './fx/weapon-sim.js';
+import { createRangeSim } from './fx/weapon-sim.js';
 import { buildProfile, profileAssets, shieldEffectFor, explosionEntry, stemOf } from './fx/weapon-profile.js';
 import {
-    weaveWeapon, planWeave, priorityOrder, allInRangeAt, TURN_SEC, CLOSE_STOP_M, PLAN_MAX_SEC,
+    weaveWeapon, planWeave, priorityOrder, allInRangeAt, engagementReach, openingCentre,
+    TURN_SEC, CLOSE_STOP_M, PLAN_MAX_SEC, SURFACE_MARGIN_M, OPENING_MAX_M,
 } from './weapons-weave.js';
+import { createStatusGauge, applyGamePalette } from './explorer/hud.js';
 
 const GEOM = '../data/models/geometry/';
+const MODELS_INDEX = '../data/models/index.json';
 const RETICLE = '../data/ui/reticles/';
 const HUD_ICONS = '../data/ui/hud/';
 const COCKPIT = '../data/models/cockpits/';
 const ORBIT_RATE = 0.16;          // rad/s, the hover-around-the-ship view
 const RESPAWN_SEC = 2.5;
 const VOLUME_KEY = 'vt.wpn.range.volume';   // localStorage, 0..100; missing = 100
+const LOCK_VOLUME_KEY = 'vt.wpn.range.lockVolume';   // localStorage, 0..100 of master; missing = 50
 const RAVE_PEAK = 0.62;           // CannonClass.raveFlash wash; fades to clear across shotDelay
 const HP_ICONS = { GUN: 'gun', CANN: 'cannon', MORT: 'mortar', ROCK: 'rocket', SPEC: 'special', SHIE: 'shield', HAND: 'hand', PACK: 'pack' };
 // Hardpoint category codes -> display words (same words as SLOT_LABELS in js/models.js).
 const HP_LABELS = { GUN: 'Gun', CANN: 'Cannon', MORT: 'Mortar', ROCK: 'Rocket', SPEC: 'Special', SHIE: 'Shield', HAND: 'Hand', PACK: 'Pack' };
+const HULL_TURN_FALLBACK = 1.5;   // rad/s when the models index has no drive.omegaTurn
+const HULL_PITCH_MIN = -25 * Math.PI / 180;   // nose-down limit for hull-fixed guns
+const HULL_PITCH_MAX = 45 * Math.PI / 180;    // nose-up limit
+const NO_PARTS = { turretNodes: [], pitchNodes: [], recoilNodes: [], head: null };
 const _gltf = new GLTFLoader();
 const _v = new THREE.Vector3();
 const _fwd = new THREE.Vector3();
@@ -41,6 +52,11 @@ let db = null;
 let fxIndex = null;
 let cockpitIndex = null;
 let reticleIndex = null;
+let modelsByStem = null;      // Promise<Map stem -> data/models/index.json entry>
+let rangeAxis = new THREE.Vector3(0, 0, -1);   // the hull's flat forward at load; the range is laid along it
+let hullYaw = 0;              // radians the hull has turned off rangeAxis (hull-fixed guns only)
+let hullPitch = 0;            // radians of nose up when no joint can pitch the gun
+let hullTurnRate = HULL_TURN_FALLBACK;
 let rootEl = null;
 let loop = true;
 let raveEl = null;
@@ -53,6 +69,8 @@ let raveShotDelay = 0.4;
 let target = null;
 let targetKind = 'ship';
 let targetRadius = 6;
+let targetLocalBox = null;    // hull box in the target's own frame (what the .msh header bakes)
+let targetNear = 0;           // how far that box reaches back toward the ship
 let targetLift = 0;
 let targetCom = null;   // hp_com node, the engine's lock-circle anchor; null = mesh origin
 let targetName = '';
@@ -75,7 +93,7 @@ let orbitAngle = 0;
 
 let snapshot = null;
 let shooterKey = '';
-let onLoadout = null;
+let onPickSlot = null;
 /* One slot per hardpoint GROUP: every hardpoint sharing a category and an
  * assault flag mounts the same weapon and fires together, like the game
  * (a weapon powerup replaces the whole group). A combat and an assault
@@ -85,6 +103,10 @@ let slots = [];
 let activeSlot = -1;
 let lastReticle = '';
 let hudEls = {};
+let gauge = null;               // createStatusGauge(): the ship's hull and the shared ammo tank
+let slotStats = [];             // per slot: snapshot.statsFor() of its mount, rebuilt with the pills
+let pillShots = [];             // per slot: { el, text } of the pill's shots-left cell
+let hudText = {};               // last text painted into each per-frame HUD cell
 
 /* Weapon switch: the ticked groups share the trigger (js/weapons-weave.js).
  * Range-local view state, like the distance and the view. */
@@ -111,24 +133,37 @@ function esc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-/* Sound volume as a 0..100 percentage. Missing or unreadable storage = 100. */
-function loadVolume() {
+/* Sound volumes as 0..100 percentages: master, and lock-on tones on top of
+ * it. Missing or unreadable storage falls back to the channel's default. */
+const VOLUMES = {
+    master: { key: VOLUME_KEY, fallback: 100 },
+    lock: { key: LOCK_VOLUME_KEY, fallback: 50 },
+};
+
+function loadVolume(channel) {
+    const c = VOLUMES[channel];
     try {
-        const raw = localStorage.getItem(VOLUME_KEY);
-        if (raw == null) return 100;
+        const raw = localStorage.getItem(c.key);
+        if (raw == null) return c.fallback;
         const n = Number(raw);
-        return Number.isFinite(n) ? Math.min(100, Math.max(0, Math.round(n))) : 100;
+        return Number.isFinite(n) ? Math.min(100, Math.max(0, Math.round(n))) : c.fallback;
     } catch (err) {
-        return 100;
+        return c.fallback;
     }
 }
 
-function saveVolume(pct) {
-    try { localStorage.setItem(VOLUME_KEY, String(pct)); } catch (err) { /* storage unavailable */ }
+function saveVolume(channel, pct) {
+    try { localStorage.setItem(VOLUMES[channel].key, String(pct)); } catch (err) { /* storage unavailable */ }
 }
 
-function applyVolume(pct) {
-    if (audio) audio.setVolume(pct / 100);
+function applyVolume(channel, pct) {
+    if (audio) {
+        if (channel === 'lock') audio.setLockVolume(pct / 100);
+        else audio.setVolume(pct / 100);
+    }
+    const out = rootEl && rootEl.querySelector('[data-range-volume-out="' + channel + '"]');
+    if (out) out.textContent = pct + '%';
+    if (channel !== 'master') return;
     const icon = rootEl && rootEl.querySelector('[data-range-volume-icon]');
     if (icon) {
         icon.className = 'bi ' + (pct <= 0 ? 'bi-volume-mute' : pct < 50 ? 'bi-volume-down' : 'bi-volume-up');
@@ -261,14 +296,6 @@ function buildSlots(snap, keepActive) {
     activeSlot = idx;
 }
 
-/* Hand the page every mount so it can put the loadout in the URL. */
-function notifyLoadout() {
-    if (!onLoadout) return;
-    const map = {};
-    slots.forEach((s) => { if (!s.virtual) map[s.key] = s.weapon || null; });
-    onLoadout(map);
-}
-
 function ammoState() {
     return { max: snapshot ? snapshot.maxAmmo : 0, regen: snapshot ? snapshot.regen : 0 };
 }
@@ -288,7 +315,7 @@ function applyActiveSlot(keepAmmo) {
     raveColors = profile && profile.raveFlash ? (profile.raveColors || []) : [];
     raveShotDelay = profile && profile.shotDelay > 0 ? profile.shotDelay : 0.4;
     clearRave();
-    renderLoadout();
+    renderPills();
     if (entry) warmOtherSlots(epoch, stem);
 }
 
@@ -313,11 +340,12 @@ function applyWeapons(keepAmmo) {
     sim.setWeave({
         slots: entries.map(({ slot, desc }) => ({ key: slot.key, stem: slot.weapon, profile: profileFor(slot.weapon), desc })),
         switchSec,
-        closing: closingSpec(),
+        // The sim's decide() reads distance as the hull gap.
+        closing: closingGapSpec(),
     }, db, ammoState(), keepAmmo);
     raveColors = [];
     clearRave();
-    renderLoadout();
+    renderPills();
     renderWeave();
 }
 
@@ -337,14 +365,24 @@ function shipSpeed() {
 }
 
 function closeSpeedNow() {
+    if (snapshot && snapshot.shooterAlwaysDeployed) return 0;
     if (closeSpeed != null) return closeSpeed;
     const ship = shipSpeed();
     return ship ? ship.speed : 0;
 }
 
+/* Closing in the range's own units (centre to centre): stop CLOSE_STOP_M
+ * past the no-overlap floor, so CLOSE_STOP_M is clear air to the hull. */
 function closingSpec() {
     const v = closeSpeedNow();
-    return closing && v > 0 ? { speed: v, stop: CLOSE_STOP_M } : null;
+    if (!(closing && v > 0)) return null;
+    return { speed: v, stop: separationFloor() + CLOSE_STOP_M };
+}
+
+/* The same in the planner's units, which measure to the hull (hullGap). */
+function closingGapSpec() {
+    const v = closeSpeedNow();
+    return closing && v > 0 ? { speed: v, stop: CLOSE_STOP_M + SURFACE_MARGIN_M } : null;
 }
 
 function refreshWeave() {
@@ -418,64 +456,236 @@ function paintRave(dt) {
     raveEl.style.opacity = String(RAVE_PEAK * (raveLeft / raveDur));
 }
 
-function renderLoadout() {
-    const box = rootEl && rootEl.querySelector('[data-range-loadout]');
-    if (!box) return;
-    if (!slots.length) {
-        box.innerHTML = '<p class="vt-wpn-range-empty">Pick a ship on the Scenario tab to load out.</p>';
-        return;
+/* ---- in-view weapon panel ---------------------------------------------- */
+
+function slotName(s, st) {
+    if (!s.weapon) return HP_LABELS[s.category] || s.category || '';
+    if (st && st.name) return st.name;
+    const option = s.options.find((o) => o.stem === s.weapon);
+    if (option) return option.name;
+    return snapshot && snapshot.weaponStem === s.weapon && snapshot.weaponName ? snapshot.weaponName : s.weapon;
+}
+
+/* Shots left in the shared tank, like the game's WeaponPanel: whole shots
+ * for a per-shot weapon, seconds for a per-second drain, infinity when free. */
+function shotsLeft(st, ammo) {
+    if (!st) return '';
+    if (st.ammoMode === 'perShot') {
+        if (st.ammoPerShot > 0) return String(Math.floor(Math.max(0, ammo) / st.ammoPerShot));
+        return st.ammoPerShot === 0 ? '\u221e' : '';
     }
-    box.innerHTML = slots.map((s, i) => {
-        const icon = HP_ICONS[s.category] ? '<img class="vt-wpn-range-slot-icon" src="' + HUD_ICONS + 'hp_' + HP_ICONS[s.category] + '.png" alt="">' : '';
-        const opts = ['<option value=""' + (!s.weapon ? ' selected' : '') + '>— empty —</option>']
-            .concat(s.options.map((o) => '<option value="' + esc(o.stem) + '"' + (o.stem === s.weapon ? ' selected' : '') + '>'
-                + esc(o.name) + ' (' + esc(o.stem) + ')</option>'));
-        if (s.weapon && !s.options.some((o) => o.stem === s.weapon)) {
-            const label = snapshot && snapshot.weaponStem === s.weapon && snapshot.weaponName
-                ? snapshot.weaponName + ' (' + s.weapon + ')' : s.weapon;
-            opts.push('<option value="' + esc(s.weapon) + '" selected>' + esc(label) + '</option>');
+    if (st.ammoMode === 'perSecond') {
+        if (st.ammoPerSec > 0) return Math.floor(Math.max(0, ammo) / st.ammoPerSec) + 's';
+        return st.ammoPerSec === 0 ? '\u221e' : '';
+    }
+    return '\u221e';
+}
+
+/* One pill per hardpoint group. With the switch off the pill is a radio
+ * (the green pill fires); with it on, a visible checkbox puts the group in
+ * the switch. The swap button opens the page's weapon drawer on the group. */
+function pillHtml(s, i) {
+    const st = slotStats[i];
+    const name = slotName(s, st);
+    const word = HP_LABELS[s.category] || s.category || '';
+    const desc = weaveDescs[i];
+    const why = weaveOn && s.weapon && desc && desc.excluded ? desc.excluded : '';
+    const can = weaveOn ? !!s.weapon && !!desc && !why : !!s.weapon;
+    const picked = weaveOn && can && isPicked(s.key);
+    const on = !weaveOn && i === activeSlot;
+    const id = 'vt-range-pill-' + i;
+    const cls = 'vt-xp-wpn vt-wpn-range-pill is-c' + (i % 5)
+        + (on ? ' is-on' : '') + (s.weapon ? '' : ' is-empty') + (s.virtual ? ' is-virtual' : '')
+        + (weaveOn ? ' is-weave' + (picked ? ' is-picked' : '') + (can ? '' : ' is-excluded') : '');
+    const where = s.virtual
+        ? 'Not mounted: ' + ((snapshot && snapshot.shooterName) || 'this ship') + ' has no hardpoint for it, so it fires from the hull'
+        : word + (s.assault ? ' (assault)' : '') + (s.count > 1 ? ', ' + s.count + ' hardpoints fire together' : '');
+    const title = where + ' \u00b7 ' + (s.weapon ? name : 'empty') + (why ? ' \u00b7 ' + why : '')
+        + (!weaveOn && s.weapon && i < 5 ? ' \u00b7 key ' + (i + 1) : '');
+    const input = weaveOn
+        ? '<input type="checkbox" class="form-check-input vt-wpn-range-pill-pick" id="' + id + '" data-range-weave-slot="' + i + '"'
+            + (picked ? ' checked' : '') + (can ? '' : ' disabled') + ' aria-label="' + esc('Include ' + name + ' in the weapon switch') + '">'
+        : '<input type="radio" class="visually-hidden" id="' + id + '" name="vt-range-slot" value="' + i + '"'
+            + (on ? ' checked' : '') + (s.weapon ? '' : ' disabled') + ' aria-label="' + esc('Slot ' + (i + 1) + ': ' + (s.weapon ? name : word + ', empty')) + '">';
+    const mult = !s.virtual && s.count > 1 ? '<span class="vt-mono vt-wpn-range-pill-mult" aria-hidden="true">&times;' + s.count + '</span>' : '';
+    const tag = s.virtual ? '<span class="vt-wpn-range-pill-tag" aria-hidden="true">Not mounted</span>' : '';
+    const swapText = s.weapon ? 'Swap ' + name + ' (' + (s.virtual ? 'not mounted' : word) + ')' : 'Mount a weapon on the ' + word + ' hardpoint';
+    const swap = onPickSlot
+        ? '<button type="button" class="vt-wpn-range-pill-swap" data-range-slot-open="' + i + '" aria-label="' + esc(swapText) + '" title="' + esc(swapText) + '">'
+            + '<i class="bi bi-arrow-left-right" aria-hidden="true"></i></button>'
+        : '';
+    return '<label class="' + cls + '" for="' + id + '" data-slot-key="' + esc(s.key) + '" title="' + esc(title) + '">'
+        + input
+        + '<span class="vt-xp-wpn-badge"><img src="' + HUD_ICONS + 'hp_' + (HP_ICONS[s.category] || 'gun') + '.png" alt=""></span>'
+        + '<span class="vt-mono vt-wpn-range-pill-key" aria-hidden="true">' + (i + 1) + '</span>'
+        + '<span class="vt-xp-wpn-name">' + esc(name) + '</span>' + mult + tag
+        + '<span class="vt-xp-wpn-shots" data-range-pill-shots="' + i + '">' + (s.weapon ? '' : '\u2297') + '</span>'
+        + swap
+        + '</label>';
+}
+
+function renderPills() {
+    const box = hudEls.pills;
+    if (!box) return;
+    lastWeaveKey = undefined;
+    slotStats = slots.map((s) => (s.weapon && snapshot && snapshot.statsFor ? snapshot.statsFor(s.weapon, s.key) : null));
+    box.setAttribute('role', weaveOn ? 'group' : 'radiogroup');
+    box.setAttribute('aria-label', weaveOn ? 'Weapons in the switch' : 'Firing weapon');
+    box.innerHTML = slots.length
+        ? slots.map(pillHtml).join('')
+        : '<p class="vt-wpn-range-pills-empty">Pick a ship to load out.</p>';
+    pillShots = slots.map((s, i) => ({ el: box.querySelector('[data-range-pill-shots="' + i + '"]'), text: s.weapon ? null : '\u2297' }));
+}
+
+function paintPills(state) {
+    const ammo = state ? state.ammo : 0;
+    pillShots.forEach((p, i) => {
+        if (!p.el || !slots[i] || !slots[i].weapon) return;
+        const text = shotsLeft(slotStats[i], ammo);
+        if (text !== p.text) {
+            p.text = text;
+            p.el.textContent = text;
         }
-        // Same-type hardpoints fire together in-game; the badge says how many.
-        const mult = !s.virtual && s.count > 1
-            ? '<span class="vt-wpn-range-slot-mult" title="' + s.count + ' hardpoints fire together">&times;' + s.count + '</span>' : '';
-        const cat = s.virtual
-            ? 'Scenario weapon'
-            : esc(HP_LABELS[s.category] || s.category || '') + (s.assault ? '<span class="vt-wpn-range-slot-sub"> &middot; assault</span>' : '');
-        const weapon = s.virtual
-            ? '<span class="vt-wpn-range-slot-fixed">' + esc(s.weapon) + '</span>'
-            : '<select class="form-select form-select-sm" data-range-slot="' + i + '" aria-label="Weapon for slot ' + (i + 1) + '">' + opts.join('') + '</select>';
-        if (weaveOn) {
-            // The card's click toggles its place in the switch, so the
-            // checkbox is the card's labelled control.
-            const desc = weaveDescs[i];
-            const why = s.weapon && desc && desc.excluded ? desc.excluded : '';
-            const can = !!s.weapon && !!desc && !why;
-            const picked = can && isPicked(s.key);
-            const wcls = 'vt-wpn-range-slot is-weave' + (picked ? ' is-picked' : '') + (can ? '' : ' is-empty');
-            return '<label class="' + wcls + '" data-slot-key="' + esc(s.key) + '">'
-                + '<span class="vt-wpn-range-slot-head">'
-                + '<input type="checkbox" class="form-check-input vt-wpn-range-slot-pick" data-range-weave-slot="' + i + '"'
-                + (picked ? ' checked' : '') + (can ? '' : ' disabled') + ' aria-label="Include slot ' + (i + 1) + ' in the weapon switch">'
-                + '<span class="vt-wpn-range-slot-key is-c' + (i % 5) + '" aria-hidden="true">' + (i + 1) + '</span>' + icon
-                + '<span class="vt-wpn-range-slot-cat">' + cat + '</span>' + mult
-                + '</span>'
-                + weapon
-                + (why ? '<span class="vt-wpn-range-slot-why">' + esc(why) + '</span>' : '')
-                + '</label>';
+    });
+}
+
+/* The ship's own hull (nothing shoots back, so it stays full) over the
+ * shared ammo tank. */
+function paintGauge(state) {
+    if (!gauge) return;
+    const hull = snapshot && snapshot.shooterHp > 0 ? Math.ceil(snapshot.shooterHp) : null;
+    const max = state && state.maxAmmo > 0 ? state.maxAmmo : 0;
+    const ammo = state && max ? Math.floor(state.ammo) : null;
+    const key = hull + '|' + ammo + '|' + (max ? (state.ammo / max).toFixed(3) : '0');
+    if (key === hudText.gauge) return;
+    hudText.gauge = key;
+    gauge.paint(hull != null ? 1 : 0, hull, max ? state.ammo / max : 0, ammo);
+}
+
+/* ---- readout (top left) ------------------------------------------------ */
+
+const NO_KILL_SHORT = {
+    notarget: 'no target', nodamage: 'no damage', range: 'out of reach', ammo: 'tank runs dry',
+    capped: 'MDM shells armed', timeout: 'over ' + PLAN_HORIZON_MIN + ' min',
+};
+
+function readoutLine(key, value, opts) {
+    const o = opts || {};
+    return '<div class="vt-wpn-range-ro-line' + (o.extra ? ' is-extra' : '') + '"' + (o.title ? ' title="' + esc(o.title) + '"' : '') + '>'
+        + '<span class="vt-wpn-range-ro-k">' + key + '</span>'
+        + '<span class="vt-wpn-range-ro-v"' + (o.attr ? ' ' + o.attr : '') + '>' + value + '</span></div>';
+}
+
+function estTag(text) {
+    return ' <span class="vt-wpn-range-ro-est">' + esc(text) + '</span>';
+}
+
+/* The lines that only change with the loadout, the target or the plan. The
+ * gap and the last live kill are painted per frame into their cells. */
+function renderReadout() {
+    const box = hudEls.readoutBody;
+    if (!box) return;
+    const lines = [];
+    const slot = slots[activeSlot];
+    const st = !weaveOn && slot && slot.weapon ? slotStats[activeSlot] : null;
+    const desc = !weaveOn && slot ? weaveDescs[activeSlot] : null;
+    let reach = null;
+    if (weaveOn) {
+        const entries = weaveEntries();
+        const ttk = !entries.length ? 'tick weapons'
+            : weavePlan && Number.isFinite(weavePlan.ttk) ? esc(fmtSec(weavePlan.ttk)) + estTag('switch')
+                : esc(weavePlan ? NO_KILL_SHORT[weavePlan.reason] || '\u2014' : '\u2014');
+        lines.push(readoutLine('TTK', ttk, { title: 'Planned time to kill with the weapon switch, from Fire at the start distance' }));
+        lines.push(readoutLine('SWITCH', esc(entries.length + (entries.length === 1 ? ' weapon' : ' weapons') + ' \u00b7 ' + fmtNum(switchSec) + ' s'), { extra: true }));
+    } else if (st || slot) {
+        let ttk = '\u2014';
+        let title = '';
+        if (weavePlan) {
+            const est = desc && desc.tier === 'estimated';
+            ttk = Number.isFinite(weavePlan.ttk)
+                ? esc(fmtSec(weavePlan.ttk)) + (est ? estTag('est.') : '')
+                : esc(NO_KILL_SHORT[weavePlan.reason] || '\u2014');
+            title = 'Planned from Fire at the start distance: travel time, reach and ammo included';
+        } else if (st) {
+            if (st.ttk === Infinity) ttk = 'never';
+            else if (st.ttk != null) ttk = esc(fmtSec(st.ttk)) + (st.ttkEstimated ? estTag('est.') : '');
+            title = st.lock
+                ? 'Calculator time to kill: one lock before every release (estimated)'
+                : 'Calculator time to kill';
         }
-        const cls = 'vt-wpn-range-slot' + (i === activeSlot ? ' is-active' : '') + (s.weapon ? '' : ' is-empty');
-        // The radio is visually hidden (the card border + key badge show the
-        // active slot); the whole card stays its click target and it keeps
-        // keyboard focus, so arrow keys still walk the slots.
-        return '<label class="' + cls + '">'
-            + '<input type="radio" class="visually-hidden" name="vt-range-slot" value="' + i + '"' + (i === activeSlot ? ' checked' : '') + (s.weapon ? '' : ' disabled') + '>'
-            + '<span class="vt-wpn-range-slot-head">'
-            + '<span class="vt-wpn-range-slot-key" aria-hidden="true">' + (i + 1) + '</span>' + icon
-            + '<span class="vt-wpn-range-slot-cat">' + cat + '</span>' + mult
-            + '</span>'
-            + weapon
-            + '</label>';
-    }).join('');
+        lines.push(readoutLine('TTK', ttk, { title }));
+        const lock = st && st.lock;
+        if (lock) {
+            const sig = lock.signature ? ' \u00b7 ' + lock.signature + ' ' + fmtNum(lock.signatureValue) : '';
+            const value = lock.never ? 'never' + (lock.signature ? ' \u00b7 ' + lock.signature + ' 0' : '') : esc(fmtSec(lock.seconds)) + esc(sig);
+            lines.push(readoutLine('LOCK', value, {
+                title: 'lockDelay ' + fmtNum(lock.lockDelay) + ' s' + (lock.stages > 1 ? ' x ' + (lock.stages - 1) + '/' + lock.stages : '')
+                    + (lock.signature ? ' / ' + lock.signature + 'Signature ' + fmtNum(lock.signatureValue) : '')
+                    + ' \u00b7 cone ' + fmtNum(lock.coneAngle, 3) + ' rad',
+            }));
+            if (lock.lockRange > 0) reach = { m: lock.lockRange, word: 'lock' };
+        }
+        if (st && st.dps != null) {
+            const hit = st.perHit != null ? ' \u00b7 ' + fmtNum(st.perHit, 1) + '/hit ' + (st.letter || '') : '';
+            lines.push(readoutLine('DPS', esc(fmtNum(st.dps, 1) + hit), { extra: true, title: 'Damage per second of the whole group against this target\'s armor class' }));
+        }
+        if (st && st.shotsToKill != null && Number.isFinite(st.shotsToKill)) {
+            const tank = st.tankFraction != null ? ' \u00b7 ' + Math.round(st.tankFraction * 100) + '% tank' : '';
+            lines.push(readoutLine('SHOTS', esc(st.shotsToKill + ' to kill' + tank), { extra: true }));
+        }
+        if (!reach && desc && desc.reach > 0) reach = { m: desc.reach, word: 'reach' };
+    }
+    const reachText = reach ? ' \u00b7 ' + reach.word + ' ' + fmtNum(reach.m, 0) + ' m' : '';
+    lines.push(readoutLine('GAP', '', { extra: true, attr: 'data-range-ro-gap', title: 'Clear air from the nose (or muzzle) to the target\'s hull' + (reach ? ', against the weapon\'s ' + reach.word : '') }));
+    lines.push(readoutLine('KILL', '', { extra: true, attr: 'data-range-ro-kill', title: 'Last kill in the live range, timed from Fire on a full hull' }));
+    box.innerHTML = lines.join('');
+    hudEls.roGap = box.querySelector('[data-range-ro-gap]');
+    hudEls.roKill = box.querySelector('[data-range-ro-kill]');
+    hudText.reach = reach ? reach.m : null;
+    hudText.reachText = reachText;
+    hudText.gap = undefined;
+    hudText.kill = undefined;
+}
+
+function paintReadout(state) {
+    if (hudEls.roHead) {
+        const head = state && state.archetype
+            ? (state.honesty === 'approximated' ? 'a' : 'd') + '|' + (state.name || '') + '|' + (state.label || '')
+            : (weaveOn ? 'weave' : 'none');
+        if (head !== hudText.head) {
+            hudText.head = head;
+            const approx = state && state.honesty === 'approximated';
+            hudEls.roHead.innerHTML = state && state.archetype
+                ? '<span class="vt-wpn-range-ro-tag' + (approx ? ' is-approx' : '') + '" title="'
+                    + (approx ? 'Approximated: the effect stands in for a class the range cannot draw from the ODF' : 'Data-driven: drawn from the ODF effect definitions') + '">'
+                    + (approx ? 'Approximated' : 'Data-driven') + '</span>'
+                    + '<span class="vt-wpn-range-ro-name">' + esc(state.name || state.label) + '</span>'
+                    + '<span class="vt-wpn-range-ro-arch">' + esc(state.label) + '</span>'
+                : '<span class="vt-wpn-range-ro-name">' + (weaveOn ? 'Weapon switch' : 'No weapon in this slot') + '</span>';
+        }
+    }
+    if (hudEls.roGap) {
+        const gap = Math.round(hullGap(distance));
+        if (gap !== hudText.gap) {
+            hudText.gap = gap;
+            hudEls.roGap.textContent = gap + ' m' + (hudText.reachText || '');
+            hudEls.roGap.classList.toggle('is-warn', hudText.reach != null && gap > hudText.reach);
+        }
+    }
+    if (hudEls.roKill && lastKill !== hudText.kill) {
+        hudText.kill = lastKill;
+        hudEls.roKill.textContent = lastKill ? fmtSec(lastKill.sec) + ' from ' + fmtNum(lastKill.from, 0) + ' m' : '\u2014';
+    }
+}
+
+/* The hint over the pills: release to fire, locking, out of the cone. */
+function paintHint(state) {
+    if (!hudEls.hint) return;
+    const text = state && state.hint ? state.hint : '';
+    if (text === hudText.hint) return;
+    hudText.hint = text;
+    hudEls.hint.textContent = text;
+    hudEls.hint.hidden = !text;
 }
 
 function fmtNum(value, digits) {
@@ -501,8 +711,9 @@ function planInputs(descs) {
     return {
         weapons: descs,
         switchSec,
-        distance: startDistance,
-        closing: closingSpec(),
+        // Weapon reach is muzzle to hull, so the planner runs on the gap.
+        distance: hullGap(startDistance),
+        closing: closingGapSpec(),
         ammo: ammoState(),
         target: {
             maxHealth: snapshot ? snapshot.targetHp : 0,
@@ -516,7 +727,7 @@ function planInputs(descs) {
 /* `single` is the firing weapon's description when the switch is off. */
 function noKillText(plan, base, single) {
     const tg = snapshot && snapshot.targetName ? snapshot.targetName : 'the target';
-    if (plan.reason === 'notarget') return 'Pick a target on the Scenario tab for a kill time.';
+    if (plan.reason === 'notarget') return 'Pick a target above for a kill time.';
     if (plan.reason === 'nodamage') return (single ? single.name + ' deals' : 'These weapons deal') + ' no damage to ' + tg + '.';
     if (plan.reason === 'range') {
         return (single
@@ -547,22 +758,22 @@ function orderHtml(entries) {
         const meta = 'every ' + fmtNum(d.cycle) + ' s · reach ' + fmtNum(d.reach, 0) + ' m · '
             + fmtNum(d.perHit) + ' per hit' + (rounds > 1 ? ' \u00d7 ' + rounds : '');
         const tie = tiePrev || tieNext;
-        const move = (dir, enabled) => '<button type="button" class="btn btn-link btn-sm vt-wpn-range-weave-move" data-weave-move="' + dir + '"'
+        const move = (dir, enabled) => '<button type="button" class="btn btn-outline-secondary vt-wpn-range-weave-move" data-weave-move="' + dir + '"'
             + ' data-key="' + esc(e.slot.key) + '"' + (enabled ? '' : ' disabled')
             + ' aria-label="' + (dir === 'up' ? 'Fire ' + esc(d.name) + ' earlier' : 'Fire ' + esc(d.name) + ' later') + '">'
             + '<i class="bi bi-arrow-' + dir + '" aria-hidden="true"></i></button>';
-        return '<li class="vt-wpn-range-weave-item is-c' + e.color + '" data-weave-key="' + esc(e.slot.key) + '"'
+        return '<li class="list-group-item vt-wpn-range-weave-item is-c' + e.color + '" data-weave-key="' + esc(e.slot.key) + '"'
             + (tie ? ' draggable="true" data-tie="' + d.cycle.toFixed(4) + '" title="Same cycle: drag to swap the order"' : '') + '>'
             + '<span class="vt-wpn-range-weave-swatch" aria-hidden="true"></span>'
             + '<span class="vt-wpn-range-weave-name">' + esc(d.name)
-            + (d.g > 1 ? ' <span class="vt-wpn-range-slot-mult">&times;' + d.g + '</span>' : '') + '</span>'
+            + (d.g > 1 ? ' <span class="vt-mono vt-wpn-range-slot-mult">&times;' + d.g + '</span>' : '') + '</span>'
             + '<span class="vt-wpn-range-weave-meta vt-mono">' + esc(meta) + '</span>'
             + '<span class="vt-wpn-range-weave-role">' + esc(role) + '</span>'
-            + (tie ? '<span class="vt-wpn-range-weave-moves">' + move('up', tiePrev) + move('down', tieNext) + '</span>' : '')
+            + (tie ? '<span class="btn-group btn-group-sm vt-wpn-range-weave-moves" role="group">' + move('up', tiePrev) + move('down', tieNext) + '</span>' : '')
             + '</li>';
     });
     return '<div class="vt-wpn-range-weave-section"><h3 class="vt-wpn-range-weave-title">Priority</h3>'
-        + '<ol class="vt-wpn-range-weave-order" data-range-weave-order>' + items.join('') + '</ol></div>';
+        + '<ol class="list-group vt-wpn-range-weave-order" data-range-weave-order>' + items.join('') + '</ol></div>';
 }
 
 function ribbonHtml(entries, plan, base) {
@@ -628,7 +839,8 @@ function resultHtml(entries, plan, base, solos, wait, opts) {
     }
     return '<div class="vt-wpn-range-weave-section vt-wpn-range-weave-result">'
         + '<div class="vt-wpn-range-weave-ttk"><span class="vt-wpn-range-bar-label">Time to kill</span>' + head
-        + '<span class="vt-wpn-tier" data-tier="' + tier + '" title="' + esc(tierTip) + '">' + WEAVE_TIER[tier][0] + '</span></div>'
+        + '<span class="badge rounded-pill ' + (tier === 'exact' ? 'text-bg-success-muted' : 'text-bg-warning-muted')
+        + ' vt-wpn-tier" data-tier="' + tier + '" title="' + esc(tierTip) + '">' + WEAVE_TIER[tier][0] + '</span></div>'
         + '<p class="vt-wpn-range-weave-from">' + esc(from) + '</p>'
         + (Number.isFinite(plan.ttk) || plan.reason === 'timeout' ? '<ul class="vt-wpn-range-weave-split">' + rows + '</ul>' : '')
         + compare
@@ -662,7 +874,7 @@ function weaveNotes(entries, plan, base, single) {
     }
     const lobbed = descs.filter((d) => d.lob);
     note('Reach is shotSpeed \u00d7 lifeSpan from the ODF' + (lobbed.length ? ' (lobbed rounds use aiRange)' : '') + ': '
-        + descs.map((d) => d.name + ' ' + fmtNum(d.reach, 0) + ' m').join(', ') + '. Distances are to the target\'s centre.');
+        + descs.map((d) => d.name + ' ' + fmtNum(d.reach, 0) + ' m').join(', ') + '. Reach is measured to the hull; the Distance slider is centre to centre.');
     if (descs.some((d) => !d.hitscan)) {
         const parts = ['travel time is distance / shotSpeed', 'beams land at once'];
         if (lobbed.length) parts.push('lobbed shells fly a ballistic arc at the range gravity of ' + fmtNum(SIM_GRAVITY, 1) + ' m/s\u00b2');
@@ -705,8 +917,16 @@ function weaveNotes(entries, plan, base, single) {
     const pulse = descs.filter((d) => d.pulse);
     if (pulse.length) note('Pulses from ' + pulse.map((d) => d.name).join(', ') + ' are not added (potential only).');
     descs.forEach((d) => {
+        if (d.tag) {
+            const after = d.tag.retag === 'salvo'
+                ? 'once its missile salvo ends'
+                : 'once the stuck tag drops (leader stickTime ' + fmtNum(d.tag.stickTime, 1) + ' s)';
+            note(d.name + ': one pull fires only the tag; on a hit ' + d.salvoCount + ' missiles per hardpoint follow on their own timer, each paying its ammo from the shared tank. '
+                + 'It tags again ' + after + ', and after a miss at shotDelay ' + fmtNum(d.shotDelay, 2) + ' s.');
+            return;
+        }
         if (d.calcInterval != null && Math.abs(d.cycle - d.calcInterval) > 1e-6) {
-            note(d.name + ': the next pull comes ' + fmtNum(d.cycle, 3) + ' s later (shotDelay, or the salvo\'s last round); the Scenario card counts ' + fmtNum(d.calcInterval, 3) + ' s.');
+            note(d.name + ': the next pull comes ' + fmtNum(d.cycle, 3) + ' s later (shotDelay, or the salvo\'s last round); the Numbers card counts ' + fmtNum(d.calcInterval, 3) + ' s.');
         }
     });
     if (snapshot && snapshot.targetRegen > 0) warn(tg + ' repairs ' + fmtNum(snapshot.targetRegen) + ' health per second; the kill time ignores it.');
@@ -714,8 +934,9 @@ function weaveNotes(entries, plan, base, single) {
 }
 
 function notesHtml(notes) {
-    return '<ul class="vt-wpn-notes">' + notes.map((n) => '<li' + (n.warn ? ' class="vt-wpn-note-warning"' : '') + '>'
-        + (n.warn ? '<i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>' : '') + esc(n.text) + '</li>').join('') + '</ul>';
+    return '<div class="d-flex flex-column gap-1 mt-2">' + notes.map((n) => '<div class="alert ' + (n.warn ? 'alert-warning' : 'alert-secondary')
+        + ' py-1 px-2 mb-0 small">'
+        + (n.warn ? '<i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>' : '') + esc(n.text) + '</div>').join('') + '</div>';
 }
 
 /* With the switch off, one line on how the ticked weapons would do switched. */
@@ -740,7 +961,7 @@ function switchCompareHtml(single) {
 function singleHtml() {
     const slot = slots[activeSlot];
     weavePlan = null;
-    if (!slot || !slot.weapon) return '<p class="vt-wpn-range-empty">Mount a weapon on the loadout below to time a kill.</p>';
+    if (!slot || !slot.weapon) return '<p class="vt-wpn-range-empty">Mount a weapon with a swap button in the weapon panel in the view to time a kill.</p>';
     const desc = weaveDescs[activeSlot];
     if (!desc || desc.excluded) {
         const why = desc ? desc.excluded : 'Not in the ODF database.';
@@ -761,7 +982,11 @@ function renderWeave() {
     if (!panel) return;
     panel.hidden = false;
     syncWeaveControls();
-    const body = panel.querySelector('[data-range-weave-body]');
+    planWeavePanel(panel.querySelector('[data-range-weave-body]'));
+    renderReadout();
+}
+
+function planWeavePanel(body) {
     lastWeaveKey = undefined;
     if (!weaveOn) {
         body.innerHTML = singleHtml();
@@ -771,7 +996,7 @@ function renderWeave() {
     const entries = weaveEntries();
     if (!entries.length) {
         weavePlan = null;
-        body.innerHTML = '<p class="vt-wpn-range-empty">Tick the weapons to switch between on the loadout cards below.</p>';
+        body.innerHTML = '<p class="vt-wpn-range-empty">Tick the weapons to switch between in the weapon panel in the view.</p>';
         return;
     }
     const descs = entries.map((e) => e.desc);
@@ -805,32 +1030,135 @@ function syncWeaveControls() {
     if (toggle) toggle.checked = weaveOn;
     const sw = rootEl.querySelector('[data-range-switch]');
     if (sw && document.activeElement !== sw) sw.value = String(Number(switchSec.toFixed(3)));
-    const swLabel = sw && sw.closest('label');
-    if (swLabel) swLabel.hidden = !weaveOn;
+    const swGroup = sw && sw.closest('.input-group');
+    if (swGroup) swGroup.hidden = !weaveOn;
     const cl = rootEl.querySelector('[data-range-closing]');
-    if (cl) cl.checked = closing;
+    const anchored = !!(snapshot && snapshot.shooterAlwaysDeployed);
+    if (cl) {
+        cl.checked = closing && !anchored;
+        cl.disabled = anchored;
+    }
     const sp = rootEl.querySelector('[data-range-speed]');
     const ship = shipSpeed();
     if (sp && document.activeElement !== sp) sp.value = String(closeSpeedNow() || '');
-    if (sp) sp.disabled = !closing;
+    if (sp) sp.disabled = !closing || anchored;
     const hint = rootEl.querySelector('[data-range-speed-hint]');
     if (hint) {
-        hint.textContent = ship
-            ? (snapshot.shooterName || 'Ship') + ' top speed ' + fmtNum(ship.speed, 1) + ' m/s (' + ship.source + ')'
-            : 'No movement speed in this ship\'s ODF; type one.';
+        hint.textContent = anchored
+            ? (snapshot.shooterName || 'This turret') + ' fires only deployed, and a deployed turret cannot move.'
+            : ship
+                ? (snapshot.shooterName || 'Ship') + ' top speed ' + fmtNum(ship.speed, 1) + ' m/s (' + ship.source + ')'
+                : 'No movement speed in this ship\'s ODF; type one.';
     }
 }
 
-/* The closest the target can stand without the two models touching. */
+const _corner = new THREE.Vector3();
+
+/* How far `box` (local), placed by `matrix`, reaches from `origin` along `dir`. */
+function boxExtent(box, matrix, origin, dir) {
+    let best = -Infinity;
+    for (let i = 0; i < 8; i++) {
+        _corner.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z)
+            .applyMatrix4(matrix);
+        best = Math.max(best, _corner.sub(origin).dot(dir));
+    }
+    return Number.isFinite(best) ? Math.max(0, best) : 0;
+}
+
+function approachFlat() {
+    return rangeAxis.clone();
+}
+
+/* A ship with hull-fixed guns turns its whole hull toward the target at
+ * its ODF omegaTurn, and tilts its nose at the same rate when no joint can
+ * raise the gun (a lock cone of 0.05 rad misses a hover target a few metres
+ * up otherwise); a turret (or walker head) aims itself. */
+function trackHull(dt) {
+    if (!viewer || !viewer.setRangeShipAim) return;
+    const turnYaw = !viewer.canAimTurret();
+    const turnPitch = !viewer.canPitchAim();
+    if (!turnYaw && !turnPitch) return;
+    if (!target || hp <= 0) return;
+    const origin = viewer.worldPointOf(null, new THREE.Vector3());
+    if (!origin) return;
+    const aim = targetCenter(new THREE.Vector3());
+    const step = hullTurnRate * dt;
+    if (turnYaw) {
+        const to = aim.clone().sub(origin);
+        to.y = 0;
+        if (to.lengthSq() > 1e-6) {
+            const a = rangeAxis;
+            const want = Math.atan2(a.z * to.x - a.x * to.z, a.x * to.x + a.z * to.z);
+            hullYaw += Math.max(-step, Math.min(step, want - hullYaw));
+        }
+    }
+    if (turnPitch) {
+        // Servo the firing muzzle's own forward onto the target: the sim
+        // measures the lock cone from that muzzle along that direction.
+        const m = muzzles()[0];
+        const to = aim.sub(m.position);
+        const elev = (v) => Math.atan2(v.y, Math.max(1e-3, Math.hypot(v.x, v.z)));
+        const want = Math.max(HULL_PITCH_MIN, Math.min(HULL_PITCH_MAX, hullPitch + elev(to) - elev(m.forward)));
+        hullPitch += Math.max(-step, Math.min(step, want - hullPitch));
+    }
+    viewer.setRangeShipAim(hullYaw, hullPitch);
+}
+
+/* The hull box face along the approach, or a muzzle that sits ahead of it. */
+function shipFront() {
+    if (!viewer) return 0;
+    const flat = approachFlat();
+    const origin = viewer.worldPointOf(null) || new THREE.Vector3();
+    let front = viewer._radius || 0;
+    if (viewer._model && viewer._hullLocalBox) {
+        viewer._model.updateWorldMatrix(true, false);
+        front = boxExtent(viewer._hullLocalBox, viewer._model.matrixWorld, origin, flat);
+    }
+    muzzles().forEach((m) => { front = Math.max(front, _v.copy(m.position).sub(origin).dot(flat)); });
+    return Math.max(0, front);
+}
+
+/* The target's near face: its box turned the way placeTarget turns it,
+ * measured back toward the ship. Cached per target load. */
+function measureTargetNear() {
+    if (!target || !targetLocalBox || !viewer) {
+        targetNear = targetRadius;
+        return;
+    }
+    const flat = approachFlat();
+    const saved = { pos: target.position.clone(), quat: target.quaternion.clone() };
+    target.position.set(0, targetLift, 0);
+    target.lookAt(flat.x, targetLift, flat.z);
+    target.updateMatrixWorld(true);
+    targetNear = boxExtent(targetLocalBox, target.matrixWorld, target.position, flat.clone().negate());
+    target.position.copy(saved.pos);
+    target.quaternion.copy(saved.quat);
+    target.updateMatrixWorld(true);
+}
+
+/* Centre-to-centre distance at which the hull boxes clear by SURFACE_MARGIN_M. */
+function separationFloor() {
+    const near = target ? targetNear : targetRadius;
+    return Math.max(1, shipFront() + near + SURFACE_MARGIN_M);
+}
+
+/* Clear air between the nose (or muzzle) and the target's near face. */
+function hullGap(centre) {
+    return Math.max(0, centre - shipFront() - (target ? targetNear : targetRadius));
+}
+
 function minDistance() {
-    const shipR = viewer && viewer._radius ? viewer._radius : 0;
-    return Math.max(1, Math.ceil(shipR + targetRadius));
+    return Math.ceil(separationFloor());
 }
 
 function applyDistanceFloor() {
+    measureTargetNear();
     const floor = minDistance();
     const slider = rootEl && rootEl.querySelector('[data-range-dist]');
-    if (slider) slider.min = String(floor);
+    if (slider) {
+        slider.min = String(floor);
+        slider.max = String(Math.max(OPENING_MAX_M, floor));
+    }
     if (startDistance < floor) {
         startDistance = floor;
         distance = floor;
@@ -841,8 +1169,7 @@ function applyDistanceFloor() {
 
 function paintDistance() {
     if (!hudEls.distText) return;
-    hudEls.distText.textContent = Math.round(startDistance) + ' m'
-        + (Math.abs(distance - startDistance) > 0.5 ? ' \u00b7 now ' + Math.round(distance) + ' m' : '');
+    hudEls.distText.textContent = Math.round(distance) + ' m (' + Math.round(hullGap(distance)) + ' m to hull)';
 }
 
 function moveInOrder(key, toKey, after) {
@@ -877,6 +1204,10 @@ function releaseFire() {
 /* ---- target ------------------------------------------------------------ */
 
 function targetCenter(out) {
+    if (target && targetLocalBox) {
+        target.updateMatrixWorld(true);
+        return targetLocalBox.getCenter(out).applyMatrix4(target.matrixWorld);
+    }
     out.copy(target ? target.position : new THREE.Vector3());
     out.y += targetRadius * 0.6;
     return out;
@@ -889,6 +1220,9 @@ function targetState() {
         position: targetCenter(new THREE.Vector3()),
         velocity: new THREE.Vector3(vel, 0, 0),
         radius: targetRadius,
+        // Direct hits test this box (the sim falls back to the sphere without it).
+        box: target && targetLocalBox ? { min: targetLocalBox.min, max: targetLocalBox.max, matrix: target.matrixWorld } : null,
+        signatures: snapshot && snapshot.signatures ? snapshot.signatures : null,
         kind: targetKind === 'building' ? 'building' : 'vehicle',
         letter: targetLetter,
         mdmRule: snapshot && snapshot.targetMdm != null ? snapshot.targetMdm : -1,
@@ -904,21 +1238,13 @@ function moveShip() {
     const travel = Math.max(0, startDistance - distance);
     if (Math.abs(travel - shipTravel) < 1e-6) return;
     shipTravel = travel;
-    const fwd = hullForward(new THREE.Vector3());
-    fwd.y = 0;
-    if (fwd.lengthSq() < 1e-6) fwd.set(0, 0, -1);
-    fwd.normalize();
-    viewer.setRangeShipOffset(fwd.x * travel, fwd.z * travel);
+    viewer.setRangeShipOffset(rangeAxis.x * travel, rangeAxis.z * travel);
 }
 
 function placeTarget() {
     if (!viewer || !target) return;
     const origin = viewer.worldPointOf(null) || new THREE.Vector3();
-    const flat = hullForward(new THREE.Vector3());
-    flat.y = 0;
-    if (flat.lengthSq() < 1e-6) flat.set(0, 0, -1);
-    flat.normalize();
-    target.position.set(origin.x, 0, origin.z).addScaledVector(flat, distance);
+    target.position.set(origin.x, 0, origin.z).addScaledVector(rangeAxis, distance);
     target.position.y = targetLift;
     if (moving) target.position.x += Math.sin(clock * 0.7) * 14;
     target.lookAt(2 * target.position.x - origin.x, targetLift, 2 * target.position.z - origin.z);
@@ -977,10 +1303,7 @@ function placeCamera(dt) {
     viewer.controls.enabled = false;
     viewer.setModelVisible(cameraMode !== 'fp');
     const origin = viewer.worldPointOf(null) || new THREE.Vector3();
-    const hull = hullForward(new THREE.Vector3());
-    hull.y = 0;
-    if (hull.lengthSq() < 1e-6) hull.set(0, 0, -1);
-    hull.normalize();
+    const hull = rangeAxis.clone();
     const side = new THREE.Vector3().crossVectors(hull, new THREE.Vector3(0, 1, 0)).normalize();
     const aimPoint = target ? targetCenter(new THREE.Vector3()) : origin.clone().addScaledVector(hull, distance);
     const shipR = Math.max(3, viewer._radius || 4);
@@ -1016,7 +1339,7 @@ function placeCamera(dt) {
     // The turret tracks the target, so the pilot's view (and the reticle) sits
     // on it; with no target the eye looks down the hull.
     if (target && hp > 0) viewer.camera.lookAt(aimPoint);
-    else viewer.camera.lookAt(eye.clone().add(hull));
+    else viewer.camera.lookAt(eye.clone().add(hullForward(new THREE.Vector3())));
 }
 
 async function loadCockpit(shooterStem) {
@@ -1079,7 +1402,7 @@ function floatDamage(amount, position) {
     const p = position.clone().project(viewer.camera);
     if (p.z > 1) return;
     const el = document.createElement('span');
-    el.className = 'vt-wpn-range-float';
+    el.className = 'vt-mono vt-wpn-range-float';
     el.textContent = '-' + (amount >= 10 ? Math.round(amount) : amount.toFixed(1));
     el.style.left = ((p.x + 1) / 2 * rect.width) + 'px';
     el.style.top = ((1 - (p.y + 1) / 2) * rect.height - 10) + 'px';
@@ -1142,19 +1465,10 @@ function paintHud(state) {
             if (file) { img.hidden = false; img.src = file; } else img.hidden = true;
         }
     }
-    if (hudEls.weapon) {
-        const honest = state.honesty === 'approximated' ? 'Approximated' : 'Data-driven';
-        hudEls.weapon.innerHTML = state.archetype
-            ? '<span class="vt-wpn-honesty' + (state.honesty === 'approximated' ? ' is-approx' : '') + '">' + esc(honest) + '</span>'
-                + '<strong>' + esc(state.name || state.label) + '</strong> <span class="vt-wpn-range-arch">' + esc(state.label) + '</span>'
-                + (state.hint ? '<div class="vt-wpn-range-hint">' + esc(state.hint) + '</div>' : '')
-            : '<strong>No weapon in this slot</strong>';
-    }
-    if (hudEls.ammoFill) {
-        const frac = state.maxAmmo > 0 ? Math.max(0, Math.min(1, state.ammo / state.maxAmmo)) : 0;
-        hudEls.ammoFill.style.width = (frac * 100).toFixed(1) + '%';
-        hudEls.ammoText.textContent = Math.round(state.ammo) + ' / ' + Math.round(state.maxAmmo);
-    }
+    paintReadout(state);
+    paintHint(state);
+    paintGauge(state);
+    paintPills(state);
     if (hudEls.hpFill) {
         const frac = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
         hudEls.hpFill.style.width = (frac * 100).toFixed(1) + '%';
@@ -1179,12 +1493,22 @@ function paintHud(state) {
     paintLockCircles(state);
     if (hudEls.lock) {
         const show = (state.archetype === 'launcher' || state.archetype === 'multilock') && state.active;
-        hudEls.lock.hidden = !show;
+        if (hudEls.lock.hidden === show) hudEls.lock.hidden = !show;
         if (show && hudEls.lockFill) {
-            const frac = state.archetype === 'multilock'
+            const multi = state.archetype === 'multilock';
+            const frac = Math.max(0, Math.min(1, multi
                 ? (state.locks + Math.min(1, state.lock)) / Math.max(1, state.lockCount || 1)
-                : Math.min(1, state.lock);
-            hudEls.lockFill.style.width = (Math.max(0, Math.min(1, frac)) * 100).toFixed(0) + '%';
+                : Math.min(1, state.lock)));
+            const locked = multi ? state.locks > 0 : state.lock >= 1;
+            hudEls.lockFill.style.width = (frac * 100).toFixed(0) + '%';
+            hudEls.lockFill.classList.toggle('is-locked', locked);
+            const text = multi
+                ? state.locks + ' / ' + Math.max(1, state.lockCount || 1)
+                : (locked ? 'Locked' : Math.round(frac * 100) + '%');
+            if (hudEls.lockText && text !== hudText.lock) {
+                hudText.lock = text;
+                hudEls.lockText.textContent = text;
+            }
         }
     }
 }
@@ -1194,12 +1518,40 @@ function paintHud(state) {
 async function loadModels(snap) {
     const shooterUrl = snap.shooterThumb ? GEOM + snap.shooterThumb + '.glb' : '';
     if (shooterUrl) {
-        await viewer.load(shooterUrl, null, null);
+        const entry = await modelEntry(snap.shooterThumb);
+        const drive = (entry && entry.drive) || null;
+        // Joints come only from the index's parts block, as on /models: an
+        // undeclared turret_y (the ISDF Tank's) stays fixed to the hull.
+        const hints = (entry && entry.parts) || NO_PARTS;
+        await viewer.load(shooterUrl, hints, { hoverAltitude: hoverAltitude(entry, snap.shooterAlwaysDeployed) });
+        // A turret fires only deployed; a deployed morph tank wears its
+        // deployed shape. Both hold the deploy clip's last frame.
+        if (snap.shooterDeployed) viewer.setDeployPose(true);
         shipTravel = 0;
+        hullYaw = 0;
+        hullPitch = 0;
+        hullTurnRate = drive && drive.omegaTurn > 0 ? drive.omegaTurn : HULL_TURN_FALLBACK;
+        hullForward(rangeAxis);
+        rangeAxis.y = 0;
+        if (rangeAxis.lengthSq() < 1e-6) rangeAxis.set(0, 0, -1);
+        rangeAxis.normalize();
     }
     await loadTarget(snap);
     await loadCockpit(snap.shooterThumb);
     orbitAngle = Math.PI * 0.75;
+}
+
+async function modelEntry(stem) {
+    const byStem = modelsByStem ? await modelsByStem : null;
+    return (stem && byStem && byStem.get(stem)) || null;
+}
+
+/* A hover craft floats at its ODF setAltitude; a turret fires only deployed,
+ * at its heightDeploy, which is at or below the ground. */
+function hoverAltitude(entry, anchored) {
+    const drive = entry && entry.drive;
+    if (anchored || !drive || (drive.archetype !== 'hover' && drive.archetype !== 'morph')) return 0;
+    return Math.max(0, Number(drive.setAltitude) || 0);
 }
 
 function findHpCom(root) {
@@ -1218,14 +1570,23 @@ async function loadTarget(snap) {
     if (url) {
         target = await viewer.loadProp(url);
         if (target) {
-            const box = new THREE.Box3().setFromObject(target);
+            // Measure the box in the prop's own frame (identity transform),
+            // centre offset included: the .msh header bakes this box around
+            // the visible geometry.
+            target.position.set(0, 0, 0);
+            target.quaternion.identity();
+            target.updateMatrixWorld(true);
+            targetLocalBox = new THREE.Box3().setFromObject(target);
             const size = new THREE.Vector3();
-            box.getSize(size);
-            targetRadius = Math.max(3, size.length() * 0.35);
-            targetLift = -box.min.y;
+            targetLocalBox.getSize(size);
+            // The sphere remains for splash, the shield bubble and the fallback hit.
+            targetRadius = Math.max(1, size.length() * 0.5);
+            targetLift = -targetLocalBox.min.y
+                + hoverAltitude(await modelEntry(snap.targetThumb), snap.targetAlwaysDeployed);
             targetCom = findHpCom(target);
         }
     }
+    if (!target) targetLocalBox = null;
     targetKind = snap.targetKind || 'ship';
     targetName = snap.targetName || '';
     maxHp = snap.targetHp > 0 ? snap.targetHp : 0;
@@ -1243,61 +1604,92 @@ export async function mount(container, shared) {
         + '<div class="vt-wpn-range-stage">'
         + '<div class="vt-wpn-range-view" data-range-view></div>'
         + '<div class="vt-wpn-range-rave" data-range-rave hidden aria-hidden="true"></div>'
-        + '<div class="vt-wpn-range-hud">'
+        + '<div class="vt-wpn-range-hud vt-xp-hud">'
         + '<div class="vt-wpn-range-loading" data-range-loading hidden aria-live="polite">'
         + '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>'
         + 'Loading visuals</div>'
         + '<img data-range-reticle alt="" class="vt-wpn-range-reticle" hidden>'
         + '<div data-range-locks class="vt-wpn-range-locks"></div>'
-        + '<div class="vt-wpn-range-card vt-wpn-range-card-weapon">'
-        + '<div data-range-weapon class="vt-wpn-range-weapon"></div>'
-        + '<div class="vt-wpn-range-bar-row"><span class="vt-wpn-range-bar-label">Ammo</span>'
-        + '<div class="vt-wpn-range-meter"><div class="vt-wpn-range-meter-fill is-ammo" data-range-ammo-fill></div></div>'
-        + '<span class="vt-mono" data-range-ammo-text></span></div>'
-        + '<div class="vt-wpn-range-lock" data-range-lock hidden><div class="vt-wpn-range-lock-fill"></div></div>'
-        + '</div>'
-        + '<div class="vt-wpn-range-card vt-wpn-range-card-target">'
+        + '<div class="vt-mono vt-wpn-range-readout" data-range-readout>'
+        + '<div class="vt-wpn-range-ro-head" data-range-ro-head></div>'
+        + '<div data-range-ro-body></div></div>'
+        + '<div class="card vt-wpn-range-card vt-wpn-range-card-target"><div class="card-body">'
         + '<div class="vt-wpn-range-target-name" data-range-hp-name></div>'
         + '<div class="vt-wpn-range-bar-row"><span class="vt-wpn-range-bar-label">Hull</span>'
-        + '<div class="vt-wpn-range-meter"><div class="vt-wpn-range-meter-fill is-hp" data-range-hp-fill></div></div>'
+        + '<div class="progress vt-wpn-range-meter" role="progressbar" aria-label="Target hull">'
+        + '<div class="progress-bar vt-wpn-range-meter-fill is-hp" data-range-hp-fill></div></div>'
         + '<span class="vt-mono" data-range-hp-text></span></div>'
-        + '</div>'
+        + '<div class="vt-wpn-range-bar-row vt-wpn-range-lock-row" data-range-lock hidden>'
+        + '<span class="vt-wpn-range-bar-label">Lock</span>'
+        + '<div class="progress vt-wpn-range-meter" role="progressbar" aria-label="Lock">'
+        + '<div class="progress-bar vt-wpn-range-lock-fill"></div></div>'
+        + '<span class="vt-mono vt-wpn-range-lock-text" data-range-lock-text></span></div>'
+        + '</div></div>'
+        + '<div class="vt-wpn-range-status">'
+        + '<p class="vt-wpn-range-hint" data-range-hint hidden></p>'
+        + '<div class="vt-wpn-range-status-row" data-range-status-row>'
+        + '<div class="vt-xp-weapons vt-wpn-range-pills" data-range-pills></div>'
+        + '</div></div>'
         + '</div></div>'
         + '<div class="vt-wpn-range-bar">'
         + '<button type="button" class="btn btn-primary btn-sm" data-range-fire><i class="bi bi-crosshair me-1"></i>Fire</button>'
-        + '<label class="vt-wpn-range-label" title="Share the trigger between the ticked weapons, slowest cooldown first">'
-        + '<input type="checkbox" data-range-weave> Weapon switch</label>'
+        + '<div class="form-check form-switch mb-0" title="Share the trigger between the ticked weapons, slowest cooldown first">'
+        + '<input class="form-check-input" type="checkbox" role="switch" id="vt-range-weave" data-range-weave>'
+        + '<label class="form-check-label" for="vt-range-weave">Weapon switch</label></div>'
         + '<button type="button" class="btn btn-outline-secondary btn-sm" data-range-detonate hidden disabled title="Burst every armed MDM shell where it is">'
         + '<i class="bi bi-lightning-charge me-1"></i>Detonate</button>'
-        + '<label class="vt-wpn-range-label">Distance <input type="range" min="20" max="400" value="80" data-range-dist>'
+        + '<label class="vt-wpn-range-label">Distance <input type="range" class="form-range vt-wpn-range-slider" min="20" max="400" value="80" data-range-dist>'
         + '<span class="vt-mono" data-range-dist-text>80 m</span></label>'
-        + '<label class="vt-wpn-range-label"><input type="checkbox" data-range-move> Moving target</label>'
+        + '<div class="form-check form-switch mb-0">'
+        + '<input class="form-check-input" type="checkbox" role="switch" id="vt-range-move" data-range-move>'
+        + '<label class="form-check-label" for="vt-range-move">Moving target</label></div>'
         + '<label class="vt-wpn-range-label">View '
         + '<select data-range-cam class="form-select form-select-sm">'
         + '<option value="chase" selected>Chase</option><option value="orbit">Orbit</option><option value="fp">First person</option>'
         + '</select></label>'
-        + '<label class="vt-wpn-range-label" data-range-cockpit-label><input type="checkbox" data-range-cockpit> Cockpit</label>'
-        + '<label class="vt-wpn-range-label vt-wpn-range-volume" title="Sound volume"><i class="bi bi-volume-up" data-range-volume-icon aria-hidden="true"></i>'
-        + '<span class="visually-hidden">Volume</span>'
-        + '<input type="range" min="0" max="100" step="1" value="100" data-range-volume aria-label="Sound volume">'
-        + '<span class="vt-mono" data-range-volume-text>100%</span></label>'
+        + '<div class="form-check form-switch mb-0" data-range-cockpit-label>'
+        + '<input class="form-check-input" type="checkbox" role="switch" id="vt-range-cockpit" data-range-cockpit>'
+        + '<label class="form-check-label" for="vt-range-cockpit">Cockpit</label></div>'
+        + '<div class="dropdown vt-wpn-range-volume">'
+        + '<button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside"'
+        + ' aria-expanded="false" title="Sound volume">'
+        + '<i class="bi bi-volume-up" data-range-volume-icon aria-hidden="true"></i>'
+        + '<span class="visually-hidden">Sound volume</span>'
+        + '<span class="vt-mono" data-range-volume-text>100%</span></button>'
+        + '<div class="dropdown-menu vt-wpn-range-volume-menu">'
+        + '<label class="vt-wpn-range-volume-row" for="vt-range-vol-master"><span>Master</span>'
+        + '<span class="vt-mono" data-range-volume-out="master">100%</span></label>'
+        + '<input type="range" class="form-range" id="vt-range-vol-master" min="0" max="100" step="1" value="100" data-range-volume="master">'
+        + '<label class="vt-wpn-range-volume-row" for="vt-range-vol-lock"><span>Lock-on tones</span>'
+        + '<span class="vt-mono" data-range-volume-out="lock">50%</span></label>'
+        + '<input type="range" class="form-range" id="vt-range-vol-lock" min="0" max="100" step="1" value="50" data-range-volume="lock">'
+        + '<p class="vt-wpn-range-volume-note">Lock tones play at master &times; this level.</p>'
+        + '</div></div>'
         + '<button type="button" class="btn btn-outline-secondary btn-sm" data-range-refill>Refill ammo</button>'
         + '<button type="button" class="btn btn-outline-secondary btn-sm" data-range-reset title="Full ammo and hull, clear everything in flight; ships and weapons stay">'
         + '<i class="bi bi-arrow-counterclockwise me-1"></i>Reset</button>'
         + '</div>'
-        + '<section class="vt-wpn-range-weave" data-range-weave-panel hidden aria-label="Time to kill">'
+        + '<section class="card vt-wpn-range-weave" data-range-weave-panel hidden aria-label="Time to kill"><div class="card-body">'
         + '<div class="vt-wpn-range-weave-controls">'
-        + '<label class="vt-wpn-range-label">Switch time <input type="number" class="form-control form-control-sm vt-wpn-range-num"'
-        + ' min="' + TURN_SEC + '" max="' + SWITCH_MAX_SEC + '" step="0.05" value="' + TURN_SEC + '" data-range-switch> s</label>'
-        + '<label class="vt-wpn-range-label"><input type="checkbox" data-range-closing> Closing</label>'
-        + '<label class="vt-wpn-range-label">at <input type="number" class="form-control form-control-sm vt-wpn-range-num"'
-        + ' min="0.5" max="200" step="0.5" data-range-speed disabled> m/s</label>'
+        + '<div class="input-group input-group-sm vt-wpn-range-group">'
+        + '<span class="input-group-text">Switch time</span>'
+        + '<input type="number" class="form-control vt-wpn-range-num" aria-label="Switch time in seconds"'
+        + ' min="' + TURN_SEC + '" max="' + SWITCH_MAX_SEC + '" step="0.05" value="' + TURN_SEC + '" data-range-switch>'
+        + '<span class="input-group-text">s</span></div>'
+        + '<div class="form-check form-switch mb-0">'
+        + '<input class="form-check-input" type="checkbox" role="switch" id="vt-range-closing" data-range-closing>'
+        + '<label class="form-check-label" for="vt-range-closing">Closing</label></div>'
+        + '<div class="input-group input-group-sm vt-wpn-range-group">'
+        + '<span class="input-group-text">at</span>'
+        + '<input type="number" class="form-control vt-wpn-range-num" aria-label="Closing speed in metres per second"'
+        + ' min="0.5" max="200" step="0.5" data-range-speed disabled>'
+        + '<span class="input-group-text">m/s</span></div>'
         + '<span class="vt-wpn-range-weave-hint" data-range-speed-hint></span>'
         + '</div>'
         + '<div data-range-weave-body></div>'
-        + '</section>'
-        + '<div class="vt-wpn-range-loadout" data-range-loadout></div>'
-        + '<p class="vt-wpn-range-note">Hold Fire or Space; keys 1–5 switch slots. Same-type hardpoints share a slot and fire together. Lock-on weapons lock while held and fire on release. '
+        + '</div></section>'
+        + '<p class="vt-wpn-range-note">Hold Fire or Space. Keys 1–5, or a click on a pill in the weapon panel in the view, pick the firing slot; '
+        + 'its <i class="bi bi-arrow-left-right" aria-hidden="true"></i><span class="visually-hidden">swap</span> button changes that hardpoint group\'s weapon. Same-type hardpoints share a slot and fire together. Lock-on weapons lock while held and fire on release. '
         + 'Weapon switch shares one held trigger between the ticked slots: the slowest cooldown fires whenever it is ready and the faster weapons fill the time between. '
         + 'Renders, sounds and impact effects are the weapon\'s own ODF effect definitions; damage per hit is the ODF value for this target\'s class.</p>';
 
@@ -1307,31 +1699,44 @@ export async function mount(container, shared) {
         fetch(RETICLE + 'index.json').then((r) => r.json()).catch(() => null),
         fetch(COCKPIT + 'index.json').then((r) => (r.ok ? r.json() : null)).catch(() => null),
     ]);
+    modelsByStem = modelsByStem || fetch(MODELS_INDEX)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((idx) => new Map(((idx && idx.models) || []).map((m) => [m.stem, m])))
+        .catch(() => null);
     db = odf;
     fxIndex = mergeFxIndex(fxIdx, shared && shared.fxIndexes);
     reticleIndex = ret;
     cockpitIndex = pits;
-    onLoadout = (shared && shared.onLoadout) || null;
+    onPickSlot = (shared && shared.onPickSlot) || null;
 
     hudEls = {
         reticle: rootEl.querySelector('[data-range-reticle]'),
         locks: rootEl.querySelector('[data-range-locks]'),
-        weapon: rootEl.querySelector('[data-range-weapon]'),
-        ammoFill: rootEl.querySelector('[data-range-ammo-fill]'),
-        ammoText: rootEl.querySelector('[data-range-ammo-text]'),
+        roHead: rootEl.querySelector('[data-range-ro-head]'),
+        readoutBody: rootEl.querySelector('[data-range-ro-body]'),
+        roGap: null,
+        roKill: null,
+        hint: rootEl.querySelector('[data-range-hint]'),
+        pills: rootEl.querySelector('[data-range-pills]'),
         hpFill: rootEl.querySelector('[data-range-hp-fill]'),
         hpText: rootEl.querySelector('[data-range-hp-text]'),
         hpName: rootEl.querySelector('[data-range-hp-name]'),
         lock: rootEl.querySelector('[data-range-lock]'),
         lockFill: rootEl.querySelector('[data-range-lock] .vt-wpn-range-lock-fill'),
+        lockText: rootEl.querySelector('[data-range-lock-text]'),
         distText: rootEl.querySelector('[data-range-dist-text]'),
         detonate: rootEl.querySelector('[data-range-detonate]'),
     };
+    hudText = {};
+    gauge = createStatusGauge();
+    rootEl.querySelector('[data-range-status-row]').prepend(gauge.el);
+    applyGamePalette(rootEl.querySelector('.vt-wpn-range-hud'));
 
     raveEl = rootEl.querySelector('[data-range-rave]');
     const view = rootEl.querySelector('[data-range-view]');
     viewer = new ObjectViewer(view, { quality: 'perf' });
     viewer.controls.enabled = false;
+    viewer.setAxesVisible(false);
     fx = createFxRuntime(viewer.scene, Object.assign(assetMaps(), {
         loadModelTexture: (name) => viewer._loadTexture('perf', name),
         getCamera: () => viewer.camera,
@@ -1341,7 +1746,7 @@ export async function mount(container, shared) {
         fx, audio,
         getMuzzles: muzzles,
         getTarget: targetState,
-        getDistance: () => distance,
+        getDistance: () => hullGap(distance),
         getShipPosition: () => viewer.worldPointOf(null, new THREE.Vector3()),
         onRecoil: () => { if (viewer.fireRecoil) viewer.fireRecoil(); },
         onHit,
@@ -1373,6 +1778,7 @@ export async function mount(container, shared) {
         }
         moveShip();
         placeTarget();
+        trackHull(step);
         if (target && hp > 0) viewer.aimAtWorldPoint(targetCenter(new THREE.Vector3()));
         placeCamera(dt);
         audio.setListener(viewer.camera);
@@ -1455,14 +1861,16 @@ export async function mount(container, shared) {
         audio.unlock();
         resetEngagement();
     });
-    const vol = rootEl.querySelector('[data-range-volume]');
-    const startVol = loadVolume();
-    vol.value = String(startVol);
-    applyVolume(startVol);
-    vol.addEventListener('input', (e) => {
-        const pct = Math.min(100, Math.max(0, Math.round(Number(e.target.value) || 0)));
-        applyVolume(pct);
-        saveVolume(pct);
+    rootEl.querySelectorAll('[data-range-volume]').forEach((input) => {
+        const channel = input.dataset.rangeVolume;
+        const start = loadVolume(channel);
+        input.value = String(start);
+        applyVolume(channel, start);
+        input.addEventListener('input', (e) => {
+            const pct = Math.min(100, Math.max(0, Math.round(Number(e.target.value) || 0)));
+            applyVolume(channel, pct);
+            saveVolume(channel, pct);
+        });
     });
     const dist = rootEl.querySelector('[data-range-dist]');
     dist.addEventListener('input', (e) => {
@@ -1478,20 +1886,17 @@ export async function mount(container, shared) {
         lastReticle = null;
     });
     rootEl.querySelector('[data-range-cockpit]').addEventListener('change', (e) => { showCockpit = e.target.checked; });
-    rootEl.querySelector('[data-range-loadout]').addEventListener('change', (e) => {
-        const sel = e.target.closest('select[data-range-slot]');
-        if (sel) {
-            const i = Number(sel.dataset.rangeSlot);
-            if (slots[i]) {
-                slots[i].weapon = sel.value || null;
-                if (i === activeSlot || activeSlot < 0 || !slots[activeSlot].weapon) activeSlot = slots[i].weapon ? i : activeSlot;
-                applyWeapons(true);
-                // The page rewrites the URL and syncs back, which rebuilds
-                // these slots from the loadout it just recorded.
-                notifyLoadout();
-            }
-            return;
-        }
+    const pillsBox = hudEls.pills;
+    // A slot's weapon is chosen in the page's weapon drawer, which writes
+    // the loadout and syncs back.
+    pillsBox.addEventListener('click', (e) => {
+        const open = e.target.closest('[data-range-slot-open]');
+        if (!open) return;
+        e.preventDefault();
+        const slot = slots[Number(open.dataset.rangeSlotOpen)];
+        if (slot && onPickSlot) onPickSlot(slot.key);
+    });
+    pillsBox.addEventListener('change', (e) => {
         const pick = e.target.closest('input[data-range-weave-slot]');
         if (pick) {
             const slot = slots[Number(pick.dataset.rangeWeaveSlot)];
@@ -1533,6 +1938,8 @@ export async function mount(container, shared) {
 let spaceDown = false;
 function onKey(e) {
     if (!sim || !rootEl || rootEl.closest('.tab-pane') && !rootEl.closest('.tab-pane').classList.contains('active')) return;
+    // A picker drawer is open: its search box and list own the keyboard.
+    if (document.querySelector('.offcanvas.show, .offcanvas.showing')) return;
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) return;
     if (e.code === 'Space') {
         if (spaceDown) return;
@@ -1636,7 +2043,8 @@ async function doSync(snap) {
     const releaseSync = retainWarm(epoch);
     try {
         snapshot = snap;
-        const nextShooter = [snap.shooterStem, snap.shooterThumb, (snap.hardpoints || []).map((h) => h.node + ':' + h.mounted).join(',')].join('|');
+        const nextShooter = [snap.shooterStem, snap.shooterThumb, snap.shooterDeployed ? 'deployed' : '',
+            (snap.hardpoints || []).map((h) => h.node + ':' + h.mounted).join(',')].join('|');
         const shooterChanged = nextShooter !== shooterKey;
         const targetChanged = (!target && !!snap.targetThumb) || (snap.targetThumb || null) !== doSync.targetThumb
             || (snap.targetStem || null) !== doSync.targetStem;
@@ -1652,6 +2060,8 @@ async function doSync(snap) {
         shieldDef = shieldEffectFor(db, targetLetter);
         if (shieldDef && shieldDef.texture) fx.preload({ textures: [shieldDef.texture] });
 
+        // A weapon swap keeps rounds in flight; a new ship or target does not.
+        if ((shooterChanged || targetChanged) && sim) sim.resetEngagement();
         if (shooterChanged) {
             shooterKey = nextShooter;
             // Slot keys belong to the old ship.
@@ -1682,14 +2092,18 @@ async function doSync(snap) {
         }
         if (epoch !== warmEpoch || !viewer) return;
         if (shooterChanged || targetChanged) applyDistanceFloor();
-        const hint = snap.lockHint > 0 ? lockStartDistance(snap.lockHint) : snap.distanceHint;
-        const hintScale = snap.lockHint > 0 ? 1 : 0.45;
-        if (hint && hint > 5 && hint < 5000 && (shooterChanged || scenarioChanged)) {
-            startDistance = Math.max(minDistance(), Math.min(400, hint * hintScale));
-            distance = startDistance;
-            const slider = rootEl.querySelector('[data-range-dist]');
-            if (slider) slider.value = String(Math.round(startDistance));
-            paintDistance();
+        if (shooterChanged || targetChanged || scenarioChanged) {
+            // The opening distance follows the live profile's engagement reach
+            // and the hull floor for this pair of models.
+            const profile = profileFor(snap.weaponStem || activeWeapon());
+            const opened = openingCentre(profile ? engagementReach(profile, SIM_GRAVITY) : null, minDistance());
+            if (opened != null && opened > 5) {
+                startDistance = opened;
+                distance = startDistance;
+                const slider = rootEl.querySelector('[data-range-dist]');
+                if (slider) slider.value = String(Math.round(startDistance));
+                paintDistance();
+            }
         }
         const cockpitLabel = rootEl.querySelector('[data-range-cockpit-label]');
         if (cockpitLabel) cockpitLabel.hidden = !(cockpitIndex && cockpitIndex.models && cockpitIndex.models[snap.shooterThumb]);
@@ -1703,7 +2117,7 @@ async function doSync(snap) {
 
 export function destroy() {
     loop = false;
-    onLoadout = null;
+    onPickSlot = null;
     document.removeEventListener('keydown', onKey);
     document.removeEventListener('keyup', onKeyUp);
     clearRave();

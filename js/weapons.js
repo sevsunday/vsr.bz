@@ -30,6 +30,22 @@
         S: 'Stasis shield', D: 'Deflection shield', A: 'Absorption shield',
     };
     const FACTION_CHIPS = [['i', 'ISDF'], ['e', 'Hadean'], ['f', 'Scion'], ['other', 'Other']];
+    // The launcher terminal decides which target signature a lock reads.
+    const SEEKER_NAMES = {
+        imagelauncher: 'Image launcher',
+        multilauncher: 'Multi-lock (image)',
+        thermallauncher: 'Thermal launcher',
+        radarlauncher: 'Radar launcher',
+        torpedolauncher: 'Torpedo (radar)',
+    };
+    const SIGNATURES = ['image', 'heat', 'radar'];
+    // Confidence tier -> the theme's muted badge (css/main.css text-bg-*-muted).
+    const TIER_TONE = {
+        exact: 'text-bg-success-muted',
+        estimated: 'text-bg-warning-muted',
+        components: 'text-bg-info-muted',
+        none: 'text-bg-secondary-muted',
+    };
     const TOGGLE_TERMINALS = new Set(['imagerefract', 'radardamper', 'terrainexpose', 'forcefield', 'blink', 'damagefield', 'jetpack']);
     const TIER_COPY = {
         exact: {
@@ -53,7 +69,7 @@
     let ctx = null;
     let contrib = { packs: [], fxIndexes: [], contributors: [] };
     const state = {
-        tab: 'scenario', cat: null,
+        tab: 'range', cat: null,
         w: null, v: null, s: null, sd: false, t: null, td: false, sh: null,
         // Hardpoint groups mounted with something other than the ship's stock
         // weapon: group key -> stem, or null for an emptied group. The group
@@ -94,7 +110,8 @@
         const el = document.getElementById('vt-wpn-status');
         if (!el) return;
         el.textContent = text || '';
-        el.classList.toggle('is-error', !!isError);
+        el.classList.toggle('alert-danger', !!isError);
+        el.classList.toggle('alert-secondary', !isError);
         el.hidden = !text;
     }
 
@@ -133,7 +150,9 @@
             return v ? Calc.stemOf(v) : null;
         };
         const tab = p.get('tab');
-        state.tab = tab === 'matrix' || tab === 'range' ? tab : 'scenario';
+        // Scenario lives inside the range now: ?tab=scenario and ?tab=range
+        // both open it. Only the matrix is a separate pill.
+        state.tab = tab === 'matrix' ? 'matrix' : 'range';
         const cat = String(p.get('cat') || '').toUpperCase();
         state.cat = Calc.CATEGORIES.includes(cat) ? cat : null;
         state.w = stem('w');
@@ -191,7 +210,7 @@
         if (state.t) p.set('t', state.t);
         if (state.t && state.td) p.set('td', '1');
         if (state.t && state.sh) p.set('sh', state.sh);
-        if (state.tab === 'matrix' || state.tab === 'range') p.set('tab', state.tab);
+        if (state.tab === 'matrix') p.set('tab', 'matrix');
         if (state.cat) p.set('cat', state.cat);
         if (vsrOnly) p.set('vsr', '1');
         const qs = p.toString();
@@ -271,7 +290,7 @@
 
     function sourceChip(pack, linked) {
         if (!pack) return '';
-        const tag = '<span class="vt-wpn-tag" data-source="' + esc(pack.id) + '"'
+        const tag = '<span class="badge rounded-pill text-bg-accent-muted vt-wpn-tag" data-source="' + esc(pack.id) + '"'
             + tipAttr('Community weapon by ' + pack.name) + '>' + esc(pack.name) + '</span>';
         if (linked && pack.url) {
             return '<a class="vt-wpn-source-link" href="' + esc(pack.url) + '" target="_blank" rel="noopener">' + tag + '</a>';
@@ -281,16 +300,17 @@
 
     function tierBadge(tier, inline) {
         const t = TIER_COPY[tier] || TIER_COPY.none;
-        return '<span class="vt-wpn-tier' + (inline ? ' is-inline' : '') + '" data-tier="' + esc(tier) + '"' + tipAttr(t.tip) + '>' + esc(t.label) + '</span>';
+        return '<span class="badge rounded-pill ' + (TIER_TONE[tier] || TIER_TONE.none) + ' vt-wpn-tier' + (inline ? ' is-inline' : '')
+            + '" data-tier="' + esc(tier) + '"' + tipAttr(t.tip) + '>' + esc(t.label) + '</span>';
     }
 
     function armorTag(info) {
-        return '<span class="vt-wpn-tag" title="' + esc(CLASS_NAMES[info.armorClass]) + '">' + esc(info.armorClass) + ' \u00b7 ' + fmt(info.maxHealth, 0) + ' HP</span>';
+        return '<span class="badge rounded-pill text-bg-secondary-muted vt-wpn-tag" title="' + esc(CLASS_NAMES[info.armorClass]) + '">' + esc(info.armorClass) + ' \u00b7 ' + fmt(info.maxHealth, 0) + ' HP</span>';
     }
 
     function factionTag(code) {
         const hit = FACTION_CHIPS.find((f) => f[0] === code);
-        return '<span class="vt-wpn-tag" data-faction="' + esc(code) + '">' + esc(hit ? hit[1] : 'Other') + '</span>';
+        return '<span class="badge rounded-pill vt-wpn-tag" data-faction="' + esc(code) + '">' + esc(hit ? hit[1] : 'Other') + '</span>';
     }
 
     // ---- scenario -----------------------------------------------------
@@ -484,6 +504,7 @@
             + '</div>'
             + '<div class="card-body">'
             + '<div data-part="summary"></div>'
+            + (kind === 'weapon' ? '<div class="vt-wpn-controls" data-part="slots"></div>' : '')
             + '<div class="vt-wpn-controls" data-part="controls"></div>'
             + '<input type="search" class="form-control form-control-sm vt-wpn-search" data-search="' + kind + '"'
             + ' placeholder="Search by name or ODF" aria-label="Search ' + esc(title.toLowerCase()) + '" autocomplete="off">'
@@ -814,7 +835,7 @@
     }
 
     function chipButton(attr, value, label, active, faction, disabledTip) {
-        return '<button type="button" class="vt-wpn-chip' + (active ? ' is-active' : '') + '" ' + attr + '="' + esc(value) + '"'
+        return '<button type="button" class="btn btn-sm btn-outline-secondary rounded-pill vt-wpn-chip' + (active ? ' active' : '') + '" ' + attr + '="' + esc(value) + '"'
             + (faction ? ' data-faction="' + esc(faction) + '"' : '')
             + (disabledTip ? ' disabled' + tipAttr(disabledTip) : '')
             + ' aria-pressed="' + (active ? 'true' : 'false') + '">' + esc(label) + '</button>';
@@ -826,10 +847,15 @@
         if (!box) return;
         if (kind === 'weapon') {
             const sh = currentShooter();
-            const cats = fitFilter(sh) ? new Set(sh.hardpoints.map((hp) => hp.category)) : null;
+            const own = sh ? new Set(sh.hardpoints.map((hp) => hp.category)) : null;
+            const cats = fitFilter(sh) ? own : null;
             // An active chip stays enabled so it can always be switched off.
-            box.innerHTML = Calc.CATEGORIES.map((c) => chipButton('data-cat', c, CATEGORY_NAMES[c], state.cat === c, null,
-                cats && !cats.has(c) && state.cat !== c ? sh.name + ' has no ' + Calc.categoryLabel(c) + ' hardpoint.' : null)).join('');
+            // With Show all on, the ship's own categories stay marked.
+            box.innerHTML = Calc.CATEGORIES.map((c) => {
+                const html = chipButton('data-cat', c, CATEGORY_NAMES[c], state.cat === c, null,
+                    cats && !cats.has(c) && state.cat !== c ? sh.name + ' has no ' + Calc.categoryLabel(c) + ' hardpoint.' : null);
+                return own && own.has(c) ? html.replace('vt-wpn-chip', 'vt-wpn-chip is-fit') : html;
+            }).join('');
             return;
         }
         const v = view[kind];
@@ -867,15 +893,15 @@
             const rowHtml = ({ f, shown, only, name }) => {
                 const selected = listRowSelected(f, sh);
                 const tags = shown.map((v) => (v === f.assault
-                    ? '<span class="vt-wpn-tag is-assault">A</span>'
-                    : '<span class="vt-wpn-tag is-combat">C</span>')).join('');
+                    ? '<span class="badge rounded-pill text-bg-warning-muted vt-wpn-tag">A</span>'
+                    : '<span class="badge rounded-pill text-bg-info-muted vt-wpn-tag">C</span>')).join('');
                 const source = ctx.packOf(shown[0].stem);
                 return '<button type="button" class="list-group-item list-group-item-action vt-wpn-row' + (selected ? ' is-selected' : '') + '"'
                     + ' data-pick="weapon" data-key="' + esc(f.key) + '"' + (selected ? ' aria-current="true"' : '') + '>'
                     + reticleMedia((only || f.combat || f.assault).reticle)
                     + '<span class="vt-wpn-row-main"><span class="vt-wpn-row-name">' + esc(name) + '</span>'
                     + '<span class="vt-wpn-stem vt-mono">' + esc(shown.map((v) => v.stem).join(' / ')) + '</span></span>'
-                    + '<span class="vt-wpn-row-meta"><span class="vt-wpn-tag">' + esc(CATEGORY_NAMES[f.category] || f.category || 'Other') + '</span>'
+                    + '<span class="vt-wpn-row-meta"><span class="badge rounded-pill text-bg-secondary-muted vt-wpn-tag">' + esc(CATEGORY_NAMES[f.category] || f.category || 'Other') + '</span>'
                     + sourceChip(source, false)
                     + '<span class="vt-wpn-tagrow">' + tags + '</span></span>'
                     + '</button>';
@@ -906,7 +932,7 @@
         box.innerHTML = units.slice(0, LIST_LIMIT).map((info) => {
             const selected = current === info.stem;
             const meta = kind === 'shooter'
-                ? '<span class="vt-wpn-tag">' + info.hardpointCount + ' hardpoint' + (info.hardpointCount === 1 ? '' : 's') + '</span>'
+                ? '<span class="badge rounded-pill text-bg-secondary-muted vt-wpn-tag">' + info.hardpointCount + ' hardpoint' + (info.hardpointCount === 1 ? '' : 's') + '</span>'
                 : armorTag(info);
             return '<button type="button" class="list-group-item list-group-item-action vt-wpn-row' + (selected ? ' is-selected' : '') + '"'
                 + ' data-pick="' + kind + '" data-stem="' + esc(info.stem) + '"' + (selected ? ' aria-current="true"' : '') + '>'
@@ -940,8 +966,8 @@
             box.innerHTML = '<div class="vt-wpn-selected">' + reticleMedia(v.reticle)
                 + '<div class="vt-wpn-selected-main"><span class="vt-wpn-selected-name">' + esc(sc.fam.label) + '</span>'
                 + '<span class="vt-wpn-stem vt-mono">' + sc.fam.variants.map((x) => stemLabel(x.stem)).join(' / ') + '</span>'
-                + '<span class="vt-wpn-tagrow"><span class="vt-wpn-tag">' + esc(CATEGORY_NAMES[sc.fam.category] || sc.fam.category || 'Other') + '</span>'
-                + '<span class="vt-wpn-tag ' + (v.isAssault ? 'is-assault' : 'is-combat') + '">' + (v.isAssault ? 'Assault' : 'Combat') + ' \u00b7 ' + esc(v.stem) + '</span>'
+                + '<span class="vt-wpn-tagrow"><span class="badge rounded-pill text-bg-secondary-muted vt-wpn-tag">' + esc(CATEGORY_NAMES[sc.fam.category] || sc.fam.category || 'Other') + '</span>'
+                + '<span class="badge rounded-pill vt-wpn-tag ' + (v.isAssault ? 'text-bg-warning-muted' : 'text-bg-info-muted') + '">' + (v.isAssault ? 'Assault' : 'Combat') + ' \u00b7 ' + esc(v.stem) + '</span>'
                 + sourceChip(source, true)
                 + tierBadge(v.damage.tier, true) + '</span></div></div>'
                 + treeNote('weapon', v.stem);
@@ -957,14 +983,14 @@
         }
         let tags = factionTag(info.faction);
         if (kind === 'shooter' && sc && sc.sh) {
-            tags += '<span class="vt-wpn-tag">' + fmt(sc.sh.maxAmmo, 0) + ' ammo</span>'
-                + '<span class="vt-wpn-tag">+' + fmt(sc.sh.addAmmo) + '/s</span>';
-            if (sc.sh.deployed) tags += '<span class="vt-wpn-tag is-assault">Deployed</span>';
+            tags += '<span class="badge rounded-pill text-bg-secondary-muted vt-wpn-tag">' + fmt(sc.sh.maxAmmo, 0) + ' ammo</span>'
+                + '<span class="badge rounded-pill text-bg-secondary-muted vt-wpn-tag">+' + fmt(sc.sh.addAmmo) + '/s</span>';
+            if (sc.sh.deployed) tags += '<span class="badge rounded-pill text-bg-warning-muted vt-wpn-tag">Deployed</span>';
         } else if (kind === 'target' && sc && sc.tg) {
-            tags += '<span class="vt-wpn-tag" title="' + esc(CLASS_NAMES[sc.tg.armorClass]) + '">Armor ' + esc(sc.tg.armorClass) + '</span>'
-                + '<span class="vt-wpn-tag">' + fmt(sc.tg.maxHealth, 0) + ' HP</span>';
-            if (sc.tg.shieldClass !== 'N') tags += '<span class="vt-wpn-tag is-combat">' + esc(Calc.SHIELD_NAMES[sc.tg.shieldClass]) + '</span>';
-            if (sc.tg.deployed) tags += '<span class="vt-wpn-tag is-assault">Deployed</span>';
+            tags += '<span class="badge rounded-pill text-bg-secondary-muted vt-wpn-tag" title="' + esc(CLASS_NAMES[sc.tg.armorClass]) + '">Armor ' + esc(sc.tg.armorClass) + '</span>'
+                + '<span class="badge rounded-pill text-bg-secondary-muted vt-wpn-tag">' + fmt(sc.tg.maxHealth, 0) + ' HP</span>';
+            if (sc.tg.shieldClass !== 'N') tags += '<span class="badge rounded-pill text-bg-info-muted vt-wpn-tag">' + esc(Calc.SHIELD_NAMES[sc.tg.shieldClass]) + '</span>';
+            if (sc.tg.deployed) tags += '<span class="badge rounded-pill text-bg-warning-muted vt-wpn-tag">Deployed</span>';
         } else {
             tags += armorTag(info);
         }
@@ -993,7 +1019,7 @@
         const selected = !!view.weapon.virtual;
         const tip = (unmounted.warning || sh.name + ' has no hardpoint for ' + v.name + '.')
             + ' The numbers assume one hypothetical mount, the way the shooting range fires it from a virtual slot.';
-        return '<button type="button" class="vt-wpn-hp is-virtual' + (selected ? ' is-slot' : '') + '" data-hp-slot="virtual"'
+        return '<button type="button" class="btn btn-sm btn-outline-secondary vt-wpn-hp is-virtual' + (selected ? ' active' : '') + '" data-hp-slot="virtual"'
             + ' aria-pressed="' + (selected ? 'true' : 'false') + '"' + tipAttr(tip) + '>'
             + (icon ? '<img src="' + HUD_BASE + 'hp_' + icon + '.png" alt="" data-fallback-icon="bi-circle">' : '')
             + '<span class="vt-wpn-hp-text"><span>Not mounted</span>'
@@ -1010,25 +1036,83 @@
         }
         ensureSlot(sh);
         let html = sh.canDeploy ? deploySwitch('shooter', sh.deployed) : '';
+        if (sh.alwaysDeployed) {
+            html += '<div class="vt-wpn-control"><span class="badge rounded-pill text-bg-warning-muted vt-wpn-tag">Deployed</span>'
+                + '<span class="vt-wpn-picker-hint">Turret: it fires only deployed, and cannot move while deployed.</span></div>';
+        }
+        html += hardpointChipsHtml(sh, sc, 'Click to choose its weapon.');
+        box.innerHTML = html;
+    }
+
+    // The ship's hardpoint groups as chips. A group that can hold the shown
+    // weapon is highlighted; the pressed one is active.
+    function hardpointChipsHtml(sh, sc, action) {
         const pressed = view.weapon.slot;
-        const shownCat = sc && sc.v ? sc.v.category : (pressed ? pressed.category : null);
+        const fam = sc && sc.v ? ctx.family(sc.v.stem) : null;
+        // The same mount rule as the picker: category, then the group's
+        // combat or assault side against the family's twins.
+        const fits = (group) => (fam
+            ? ctx.fittingVariants(fam, Object.assign({}, sh, { hardpoints: sh.hardpoints.filter((hp) => slotKey(hp) === group.key) })).length > 0
+            : !!(pressed && pressed.category === group.category));
         const unmounted = unmountedScenario(sh);
-        html += '<div class="vt-wpn-hps">' + hardpointGroups(sh.hardpoints).map((group) => {
+        return '<div class="vt-wpn-hps">' + hardpointGroups(sh.hardpoints).map((group) => {
             const icon = HP_ICONS[group.category];
             const selected = !!(pressed && pressed.category === group.category && !!pressed.assault === group.assault);
-            const cls = 'vt-wpn-hp'
-                + (group.category === shownCat ? ' is-match' : '')
-                + (selected ? ' is-slot' : '');
+            const match = fits(group);
+            const cls = 'btn btn-sm btn-outline-secondary vt-wpn-hp'
+                + (match ? ' is-match' : '')
+                + (selected ? ' active' : '');
             const label = groupLabel(group.nodes);
             const tip = group.nodes.join(', ') + ': ' + Calc.categoryLabel(group.category) + ' hardpoint, ' + groupSub(group)
-                + '. Show its numbers and the weapons that fit it.';
+                + (fam ? (match ? '. It can mount ' : '. It cannot mount ') + (sc.v.name) : '') + '. ' + action;
             return '<button type="button" class="' + cls + '" data-hp-slot="' + esc(group.key) + '"'
                 + ' aria-pressed="' + (selected ? 'true' : 'false') + '"' + tipAttr(tip) + '>'
                 + (icon ? '<img src="' + HUD_BASE + 'hp_' + icon + '.png" alt="" data-fallback-icon="bi-circle">' : '')
                 + '<span class="vt-wpn-hp-text"><span class="vt-mono">' + esc(label) + '</span>'
                 + '<span class="vt-wpn-hp-sub">' + esc(groupSub(group)) + '</span></span></button>';
         }).join('') + (unmounted ? notMountedChip(sh, unmounted) : '') + '</div>';
-        box.innerHTML = html;
+    }
+
+    // The weapon tab names the slot it is filling, on the ship's own chips.
+    function renderWeaponSlots(sc) {
+        const box = part('weapon', 'slots');
+        if (!box) return;
+        const sh = currentShooter();
+        if (!sh || !sh.hardpoints.length) {
+            box.innerHTML = '<div class="vt-wpn-control"><span class="vt-wpn-picker-hint">'
+                + (sh ? esc(sh.name) + ' has no hardpoints.' : 'No ship picked: every weapon is listed.') + '</span>'
+                + '<button type="button" class="btn btn-link btn-sm p-0 vt-wpn-drawer-go" data-drawer-go="shooter">'
+                + (sh ? 'Change ship' : 'Pick a ship') + '</button></div>';
+            return;
+        }
+        const slot = view.weapon.slot;
+        const mounted = slot ? effectiveLoadout(sh).get(slotId(slot)) : null;
+        box.innerHTML = '<div class="vt-wpn-control vt-wpn-slots-head"><span class="vt-wpn-control-label">Slots on ' + esc(sh.name) + '</span>'
+            + (mounted ? '<button type="button" class="btn btn-link btn-sm p-0" data-empty-slot' + tipAttr('Take the weapon off the pressed slot.') + '>Empty slot</button>' : '')
+            + '<button type="button" class="btn btn-link btn-sm p-0 vt-wpn-drawer-go" data-drawer-go="shooter">Change ship</button></div>'
+            + hardpointChipsHtml(sh, sc, 'Click to list the weapons that fit it.');
+    }
+
+    // The same path as emptying the slot in the range's loadout.
+    function emptySlot() {
+        const sh = currentShooter();
+        const slot = view.weapon.slot;
+        if (!sh || !slot) return;
+        const map = {};
+        effectiveLoadout(sh).forEach((stem, key) => { map[key] = stem || null; });
+        map[slotId(slot)] = null;
+        applyRangeLoadout(map);
+    }
+
+    // The range's weapon pills open the weapon tab on their slot.
+    function openSlotPicker(key) {
+        if (!ctx || !key) return;
+        if (pickSlot(key)) {
+            renderWeaponPicker();
+            renderScenario();
+            view.matrixDirty = true;
+        }
+        openDrawer('weapon');
     }
 
     function renderControls(kind, sc) {
@@ -1097,7 +1181,7 @@
 
     function group(title, rows, footnote) {
         return '<section class="vt-wpn-group"><h3 class="vt-wpn-group-title">' + esc(title) + '</h3>'
-            + (rows.length ? '<table class="vt-wpn-stats"><tbody>' + rows.join('') + '</tbody></table>' : '')
+            + (rows.length ? '<table class="table table-sm table-hover mb-0 vt-wpn-stats"><tbody>' + rows.join('') + '</tbody></table>' : '')
             + (footnote ? '<div class="vt-wpn-picker-hint">' + esc(footnote) + '</div>' : '')
             + '</section>';
     }
@@ -1182,7 +1266,7 @@
     function slotTagHtml(tag) {
         if (!tag) return '';
         const icon = HP_ICONS[tag.category];
-        return '<span class="vt-wpn-tag vt-wpn-slot-tag' + (tag.virtual ? ' is-virtual' : '') + '">'
+        return '<span class="badge rounded-pill text-bg-secondary-muted vt-wpn-tag vt-wpn-slot-tag' + (tag.virtual ? ' is-virtual' : '') + '">'
             + (icon ? '<img src="' + HUD_BASE + 'hp_' + icon + '.png" alt="" data-fallback-icon="bi-circle">' : '')
             + '<span' + (tag.virtual ? '' : ' class="vt-mono"') + '>' + esc(tag.label) + '</span></span>';
     }
@@ -1229,6 +1313,55 @@
         return html;
     }
 
+    // image / heat / radar of a target, the one this launcher reads in bold.
+    function signatureHtml(tg, read) {
+        return SIGNATURES.map((name) => {
+            const value = tg[name + 'Signature'];
+            const on = name === read;
+            return '<span class="vt-wpn-sig' + (on ? ' is-read' : (read ? ' is-muted' : '')) + '">'
+                + esc(name) + ' ' + esc(fmt(value, 1)) + '</span>';
+        }).join('<span class="vt-wpn-sig-sep" aria-hidden="true"> \u00b7 </span>');
+    }
+
+    // The Lock-on group: which signature the launcher reads, the stage
+    // formula, and the seconds for this target.
+    function lockRowsHtml(lock, v, tg) {
+        if (!lock) return [];
+        const rows = [];
+        const seeker = SEEKER_NAMES[v.terminal] || 'Base launcher';
+        rows.push(statRow('Seeker', esc(seeker), lock.signature
+            ? 'Locks faster on a higher ' + lock.signature + 'Signature (GameObjectClass)'
+            : 'A base LauncherClass reads no signature'));
+        rows.push(statRow('lockDelay', num(lock.lockDelay, 2, 's'), 'LauncherClass lockDelay'));
+        if (lock.stages > 1) {
+            rows.push(statRow('Stages', String(lock.stages), 'LauncherClass targetCount: crosshair stages. The lock completes after ' + (lock.stages - 1) + ' of them.'));
+        }
+        rows.push(statRow('Base lock', num(lock.base, 2, 's'), lock.stages > 1
+            ? 'lockDelay ' + fmt(lock.lockDelay) + ' x (' + lock.stages + ' - 1) / ' + lock.stages
+            : 'lockDelay with no stages'));
+        if (tg && lock.signature) {
+            rows.push(statRow('Target signature', signatureHtml(tg, lock.signature),
+                'GameObjectClass signatures of ' + tg.name + '; this launcher reads ' + lock.signature + 'Signature'));
+        }
+        let value;
+        if (lock.never) {
+            value = 'never<div class="vt-wpn-stat-sub">' + esc(lock.signature) + ' 0 never locks</div>';
+        } else {
+            value = esc(num(lock.seconds, 2, 's'));
+            if (lock.signature) {
+                value += '<div class="vt-wpn-stat-sub">' + esc(fmt(lock.base) + ' s / ' + lock.signature + ' '
+                    + fmt(lock.signatureValue) + (tg ? '' : ' (no target)') + ' = ' + fmt(lock.seconds) + ' s') + '</div>';
+            }
+        }
+        rows.push(statRow('Lock-on', value, (v.name || 'This launcher') + ' needs this long inside its cone and range before a release is guided', { lead: true }));
+        if (lock.coneAngle != null) {
+            rows.push(statRow('Lock cone', fmt(lock.coneAngle, 3) + ' rad (' + fmt(lock.coneAngle * 180 / Math.PI, 1) + '\u00b0)',
+                'LauncherClass coneAngle: the target has to stay inside it while the lock builds'));
+        }
+        if (lock.lockRange > 0) rows.push(statRow('Lock range', num(lock.lockRange, 0, 'm'), 'LauncherClass lockRange'));
+        return rows;
+    }
+
     function renderResult(sc) {
         const box = document.getElementById('vt-wpn-result');
         if (!box) return;
@@ -1240,7 +1373,7 @@
             box.innerHTML = '<article class="card vt-wpn-result-card">'
                 + '<div class="card-header vt-wpn-result-head"><h2 class="vt-wpn-headline">Empty hardpoint on ' + esc(sc.sh.name) + '</h2>'
                 + slotTagHtml(sc.slotTag) + '</div>'
-                + '<div class="card-body vt-wpn-empty">Nothing is mounted here. Pick a weapon in step 1 to mount one.</div></article>';
+                + '<div class="card-body vt-wpn-empty">Nothing is mounted here. Pick a weapon from the Weapon button to mount one.</div></article>';
             return;
         }
         const { v, sh, r, g } = sc;
@@ -1273,7 +1406,13 @@
         }
         if (g > 1) damageRows.push(statRow('DPS per hardpoint', num(r.dpsPerHardpoint), ex.dpsPerHardpoint));
         if (tg) {
-            damageRows.push(statRow('Time to kill', num(r.ttk.seconds, 2, 's'), ex.ttk, { lead: true }));
+            const ttkText = r.lock && r.lock.never ? 'never' : num(r.ttk.seconds, 2, 's');
+            damageRows.push(statRow('Time to kill', ttkText && r.ttk.estimated
+                ? esc(ttkText) + ' <span class="badge rounded-pill text-bg-warning-muted vt-wpn-est">est.</span>'
+                : ttkText, ex.ttk, {
+                lead: true,
+                labelTip: r.ttk.lockSec != null ? 'Includes one lock before the first shot and between shots.' : null,
+            }));
             if (r.ttk.shotsToKill != null) {
                 damageRows.push(statRow('Shots to kill', num(r.ttk.shotsToKill, 0), ex.shotsToKill, {
                     labelTip: 'One trigger pull. A salvo, or every hardpoint that fires together, is one shot.',
@@ -1358,10 +1497,14 @@
         if (p) {
             if (p.shotSpeed != null) projRows.push(statRow('Speed', num(p.shotSpeed, 1, 'm/s'), 'shotSpeed of the ordnance'));
             if (p.lifeSpan != null) projRows.push(statRow('Lifespan', p.lifeSpan > 1e20 ? 'unlimited' : num(p.lifeSpan, 3, 's'), 'lifeSpan of the ordnance'));
-            if (p.range != null) projRows.push(statRow('Range', p.lobbed ? 'lobbed' : num(p.range, 0, 'm'), ex.range));
-            if (p.lockRange > 0 && /launcher/.test(v.terminal || '')) {
-                projRows.push(statRow('Lock range', num(p.lockRange, 0, 'm'), 'LauncherClass lockRange'));
+            const eng = ctx.engagementOf(v);
+            const engaged = eng && eng.reach > 0 && (eng.source === 'lockRange' || eng.source === 'leader');
+            if (engaged) {
+                projRows.push(statRow('Engagement range', num(eng.reach, 0, 'm'), eng.source === 'lockRange'
+                    ? 'LauncherClass lockRange: where the lock starts'
+                    : 'Leader round shotSpeed x lifeSpan: the tag has to reach the hull'));
             }
+            if (p.range != null) projRows.push(statRow(engaged ? 'Flight range' : 'Range', p.lobbed ? 'lobbed' : num(p.range, 0, 'm'), ex.range));
             if (p.aiRange != null) projRows.push(statRow('AI range', num(p.aiRange, 0, 'm'), 'WeaponClass aiRange'));
             if (p.startDist != null) projRows.push(statRow('Arc reach', fmt(p.startDist) + '\u2013' + fmt(p.range) + ' m', 'ArcCannonClass startDist to finishDist'));
         }
@@ -1382,9 +1525,10 @@
         if (r.hitsPerSec != null) projRows.push(statRow('Hits per second', num(r.hitsPerSec, 0), ex.shotsPerSec));
         if (fire.salvoCount > 1) projRows.push(statRow('Salvo', fire.salvoCount + ' \u00d7 ' + fmt(fire.salvoDelay) + ' s', 'salvoCount x salvoDelay'));
         if (fire.firstDelay > 0) projRows.push(statRow('Leader delay', num(fire.firstDelay, 2, 's'), 'TargetingGunClass firstDelay'));
-        if (fire.lockDelay > 0) projRows.push(statRow('Lock-on', num(fire.lockDelay, 2, 's'), 'LauncherClass lockDelay'));
         if (fire.shotVariance > 0) projRows.push(statRow('Spread', num(fire.shotVariance, 3, 'rad'), 'shotVariance'));
         if (!projRows.length) projRows.push(statRow('Projectile', null, 'No ordnance flight data'));
+
+        const lockRows = lockRowsHtml(r.lock, v, sc.tg);
 
         const extraRows = [];
         if (r.splash) extraRows.push(statRow('Splash', 'up to ' + fmt(r.splash.value) + ' within ' + fmt(r.splash.radius) + ' m', 'Maximum explosion value; no falloff model'));
@@ -1401,8 +1545,9 @@
         const notes = sc.res.warnings.map((w) => ({ text: w, warn: true }))
             .concat(r.warnings.map((w) => ({ text: w, warn: true })), r.assumptions.map((a) => ({ text: a, warn: false })));
         const notesHtml = notes.length
-            ? '<ul class="vt-wpn-notes">' + notes.map((n) => '<li' + (n.warn ? ' class="vt-wpn-note-warning"' : '') + '>'
-                + (n.warn ? '<i class="bi bi-exclamation-triangle me-1"></i>' : '') + esc(n.text) + '</li>').join('') + '</ul>'
+            ? '<div class="d-flex flex-column gap-1">' + notes.map((n) => '<div class="alert ' + (n.warn ? 'alert-warning' : 'alert-secondary')
+                + ' py-1 px-2 mb-0 small"' + (n.warn ? ' role="note"' : '') + '>'
+                + (n.warn ? '<i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>' : '') + esc(n.text) + '</div>').join('') + '</div>'
             : '';
 
         const source = ctx.packOf(v.stem);
@@ -1415,6 +1560,7 @@
             + '<div class="vt-wpn-groups">'
             + (noDamage ? '' : group(tg ? 'Damage vs ' + tg.name : 'Damage', damageRows, damageFoot))
             + group(sh ? 'Ammo \u00b7 ' + sh.name : 'Ammo', ammoRows, ammoFoot)
+            + (lockRows.length ? group(sc.tg ? 'Lock-on \u00b7 ' + sc.tg.name : 'Lock-on', lockRows, sc.tg ? null : 'Pick a target for its signature.') : '')
             + group('Fire and flight', projRows)
             + group('Extras', extraRows, extrasFoot)
             + '</div>'
@@ -1422,6 +1568,92 @@
             + extrasTables(sc)
             + notesHtml
             + '</div></div></article>';
+    }
+
+    // One drawer holds the three pickers as tabs, so moving between them
+    // never closes it.
+    const DRAWER_KINDS = ['shooter', 'weapon', 'target'];
+    let drawerKind = 'shooter';
+
+    function showDrawerPane(kind) {
+        if (!DRAWER_KINDS.includes(kind)) return;
+        drawerKind = kind;
+        DRAWER_KINDS.forEach((k) => {
+            const pane = document.querySelector('[data-drawer-pane="' + k + '"]');
+            if (pane) pane.hidden = k !== kind;
+            const tab = document.querySelector('[data-drawer-tab="' + k + '"]');
+            if (tab) {
+                tab.classList.toggle('active', k === kind);
+                tab.setAttribute('aria-selected', k === kind ? 'true' : 'false');
+            }
+        });
+        const body = document.getElementById('vt-wpn-drawers');
+        if (body) body.scrollTop = 0;
+    }
+
+    function openDrawer(kind) {
+        showDrawerPane(kind);
+        const el = document.getElementById('vt-wpn-drawer');
+        if (el && window.bootstrap && window.bootstrap.Offcanvas) window.bootstrap.Offcanvas.getOrCreateInstance(el).show();
+    }
+
+    // The strip above the stage: ship, weapon and target as buttons that open
+    // the drawer on their picker.
+    function stripButton(kind, label, media, title, badges) {
+        return '<button type="button" class="btn btn-outline-secondary vt-wpn-pick" data-bs-toggle="offcanvas"'
+            + ' data-bs-target="#vt-wpn-drawer" data-drawer-open="' + kind + '" aria-controls="vt-wpn-drawer">'
+            + media
+            + '<span class="d-flex flex-column align-items-start text-start">'
+            + '<span class="small text-secondary">' + esc(label) + '</span>'
+            + '<span class="fw-semibold">' + title + '</span>'
+            + (badges ? '<span class="d-flex flex-wrap gap-1">' + badges + '</span>' : '')
+            + '</span></button>';
+    }
+
+    function renderStrip(sc) {
+        const box = document.getElementById('vt-wpn-pickbar');
+        if (!box || !ctx) return;
+        const sh = currentShooter();
+        const tg = currentTarget();
+        const v = sc && sc.v;
+        const badge = (text, tip) => '<span class="badge text-bg-secondary"' + tipAttr(tip) + '>' + esc(text) + '</span>';
+        const ship = stripButton('shooter', 'Your ship', thumbMedia(sh, 'sm'), sh ? esc(sh.name) : 'Pick a ship',
+            sh && sh.deployed ? badge('Deployed') : '');
+        const weapon = stripButton('weapon', 'Weapon', reticleMedia(v ? v.reticle : null, 'sm'), v ? esc(v.name) : 'Pick a weapon',
+            v ? badge(v.isAssault ? 'Assault' : 'Combat', v.stem) : '');
+        let badges = '';
+        if (tg) {
+            const letter = ctx.damageLetter(tg);
+            const lt = v && !sc.empty ? ctx.lockTime(v, tg) : null;
+            const read = lt ? lt.signature : null;
+            const tip = read
+                ? (v.name + ' reads ' + read + 'Signature: ' + (lt.never ? 'it never locks this target' : 'lock-on ' + fmt(lt.seconds) + ' s'))
+                : 'GameObjectClass signatures: they scale how fast image, thermal and radar launchers lock on';
+            badges = badge(letter, CLASS_NAMES[letter])
+                + '<span class="badge text-bg-secondary vt-wpn-sig-badge"' + tipAttr(tip) + '>' + signatureHtml(tg, read) + '</span>';
+        }
+        const target = stripButton('target', 'Target', thumbMedia(tg, 'sm'), tg ? esc(tg.name) : 'Pick a target', badges);
+        box.innerHTML = ship + weapon + target;
+        renderDrawerNav([
+            ['shooter', 'Your ship', thumbMedia(sh), sh ? sh.name : 'Pick a ship'],
+            ['weapon', 'Weapon', reticleMedia(v ? v.reticle : null), v ? v.name : 'Pick a weapon'],
+            ['target', 'Target', thumbMedia(tg), tg ? tg.name : 'Pick a target'],
+        ]);
+    }
+
+    // The drawer's own copy of the pick bar: one tab per picker.
+    function renderDrawerNav(items) {
+        const nav = document.querySelector('[data-drawer-nav]');
+        if (!nav) return;
+        nav.innerHTML = items.map(([kind, label, media, name]) => {
+            const on = kind === drawerKind;
+            return '<button type="button" class="btn btn-outline-secondary vt-wpn-drawer-tab' + (on ? ' active' : '') + '"'
+                + ' role="tab" data-drawer-tab="' + kind + '" aria-controls="vt-wpn-drawer-' + kind + '-body"'
+                + ' aria-selected="' + (on ? 'true' : 'false') + '" title="' + esc(label + ': ' + name) + '">'
+                + media
+                + '<span class="vt-wpn-drawer-tab-text"><span>' + esc(label) + '</span><span>' + esc(name) + '</span></span>'
+                + '</button>';
+        }).join('');
     }
 
     function renderScenario() {
@@ -1432,7 +1664,9 @@
             renderSummary(kind, sc);
             renderControls(kind, sc);
         });
+        renderWeaponSlots(sc);
         renderResult(sc);
+        renderStrip(sc);
         writeUrl();
         if (window.VTWeaponsRange && ctx) window.VTWeaponsRange.sync(rangeSnapshot());
         return sc;
@@ -1450,8 +1684,10 @@
         renderLists();
         renderScenario();
         if (state.tab === 'matrix') renderMatrix();
-        else view.matrixDirty = true;
-        if (state.tab === 'range') ensureRange();
+        else {
+            view.matrixDirty = true;
+            ensureRange();
+        }
     }
 
     function selectRow(kind, key) {
@@ -1506,6 +1742,24 @@
         renderScenario();
     }
 
+    function wireDrawer() {
+        showDrawerPane('shooter');
+        const bar = document.getElementById('vt-wpn-pickbar');
+        if (bar) {
+            bar.addEventListener('click', (event) => {
+                const btn = event.target.closest('[data-drawer-open]');
+                if (btn) showDrawerPane(btn.dataset.drawerOpen);
+            });
+        }
+        const drawer = document.getElementById('vt-wpn-drawer');
+        if (drawer) {
+            drawer.addEventListener('click', (event) => {
+                const tab = event.target.closest('[data-drawer-tab], [data-drawer-go]');
+                if (tab) showDrawerPane(tab.dataset.drawerTab || tab.dataset.drawerGo);
+            });
+        }
+    }
+
     function renderWeaponPicker() {
         renderChips('weapon');
         renderList('weapon');
@@ -1527,6 +1781,27 @@
         return !!(fam && sh && ctx.fittingVariants(fam, sh).length);
     }
 
+    // Press a hardpoint group (`CAT:a|c`) or the virtual mount; false when it
+    // was already the pressed one.
+    function pickSlot(id) {
+        if (id === 'virtual') {
+            if (view.weapon.virtual) return false;
+            view.weapon.slot = null;
+            view.weapon.virtual = true;
+            ensureSlot(currentShooter());
+            return true;
+        }
+        const parts = String(id).split(':');
+        const category = parts[0];
+        const assault = parts[1] === 'a';
+        const slot = view.weapon.slot;
+        if (slot && slot.category === category && !!slot.assault === assault && !view.weapon.virtual) return false;
+        view.weapon.virtual = false;
+        view.weapon.slot = { category, assault };
+        state.cat = category;
+        return true;
+    }
+
     function wirePickers(root) {
         root.addEventListener('click', (event) => {
             const row = event.target.closest('[data-pick]');
@@ -1541,26 +1816,15 @@
             }
             const hpSlot = event.target.closest('[data-hp-slot]');
             if (hpSlot) {
-                if (hpSlot.dataset.hpSlot === 'virtual') {
-                    if (view.weapon.virtual) return;
-                    view.weapon.slot = null;
-                    view.weapon.virtual = true;
-                    ensureSlot(currentShooter());
-                } else {
-                    const parts = hpSlot.dataset.hpSlot.split(':');
-                    const category = parts[0];
-                    const assault = parts[1] === 'a';
-                    const slot = view.weapon.slot;
-                    const same = !!(slot && slot.category === category && !!slot.assault === assault);
-                    if (same) return;
-                    view.weapon.virtual = false;
-                    view.weapon.slot = { category, assault };
-                    state.cat = category;
+                // A slot picked on the ship tab goes on to choose its weapon.
+                const fromShip = !!hpSlot.closest('[data-picker="shooter"]');
+                if (pickSlot(hpSlot.dataset.hpSlot) || fromShip) {
+                    renderChips('weapon');
+                    renderList('weapon');
+                    renderScenario();
+                    view.matrixDirty = true;
                 }
-                renderChips('weapon');
-                renderList('weapon');
-                renderScenario();
-                view.matrixDirty = true;
+                if (fromShip) showDrawerPane('weapon');
                 return;
             }
             const cat = event.target.closest('[data-cat]');
@@ -1603,6 +1867,10 @@
             if (shieldBtn) {
                 state.sh = shieldBtn.dataset.shield;
                 renderScenario();
+                return;
+            }
+            if (event.target.closest('[data-empty-slot]')) {
+                emptySlot();
                 return;
             }
             const clear = event.target.closest('[data-clear]');
@@ -1779,15 +2047,15 @@
             const tier = v.damage.tier;
             const cls = (key) => (sortKey === key ? ' is-sorted' : '');
             return '<tr data-family="' + esc(row.fam.key) + '" data-variant-flag="' + (v.isAssault ? 'a' : 'c') + '"'
-                + tipAttr('Open ' + v.stem + ' in the Scenario tab') + '>'
+                + tipAttr('Open ' + v.stem + ' in the shooting range') + '>'
                 + '<td>' + reticleMedia(v.reticle) + '</td>'
                 + '<td class="' + cls('name').trim() + '"><span class="vt-wpn-matrix-name">' + esc(row.name) + '</span>'
                 + (tier === 'exact' ? '' : ' ' + tierBadge(tier, true)) + '</td>'
                 + '<td class="' + cls('stem').trim() + '"><span class="vt-mono">' + esc(row.stem) + '</span></td>'
                 + '<td class="' + cls('cat').trim() + '">' + esc(CATEGORY_NAMES[row.cat] || row.cat || '\u2014') + '</td>'
-                + '<td class="' + cls('ca').trim() + '"><span class="vt-wpn-tag ' + (v.isAssault ? 'is-assault' : 'is-combat') + '">' + row.ca + '</span></td>'
+                + '<td class="' + cls('ca').trim() + '"><span class="badge rounded-pill vt-wpn-tag ' + (v.isAssault ? 'text-bg-warning-muted' : 'text-bg-info-muted') + '">' + row.ca + '</span></td>'
                 + '<td class="' + cls('source').trim() + '">' + (row.packId
-                    ? '<span class="vt-wpn-tag" data-source="' + esc(row.packId) + '">' + esc(row.source) + '</span>'
+                    ? '<span class="badge rounded-pill text-bg-accent-muted vt-wpn-tag" data-source="' + esc(row.packId) + '">' + esc(row.source) + '</span>'
                     : esc(row.source)) + '</td>'
                 + '<td class="vt-mono' + cls('rate') + '">' + matrixCell(row.rate) + '</td>'
                 + '<td class="vt-mono' + cls('ammo') + '">' + (row.ammo == null ? '\u2014' : fmt(row.ammo) + (row.ammoPerSecond ? '/s' : '')) + '</td>'
@@ -1859,7 +2127,7 @@
                 focusScenarioSlot();
                 renderWeaponPicker();
                 renderScenario();
-                showTab('scenario');
+                showTab('range');
             }
         });
         let timer = 0;
@@ -1915,6 +2183,29 @@
         return out;
     }
 
+    function rangeStats(stem, sh, tg, key) {
+        const m = stem ? ctx.computeGroup(stem, sh, tg, key) : null;
+        if (!m) return null;
+        const r = m.r;
+        return {
+            name: m.variant.name,
+            g: m.g,
+            tier: r.tier,
+            kind: r.kind,
+            letter: r.letter,
+            perHit: r.perHit,
+            dps: r.dps,
+            ttk: r.ttk.seconds,
+            ttkEstimated: !!r.ttk.estimated,
+            shotsToKill: r.ttk.shotsToKill,
+            tankFraction: r.ttk.tankFraction,
+            ammoMode: m.variant.ammoMode,
+            ammoPerShot: r.ammo.perShot,
+            ammoPerSec: r.ammo.perSec,
+            lock: r.lock,
+        };
+    }
+
     // The range mirrors the Scenario state, plus the mount of every other
     // hardpoint group. It also runs with no weapon at all, which is what an
     // emptied loadout leaves behind.
@@ -1923,7 +2214,6 @@
         const sh = sc ? sc.sh : currentShooter();
         const tg = sc ? sc.tg : currentTarget();
         const v = sc ? sc.v : null;
-        const range = sc && sc.r && sc.r.projectile && sc.r.projectile.range;
         const loadout = {};
         effectiveLoadout(sh).forEach((stem, key) => { loadout[key] = stem || null; });
         return {
@@ -1936,15 +2226,22 @@
             shooterName: sh ? sh.name : '',
             shooterThumb: sh && sh.thumb,
             shooterSpeed: sh && sh.velocForward ? { speed: sh.velocForward, source: sh.velocSource } : null,
+            shooterDeployed: !!(sh && sh.deployed),
+            shooterAlwaysDeployed: !!(sh && sh.alwaysDeployed),
             hardpoints: sh ? sh.hardpoints : [],
             optionsFor: (hp) => slotOptions(sh, hp),
             // Calculator numbers for one mounted group, for the weapon switch.
             weaveInput: (stem, key) => ctx.weaveInput(stem, sh, tg, key),
+            // The calculator's headline numbers for one mounted group, for the
+            // in-view readout and the weapon pills. The range never computes its own.
+            statsFor: (stem, key) => rangeStats(stem, sh, tg, key),
+            shooterHp: sh ? sh.maxHealth : 0,
             maxAmmo: sh ? sh.maxAmmo : 0,
             regen: sh ? sh.addAmmo : 0,
             targetStem: tg ? tg.stem : null,
             targetThumb: tg && tg.thumb,
             targetKind: tg && tg.kind,
+            targetAlwaysDeployed: !!(tg && tg.alwaysDeployed),
             targetName: tg ? tg.name : '',
             targetHp: tg ? tg.maxHealth : 0,
             targetRegen: tg ? tg.addHealth : 0,
@@ -1952,12 +2249,8 @@
             targetDeathXpl: tg ? Calc.stemOf(unitProp(tg.stem, 'explosionName') || '') : '',
             letter: ctx.damageLetter(tg),
             shield: tg ? tg.shieldClass : null,
-            distanceHint: range && range < 2000 ? range : null,
-            // LauncherClass lockRange, only for the lock-on family. The range
-            // places the target just inside it instead of at the missile's reach.
-            lockHint: v && /launcher/.test(v.terminal || '') && sc && sc.r && sc.r.projectile
-                && sc.r.projectile.lockRange > 0
-                ? sc.r.projectile.lockRange : null,
+            // GameObjectClass image / heat / radar signature, for lock time.
+            signatures: tg ? { image: tg.imageSignature, heat: tg.heatSignature, radar: tg.radarSignature } : null,
         };
     }
 
@@ -1971,7 +2264,7 @@
                 db: dbRef,
                 fxIndexes: contrib.fxIndexes,
                 contributors: contrib.contributors,
-                onLoadout: applyRangeLoadout,
+                onPickSlot: openSlotPicker,
             };
             rangeLoading = import('../js/weapons-range.js').then((mod) => mod.mount(el, shared));
         }
@@ -2092,14 +2385,22 @@
     async function boot() {
         readUrl();
         wireShell();
-        const pickers = document.getElementById('vt-wpn-pickers');
         const matrix = document.getElementById('vt-wpn-matrix');
-        pickers.innerHTML = pickerSkeleton('weapon', 1, 'Weapon', 'What you fire', false)
-            + pickerSkeleton('shooter', 2, 'Your ship', 'Where it is mounted', true)
-            + pickerSkeleton('target', 3, 'Target', 'What you shoot at', true);
-        wirePickers(pickers);
+        // The three pickers live in offcanvas drawers opened from the strip.
+        [
+            ['weapon', 1, 'Weapon', 'What you fire', false],
+            ['shooter', 2, 'Your ship', 'Where it is mounted', true],
+            ['target', 3, 'Target', 'What you shoot at', true],
+        ].forEach(([kind, step, title, hint, clearable]) => {
+            const body = document.getElementById('vt-wpn-drawer-' + kind + '-body');
+            if (body) body.innerHTML = pickerSkeleton(kind, step, title, hint, clearable);
+        });
+        wirePickers(document.getElementById('vt-wpn-drawers'));
+        wireDrawer();
+        // Orphaned key: the Numbers card has no open/closed state.
+        try { localStorage.removeItem('vt.wpn.numbersOpen'); } catch (e) { /* private mode */ }
         wireMatrix(matrix);
-        if (state.tab === 'matrix' || state.tab === 'range') showTab(state.tab);
+        if (state.tab === 'matrix') showTab('matrix');
         setStatus('Loading the ODF database\u2026', false);
         let db;
         let reticles = null;

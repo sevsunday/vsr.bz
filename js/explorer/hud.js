@@ -6,8 +6,8 @@
  * 90 x 90, ours is GAUGE_W x GAUGE_H): the left half of a wide oval,
  * segmented, open to the right. Hull on the top half (HULLGAUGE green /
  * yellow / red by state) and ammo on the bottom half (AMMOGAUGE blue),
- * both filling from 9 o'clock out to 12 and 6 o'clock, with the numbers
- * just right of the open ends. Right of it: WeaponPanel (128 x 70),
+ * both anchored at the open ends (12 and 6 o'clock) and draining from
+ * 9 o'clock where they meet, with the numbers just right of the open ends. Right of it: WeaponPanel (128 x 70),
  * four 16 px pill rows of icon badge, name and shots left. Colours come
  * from the harvested bzgame_init_color palette as scoped custom properties;
  * CSS falls back to theme tokens.
@@ -23,7 +23,7 @@ const RADAR_DEFAULT_RANGE = 300;   // CraftClass.rangeScan when the ODF has none
 const HP_ICONS = { GUN: 'gun', CANN: 'cannon', MORT: 'mortar', ROCK: 'rocket', SPEC: 'special', SHIE: 'shield', HAND: 'hand', PACK: 'pack' };
 const SLOT_WORDS = { GUN: 'Gun', CANN: 'Cannon', MORT: 'Mortar', ROCK: 'Rocket', SPEC: 'Special', SHIE: 'Shield', HAND: 'Hand', PACK: 'Pack' };
 // Gauge geometry in the StatusPanel box. The viewBox is GAUGE_W x GAUGE_H
-// and .vt-xp-gaugepanel in css/explorer.css is the same box in px, so one
+// and .vt-xp-gaugepanel in css/game-hud.css is the same box in px, so one
 // unit here is one (scaled) px there. The oval is drawn wide: with the
 // 13 px stroke its outer box is about 1.3x as wide as tall, so the "C"
 // reads as an elongated arc, and the number column sits in the box to
@@ -71,17 +71,16 @@ export function ellipseArcPath(cx, cy, rx, ry, a0, a1) {
   return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${rx} ${ry} 0 ${large} ${dir} ${x1.toFixed(2)} ${y1.toFixed(2)}`;
 }
 
-export function createHud(root, reticles, hudArt) {
-  const hud = el('div', 'vt-xp-hud');
-  root.append(hud);
-
-  // Palette from the game's bzgame_init_color.cfg, when harvested.
-  fetch(dataUrl('ui/explorer/palette.json')).then((r) => (r.ok ? r.json() : null)).then((pal) => {
-    if (!pal) return;
+/** Overwrite the --vt-xp-* palette on `target` (a .vt-xp-hud) from the
+ * game's bzgame_init_color.cfg, when harvested. Missing data keeps the
+ * --kb-* fallbacks in css/game-hud.css. */
+export function applyGamePalette(target) {
+  return fetch(dataUrl('ui/explorer/palette.json')).then((r) => (r.ok ? r.json() : null)).then((pal) => {
+    if (!pal || !target) return;
     const hullG = pal.HULLGAUGE || {};
     const ammoG = pal.AMMOGAUGE || {};
     const textG = pal.COMMANDTEXT || {};
-    const set = (name, value) => { if (value) hud.style.setProperty(name, value); };
+    const set = (name, value) => { if (value) target.style.setProperty(name, value); };
     set('--vt-xp-hull-ok', rgba(hullG.foreground_0, 0.9));
     set('--vt-xp-hull-warn', rgba(hullG.foreground_1, 0.9));
     set('--vt-xp-hull-bad', rgba(hullG.foreground_2, 0.9));
@@ -90,6 +89,46 @@ export function createHud(root, reticles, hudArt) {
     set('--vt-xp-panel', rgba(textG.background_0, 0.5));
     set('--vt-xp-radar', rgba(ammoG.foreground_0, 0.55));
   }).catch(() => {});
+}
+
+/** The StatusPanel: hull on the top half of the "C", ammo on the bottom,
+ * each anchored at its open end and draining from 9 o'clock, with the
+ * numbers past the open ends.
+ * paint(hullFrac, hullText, ammoFrac, ammoText); a null text leaves it blank. */
+export function createStatusGauge() {
+  const panel = el('div', 'vt-xp-gaugepanel');
+  const svg = svgEl('svg', { viewBox: `0 0 ${GAUGE_W} ${GAUGE_H}`, class: 'vt-xp-gauge' });
+  const arc = (a0, a1) => ellipseArcPath(GAUGE_CX, GAUGE_CY, GAUGE_RX, GAUGE_RY, a0, a1);
+  const trackTop = svgEl('path', { class: 'vt-xp-gauge-track', d: arc(180, GAUGE_OPEN) });
+  const trackBot = svgEl('path', { class: 'vt-xp-gauge-track', d: arc(180, 360 - GAUGE_OPEN) });
+  const hullArc = svgEl('path', { class: 'vt-xp-gauge-hull', d: '' });
+  const ammoArc = svgEl('path', { class: 'vt-xp-gauge-ammo', d: '' });
+  svg.append(trackTop, trackBot, hullArc, ammoArc);
+  const hullText = el('span', 'vt-xp-hull-text', '');
+  const ammoText = el('span', 'vt-xp-ammo-text', '');
+  panel.append(svg, hullText, ammoText);
+  const span = 180 - GAUGE_OPEN;
+  const clamp = (f) => Math.max(0, Math.min(1, Number(f) || 0));
+
+  function paint(hullFrac, hull, ammoFrac, ammo) {
+    const h = clamp(hullFrac);
+    const a = clamp(ammoFrac);
+    // Each path starts at its open end so the dash ticks stay put as it drains.
+    hullArc.setAttribute('d', h > 0.002 ? arc(GAUGE_OPEN, GAUGE_OPEN + span * h) : '');
+    ammoArc.setAttribute('d', a > 0.002 ? arc(360 - GAUGE_OPEN, 360 - GAUGE_OPEN - span * a) : '');
+    hullArc.classList.toggle('is-warn', h < HULL_WARN && h >= HULL_BAD);
+    hullArc.classList.toggle('is-bad', h < HULL_BAD);
+    hullText.textContent = hull == null ? '' : String(hull);
+    ammoText.textContent = ammo == null ? '' : String(ammo);
+  }
+
+  return { el: panel, paint };
+}
+
+export function createHud(root, reticles, hudArt) {
+  const hud = el('div', 'vt-xp-hud');
+  root.append(hud);
+  applyGamePalette(hud);
 
   // ---- radar ---------------------------------------------------------------
   const radar = document.createElement('canvas');
@@ -101,19 +140,9 @@ export function createHud(root, reticles, hudArt) {
   const rctx = radar.getContext('2d');
 
   // ---- status "C" gauge + weapon panel ---------------------------------------
-  const statusPanel = el('div', 'vt-xp-gaugepanel');
-  const svg = svgEl('svg', { viewBox: `0 0 ${GAUGE_W} ${GAUGE_H}`, class: 'vt-xp-gauge' });
-  const arc = (a0, a1) => ellipseArcPath(GAUGE_CX, GAUGE_CY, GAUGE_RX, GAUGE_RY, a0, a1);
-  const trackTop = svgEl('path', { class: 'vt-xp-gauge-track', d: arc(180, GAUGE_OPEN) });
-  const trackBot = svgEl('path', { class: 'vt-xp-gauge-track', d: arc(180, 360 - GAUGE_OPEN) });
-  const hullArc = svgEl('path', { class: 'vt-xp-gauge-hull', d: '' });
-  const ammoArc = svgEl('path', { class: 'vt-xp-gauge-ammo', d: '' });
-  svg.append(trackTop, trackBot, hullArc, ammoArc);
-  const hullText = el('span', 'vt-xp-hull-text', '');
-  const ammoText = el('span', 'vt-xp-ammo-text', '');
-  statusPanel.append(svg, hullText, ammoText);
+  const gauge = createStatusGauge();
   const weapons = el('div', 'vt-xp-weapons');
-  hud.append(statusPanel, weapons);
+  hud.append(gauge.el, weapons);
 
   // ---- centre reticle, target line, chips -----------------------------------
   const reticle = document.createElement('img');
@@ -175,15 +204,12 @@ export function createHud(root, reticles, hudArt) {
   }
 
   function paintGauge(player, sim) {
-    const hullFrac = player && player.maxHp ? Math.max(0, Math.min(1, player.hp / player.maxHp)) : 0;
-    const ammoFrac = sim && sim.maxAmmo ? Math.max(0, Math.min(1, sim.ammo / sim.maxAmmo)) : 0;
-    const span = 180 - GAUGE_OPEN;
-    hullArc.setAttribute('d', hullFrac > 0.002 ? arc(180, 180 - span * hullFrac) : '');
-    ammoArc.setAttribute('d', ammoFrac > 0.002 ? arc(180, 180 + span * ammoFrac) : '');
-    hullArc.classList.toggle('is-warn', hullFrac < HULL_WARN && hullFrac >= HULL_BAD);
-    hullArc.classList.toggle('is-bad', hullFrac < HULL_BAD);
-    hullText.textContent = player ? String(Math.ceil(player.hp)) : '';
-    ammoText.textContent = sim ? String(Math.floor(sim.ammo)) : '';
+    gauge.paint(
+      player && player.maxHp ? player.hp / player.maxHp : 0,
+      player ? Math.ceil(player.hp) : null,
+      sim && sim.maxAmmo ? sim.ammo / sim.maxAmmo : 0,
+      sim ? Math.floor(sim.ammo) : null,
+    );
   }
 
   function paintWeapons(state) {

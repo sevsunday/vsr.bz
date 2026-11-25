@@ -145,6 +145,16 @@ export class ShipController {
     return this._nodes.get(String(name).toLowerCase()) || null;
   }
 
+  /* First node whose name starts with `prefix`: hp_eyepoint_1, hp_eyepoint5,
+   * hp_eyepoint6. Same rule as ObjectViewer._findEyepointNode. */
+  _findPrefix(prefix) {
+    const p = String(prefix).toLowerCase();
+    for (const [name, node] of this._nodes) {
+      if (name.startsWith(p)) return node;
+    }
+    return null;
+  }
+
   _bindArticulation(hints) {
     const addRecoil = (node) => {
       const axis = LOCAL_Z.clone().applyQuaternion(node.quaternion).normalize();
@@ -311,7 +321,7 @@ export class ShipController {
   }
 
   _buildSnipe(snipe) {
-    this._eyepoint = this._find('hp_eyepoint') || this._find('hp_eyepoint_1');
+    this._eyepoint = this._find('hp_eyepoint') || this._findPrefix('hp_eyepoint');
     if (!snipe || !snipe.canSnipe || !this._eyepoint) return;
     const r = clamp(this.radius * 0.04, 0.08, 0.28);
     const mesh = new THREE.Mesh(

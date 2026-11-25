@@ -11,7 +11,7 @@ import { SIM_GRAVITY, tableRand } from './odf-fx.js';
 import {
     ordnanceOf, ordnanceEntry, explosionEntry, damageValues, num, stemOf, ordTerminalOf, buildProfile,
 } from './weapon-profile.js';
-import { decide, pullCooldown, mdmDetonates } from '../weapons-weave.js';
+import { decide, pullCooldown, mdmDetonates, TURN_SEC, TAG_RETAG_AFTER } from '../weapons-weave.js';
 
 const _up = new THREE.Vector3(0, 1, 0);
 const _aim = new THREE.Vector3();
@@ -144,6 +144,15 @@ function lockStartDistance(lockRange) {
     return Math.min(LOCK_RANGE_DIST_MAX, lockRange * 0.9);
 }
 
+/* The target's signature for this launcher (guide default 1.0; a missing
+ * object or key reads 1). 1 for a base launcher with no signature term. */
+function lockSignatureScale(profile, target) {
+    const which = profile && profile.lockSignature;
+    if (!which || !target || !target.signatures) return 1;
+    const n = Number(target.signatures[which]);
+    return Number.isFinite(n) ? n : 1;
+}
+
 function surface(kind) {
     if (kind === 'ground') return 'explground';
     if (kind === 'building') return 'explbuilding';
@@ -157,6 +166,42 @@ function sameDetonator(a, b) {
     const wa = (a.map && a.map.get('weaponclass')) || {};
     const wb = (b.map && b.map.get('weaponclass')) || {};
     return wa.ordname === wb.ordname && wa.wpnname === wb.wpnname;
+}
+
+const _boxInv = new THREE.Matrix4();
+const _segA = new THREE.Vector3();
+const _segB = new THREE.Vector3();
+
+/* Slab test of segment a-b against an axis-aligned box. */
+function segmentHitsAabb(a, b, min, max) {
+    let t0 = 0;
+    let t1 = 1;
+    const axes = [['x', a.x, b.x - a.x], ['y', a.y, b.y - a.y], ['z', a.z, b.z - a.z]];
+    for (let i = 0; i < 3; i++) {
+        const [k, p, d] = axes[i];
+        if (Math.abs(d) < 1e-9) {
+            if (p < min[k] || p > max[k]) return false;
+            continue;
+        }
+        let near = (min[k] - p) / d;
+        let far = (max[k] - p) / d;
+        if (near > far) { const s = near; near = far; far = s; }
+        t0 = Math.max(t0, near);
+        t1 = Math.min(t1, far);
+        if (t0 > t1) return false;
+    }
+    return true;
+}
+
+/* A target's hull box when it carries one ({ min, max, matrix } in its own
+ * frame), else its sphere. */
+function segmentHitsTarget(a, b, target) {
+    const box = target && target.box;
+    if (box && box.min && box.max && box.matrix) {
+        _boxInv.copy(box.matrix).invert();
+        return segmentHitsAabb(_segA.copy(a).applyMatrix4(_boxInv), _segB.copy(b).applyMatrix4(_boxInv), box.min, box.max);
+    }
+    return segmentHitsSphere(a, b, target.position, target.radius || 0);
 }
 
 function segmentHitsSphere(a, b, center, radius) {
@@ -311,6 +356,7 @@ export function createRangeSim(opts) {
     let lock = 0;
     let locks = 0;
     let lockInCone = false;   // target was inside lockRange + coneAngle this step
+    let lockMiss = '';        // why a held lock is not filling: 'range' | 'cone' | 'signature' | ''
     let lockSound = null;
     let chargeTime = 0;
     let arcDist = 0;
@@ -328,6 +374,10 @@ export function createRangeSim(opts) {
     let fieldRender = null;   // DamageFieldClass flash (draw_static) attached for the hold
     let releaseTotal = 0;     // Multi-Lock: missiles queued on release
     const tagMissed = new Set();  // TAG cannon: hardpoints whose last leader expired without tagging
+    const tagFreeAt = new Map();  // TAG cannon: hardpoint -> sim time its next leader may fire
+    const reportAt = new Map();   // weapon -> sim time its last fireSound started
+    const reportHandle = new Map(); // weapon -> that sound, for stop-and-replace
+    const shotSoundAt = new Map();  // ordnance shotSound stem -> sim time of the first voice
     const shots = [];
     const armed = [];
     const fields = [];
@@ -338,9 +388,47 @@ export function createRangeSim(opts) {
         return muzzle && muzzle.node ? muzzle.node : ('m' + index);
     }
 
-    function tagBusy(key) {
-        return shots.some((s) => !s.dead && s.leader && s.tagNode === key)
-            || fields.some((f) => f.tag && !f.dead && f.tagNode === key && f.salvoLeft > 0);
+    function tagFlying(key) {
+        return shots.some((s) => !s.dead && s.leader && s.tagNode === key);
+    }
+
+    /* TargetingGun (0x00625A9A): a hardpoint fires a leader only with none
+     * alive and its timer above 0. A miss rearms at shotDelay; a stuck leader
+     * holds the hardpoint until its stickTime ends (TAG_RETAG_AFTER). */
+    function tagReady(key) {
+        if (tagFlying(key)) return false;
+        const at = tagFreeAt.get(key);
+        return at == null || simClock + 1e-6 >= at;
+    }
+
+    /* Seconds until any hardpoint of a TAG weave slot can tag again. */
+    function tagWait(slot) {
+        const list = getMuzzles(slot.key) || [];
+        if (!list.length) return 0;
+        let soonest = Infinity;
+        list.forEach((m, i) => {
+            const key = tagKey(m, i);
+            if (tagFlying(key)) return;
+            const at = tagFreeAt.get(key);
+            soonest = Math.min(soonest, at == null ? 0 : Math.max(0, at - simClock));
+        });
+        return Number.isFinite(soonest) ? soonest : 1e6;
+    }
+
+    /* What a tag's salvo needs from the weapon that fired it. The live
+     * profile is swapped by a weapon switch, so the field keeps its own. */
+    function tagPack(src, slotKey) {
+        return {
+            ord: src.ord,
+            fireSound: src.fireSound,
+            looping: src.looping,
+            replaceFireSound: !!src.replaceFireSound,
+            firstDelay: src.firstDelay,
+            tagSalvo: src.tagSalvo,
+            tagSalvoDelay: src.tagSalvoDelay,
+            stickTime: src.leader ? src.leader.stickTime || 0 : 0,
+            slotKey,
+        };
     }
 
     function blankHud() {
@@ -351,16 +439,11 @@ export function createRangeSim(opts) {
         };
     }
 
-    /* Drop everything held or in flight: the trigger, rounds (trails drain on
-     * their own), tag fields, armed ordnance, looping sounds, lock / charge /
-     * salvo state. Profile, ammo and the loadout are untouched. */
-    function clearEngagement() {
+    /* The trigger and what it still owes: held state, looping sounds, lock /
+     * charge, the unfired rest of a salvo. A weapon switch uses this alone,
+     * so rounds in flight, tag leaders and tag salvos carry on. */
+    function clearTrigger() {
         releaseHold();
-        shots.forEach((s) => s.kill());
-        shots.length = 0;
-        armed.length = 0;
-        fields.forEach((f) => f.dispose && f.dispose(true));
-        fields.length = 0;
         if (toggleSound) toggleSound.stop();
         toggleSound = null;
         toggled = false;
@@ -370,7 +453,19 @@ export function createRangeSim(opts) {
         salvoTimer = 0;
         salvoExtra = null;
         releaseTotal = 0;
+    }
+
+    /* Drop everything held or in flight. Profile, ammo and the loadout are
+     * untouched. Reset and a new ship or target use this. */
+    function clearEngagement() {
+        clearTrigger();
+        shots.forEach((s) => s.kill());
+        shots.length = 0;
+        armed.length = 0;
+        fields.forEach((f) => f.dispose && f.dispose(true));
+        fields.length = 0;
         tagMissed.clear();
+        tagFreeAt.clear();
         if (weave) {
             weave.slots.forEach((s) => { s.cooldown = 0; s.barrel = 0; });
             weave.current = -1;
@@ -390,11 +485,16 @@ export function createRangeSim(opts) {
 
     function setWeapon(next, database, ammoState, keepAmmo) {
         // Changing weapon sets a remote detonator's armed shells off. A
-        // re-apply of the same detonator clears them with the engagement.
+        // re-apply of the same detonator drops them without a burst. Rounds
+        // in flight, tag leaders and tag salvos carry on.
         if (armed.length && !sameDetonator(next, profile)) detonateArmed();
+        else if (armed.length) {
+            armed.forEach((s) => s.kill());
+            armed.length = 0;
+        }
         weave = null;
         reachGate = null;
-        clearEngagement();
+        clearTrigger();
         profile = next || null;
         db = database || db;
         applyAmmo(ammoState, keepAmmo);
@@ -415,7 +515,7 @@ export function createRangeSim(opts) {
         const prev = weave;
         if (!prev) {
             detonateArmed();
-            clearEngagement();
+            clearTrigger();
         }
         const kept = new Set();
         const slots = ((cfg && cfg.slots) || []).filter((c) => c && c.profile && c.desc).map((c) => {
@@ -467,8 +567,11 @@ export function createRangeSim(opts) {
         ammo = maxAmmo;
     }
 
-    function muzzles() {
-        const list = getMuzzles(weave ? weave.firingKey : null) || [];
+    /* `key` names a weave slot (a tag salvo flies from the slot that tagged);
+     * omitted, the firing slot. */
+    function muzzles(key) {
+        const which = key !== undefined ? key : (weave ? weave.firingKey : null);
+        const list = getMuzzles(which) || [];
         if (list.length) return list;
         return [{ position: new THREE.Vector3(0, 1.6, 0), forward: new THREE.Vector3(0, 0, -1) }];
     }
@@ -484,7 +587,47 @@ export function createRangeSim(opts) {
      * no position are 2D cockpit cues (lock tones). */
     function playOnce(name, at) {
         const s = stemOf(name);
-        if (s) audio.play(s, { loop: false, at: at || null });
+        return s ? audio.play(s, { loop: false, at: at || null }) : null;
+    }
+
+    /* Lock tones are cockpit cues: 2D, on the audio module's lock channel. */
+    function playLockTone(name) {
+        const s = stemOf(name);
+        return s ? audio.play(s, { loop: false, channel: 'lock' }) : null;
+    }
+
+    /* CannonClass fireSound, one weapon (`who`) at a time. SoundPerShot 1
+     * starts at most one new sound per turn: the turn's first round starts it
+     * and later rounds skip while it plays (0x00619228, 0x0061934D). The sim
+     * has no clip length, so "per turn" is "TURN_SEC since the last start".
+     * OnlyOneSound / SoundPerShot 2 stop the playing sound and start it again
+     * on every round (0x0061931F-0x00619340). */
+    function playReport(name, at, who, replace) {
+        if (!stemOf(name)) return;
+        const key = who || profile;
+        if (replace) {
+            const old = reportHandle.get(key);
+            if (old && old.stop) old.stop();
+            reportHandle.set(key, playOnce(name, at));
+            reportAt.set(key, simClock);
+            return;
+        }
+        const last = reportAt.get(key);
+        if (last != null && simClock - last < TURN_SEC - 1e-9) return;
+        reportAt.set(key, simClock);
+        reportHandle.set(key, playOnce(name, at));
+    }
+
+    /* Every round plays its ordnance shotSound in the engine (0x00669152).
+     * Identical starts within TURN_SEC of the first are one voice here:
+     * thirty in-phase copies only clip in Web Audio. Renderer choice. */
+    function playShotSound(name, at) {
+        const s = stemOf(name);
+        if (!s) return;
+        const first = shotSoundAt.get(s);
+        if (first != null && simClock - first < TURN_SEC - 1e-9) return;
+        shotSoundAt.set(s, simClock);
+        playOnce(s, at);
     }
 
     /* Where looping ship sounds (fire loop, arc stream, charge whine) sit. */
@@ -643,7 +786,7 @@ export function createRangeSim(opts) {
             },
         };
         shot.place();
-        if (ordv.shotSound) playOnce(ordv.shotSound, pos);
+        if (ordv.shotSound) playShotSound(ordv.shotSound, pos);
         shots.push(shot);
         if (shot.armedBomb) armed.push(shot);
         return shot;
@@ -709,17 +852,15 @@ export function createRangeSim(opts) {
             else spawnProjectile(muzzle, aimDir(muzzle, ordv, extra && extra.gravity, null, cone), ordv, extra);
         });
         if (!fired) return false;
-        // A same-tick dump (salvoDelay 0) already played the report on the
-        // opening round. Later pellets stay silent so the copies don't stack.
-        // Spaced salvos leave muteReport unset and play once per round.
-        if (!(extra && extra.muteReport)) {
-            const sound = (extra && extra.sound) || profile.fireSound || (beam ? ordv.shotSound : '');
-            if (profile.looping) holdFireLoop(sound, list.length);
-            else {
-                // Another weapon took the trigger: a machine gun's loop ends here.
-                stopFireLoop();
-                playOnce(sound, firstMuzzle.position);
-            }
+        // One report per volley across the group's hardpoints. Renderer
+        // choice: the engine has a weapon instance and a sound handle per
+        // hardpoint. playReport applies the per-turn rule.
+        const sound = (extra && extra.sound) || profile.fireSound || (beam ? ordv.shotSound : '');
+        if (profile.looping) holdFireLoop(sound, list.length);
+        else {
+            // Another weapon took the trigger: a machine gun's loop ends here.
+            stopFireLoop();
+            playReport(sound, firstMuzzle.position, profile, !!profile.replaceFireSound);
         }
         // One wash per volley, not per barrel. CannonClass.raveFlash only.
         if (profile.raveFlash) onRaveFlash(profile);
@@ -813,7 +954,7 @@ export function createRangeSim(opts) {
         const hardpoints = muzzles().length;
         if (!fireMuzzles(ordv, extra)) return false;
         salvoLeft = Math.max(0, count - 1);
-        salvoTimer = (extra && extra.salvoDelay != null) ? extra.salvoDelay : profile.salvoDelay;
+        salvoTimer = Math.max(0, (extra && extra.salvoDelay != null) ? extra.salvoDelay : (profile.salvoDelay || 0));
         salvoExtra = Object.assign({}, extra || {}, { ordv });
         // shotAlternate: one barrel per pull, pulls n times as often, the
         // group's total rate unchanged.
@@ -1126,7 +1267,7 @@ export function createRangeSim(opts) {
         if (id === 'shield') return;
         holding = true;
         if (id === 'launcher' || id === 'multilock') {
-            lockSound = audio.play(profile.lockingSound, { loop: true });
+            lockSound = audio.play(profile.lockingSound, { loop: true, channel: 'lock' });
             return;
         }
         if (id === 'charge') {
@@ -1249,15 +1390,17 @@ export function createRangeSim(opts) {
             return startSalvo(ordv, { homing: true, homingDelay: ordv.delayTime || 0, omega: ordv.omegaTurn });
         }
         if (id === 'targeting') {
-            // TargetingGunClass: every free hardpoint fires its own leader round
-            // at once. A hardpoint stays busy while its leader flies or its salvo
-            // runs, so a later pull only re-tags from the ones that missed.
-            const leaderOrd = ordnanceEntry(db, profile.leaderName) || ordv;
+            // TargetingGunClass: every ready hardpoint fires its own leader
+            // (0x00625A9A: none alive and the timer above 0; the shot then
+            // subtracts shotDelay). The missiles are not part of this pull.
+            const leaderOrd = (db && ordnanceEntry(db, profile.leaderName)) || ordv;
+            const slotKey = weave ? weave.firingKey : null;
             const list = muzzles();
+            const pack = tagPack(profile, slotKey);
             let fired = 0;
             list.forEach((muzzle, i) => {
                 const key = tagKey(muzzle, i);
-                if (tagBusy(key)) return;
+                if (!tagReady(key)) return;
                 if (!spend(leaderOrd.ammoCost)) return;
                 fired += 1;
                 flashAt(muzzle);
@@ -1265,12 +1408,14 @@ export function createRangeSim(opts) {
                 const shot = spawnProjectile(muzzle, aimDir(muzzle, leaderOrd, false), leaderOrd);
                 shot.leader = true;
                 shot.tagNode = key;
+                shot.tagPack = pack;
                 tagMissed.delete(key);
+                tagFreeAt.set(key, simClock + (profile.shotDelay || 0));
             });
             if (fired) playOnce(profile.leaderSound || profile.fireSound, list[0].position);
             // With every hardpoint busy the held trigger retries next frame.
             cooldown = fired ? profile.shotDelay : 0;
-            return;
+            return fired > 0;
         }
         if (id === 'torpedo') {
             const torp = torpedoRound(profile.map, 'launchedtorpedo.', ordv);
@@ -1316,7 +1461,8 @@ export function createRangeSim(opts) {
             },
             weapons: weave.slots.map((s) => ({
                 desc: s.desc,
-                readyAt: now + Math.max(0, s.cooldown),
+                // A TAG slot is ready when one of its hardpoints can tag again.
+                readyAt: now + Math.max(0, s.cooldown, s.desc.tag ? tagWait(s) : 0),
                 armed: s.desc.cap ? armedFor(s.key) : 0,
             })),
         });
@@ -1408,6 +1554,7 @@ export function createRangeSim(opts) {
         lock = 0;
         locks = 0;
         lockInCone = false;
+        lockMiss = '';
         chargeTime = 0;
         flushHeldField();
         heldFlashLeft = 0;
@@ -1601,7 +1748,7 @@ export function createRangeSim(opts) {
         for (let si = 0; si < sphereList.length; si++) {
             const cand = sphereList[si];
             if (cand.alive === false) continue;
-            if (segmentHitsSphere(shot.prev, shot.pos, cand.position, cand.radius || 0)) {
+            if (segmentHitsTarget(shot.prev, shot.pos, cand)) {
                 target = cand;
                 hit = cand.kind || 'vehicle';
                 break;
@@ -1630,18 +1777,32 @@ export function createRangeSim(opts) {
                 return;
             }
             if (shot.leader) {
-                // The leader round sticks where it lands (target or terrain) and
-                // its own hardpoint starts a salvo at that tag after firstDelay.
                 const head = explode(shot.ordv, hit, shot.pos, null);
                 applyDamage(shot.ordv, head, hit, shot.pos, target);
-                const delay = profile.firstDelay;
+                shot.kill();
+                if (hit === 'ground') {
+                    // Terrain is a miss: the salvo arms only on a leader stuck
+                    // to an object (0x00625C8B). shotDelay, set at the shot,
+                    // gates the next tag.
+                    if (shot.tagNode) tagMissed.add(shot.tagNode);
+                    return;
+                }
+                // Stuck: the salvo starts firstDelay later (0x00625CA3 sets
+                // the timer to -firstDelay) and runs on this tag's own pack,
+                // so a weapon switch cannot change it. The hardpoint stays
+                // busy for stickTime ('leader') or the burst ('salvo').
+                const pack = shot.tagPack || tagPack(profile, weave ? weave.firingKey : null);
+                const delay = Math.max(0, pack.firstDelay || 0);
+                const burst = delay + Math.max(0, pack.tagSalvo - 1) * pack.tagSalvoDelay;
+                const hold = TAG_RETAG_AFTER === 'salvo' ? burst : pack.stickTime;
+                if (shot.tagNode) tagFreeAt.set(shot.tagNode, Math.max(tagFreeAt.get(shot.tagNode) || 0, simClock + hold));
                 fields.push({
-                    pos: shot.pos.clone(), vel: new THREE.Vector3(), age: -delay, life: delay + profile.tagSalvo * profile.tagSalvoDelay + 0.2,
-                    salvoLeft: profile.tagSalvo, salvoDelay: profile.tagSalvoDelay, salvoAcc: 0, tag: true,
-                    tagNode: shot.tagNode, tagOnTarget: hit !== 'ground',
+                    pos: shot.pos.clone(), vel: new THREE.Vector3(), age: -delay,
+                    life: delay + pack.tagSalvo * pack.tagSalvoDelay + 0.2,
+                    salvoLeft: pack.tagSalvo, salvoDelay: pack.tagSalvoDelay, salvoAcc: 0, tag: true,
+                    tagNode: shot.tagNode, tagOnTarget: true, pack,
                     place() {}, dispose() {},
                 });
-                shot.kill();
                 return;
             }
             if (shot.spray) {
@@ -1664,26 +1825,32 @@ export function createRangeSim(opts) {
     function updateField(field, dt) {
         field.age += dt;
         if (field.tag) {
+            const pack = field.pack || tagPack(profile, null);
             if (field.age >= 0 && field.salvoLeft > 0) {
+                // Same banked catch-up as a cannon salvo (0x00625813): every
+                // missile the timer owes leaves this step.
+                const delay = Math.max(0, field.salvoDelay || 0);
                 field.salvoAcc -= dt;
-                if (field.salvoAcc <= 0) {
-                    field.salvoLeft -= 1;
-                    field.salvoAcc = field.salvoDelay;
+                while (field.salvoLeft > 0 && field.salvoAcc <= 1e-9) {
                     // The salvo leaves the hardpoint whose leader made this tag
                     // (looked up by node each round so it tracks the turret).
-                    const list = muzzles();
+                    const list = muzzles(pack.slotKey);
                     const muzzle = list.find((m, i) => tagKey(m, i) === field.tagNode) || list[0];
-                    if (spend(profile.ord.ammoCost)) {
-                        flashAt(muzzle);
-                        onRecoil();
-                        if (!profile.looping) playOnce(profile.fireSound, muzzle.position);
-                        const groundTag = field.tagOnTarget ? null
-                            : { position: field.pos, velocity: new THREE.Vector3(), alive: true, radius: 1 };
-                        spawnProjectile(muzzle, aimDir(muzzle, profile.ord, false, groundTag), profile.ord, {
-                            homing: true, homingDelay: 0, omega: profile.ord.omegaTurn,
-                            homeAt: groundTag ? field.pos : null,
-                        });
-                    }
+                    const ord = pack.ord || profile.ord;
+                    // Each missile pays its own ammoCost from the shared tank;
+                    // a dry tank ends the salvo (0x0061929F).
+                    if (!spend(ord.ammoCost)) { field.salvoLeft = 0; break; }
+                    field.salvoLeft -= 1;
+                    field.salvoAcc += delay;
+                    flashAt(muzzle);
+                    onRecoil();
+                    if (!pack.looping) playReport(pack.fireSound, muzzle.position, pack, pack.replaceFireSound);
+                    const groundTag = field.tagOnTarget ? null
+                        : { position: field.pos, velocity: new THREE.Vector3(), alive: true, radius: 1 };
+                    spawnProjectile(muzzle, aimDir(muzzle, ord, false, groundTag), ord, {
+                        homing: true, homingDelay: 0, omega: ord.omegaTurn,
+                        homeAt: groundTag ? field.pos : null,
+                    });
                 }
             }
             if (field.age >= field.life) field.dead = true;
@@ -1798,6 +1965,7 @@ export function createRangeSim(opts) {
 
         const id = profile.id;
         lockInCone = false;
+        lockMiss = '';
         if (holding && (id === 'launcher' || id === 'multilock')) {
             const muzzle = muzzles()[0];
             const target = getTarget();
@@ -1808,24 +1976,30 @@ export function createRangeSim(opts) {
                 to.normalize();
                 const ang = Math.acos(Math.max(-1, Math.min(1, to.dot(muzzle.forward.clone().normalize()))));
                 inCone = dist <= profile.lockRange && ang <= profile.coneAngle;
+                if (!inCone) lockMiss = dist > profile.lockRange ? 'range' : 'cone';
             }
             lockInCone = inCone;
             if (inCone) {
                 // Launcher ctor: stageTime = lockDelay / targetCount, and the
                 // lock completes after (targetCount - 1) stages (0061E6CD).
+                // Image / radar / thermal launchers scale each step by the
+                // target's signature (vtable +0x16C); 0 never completes.
                 const stages = profile.lockStages > 1 ? profile.lockStages : 0;
                 const acquire = profile.lockDelay > 0
                     ? (stages > 1 ? profile.lockDelay * (stages - 1) / stages : profile.lockDelay)
                     : 0;
-                lock = acquire > 0 ? lock + stepDt / acquire : 1;
+                const sig = lockSignatureScale(profile, target);
+                const wasLocked = lock >= 1;
+                if (sig > 0) lock = acquire > 0 ? lock + (stepDt * sig) / acquire : 1;
+                else lockMiss = 'signature';
                 if (lock >= 1) {
                     if (id === 'multilock' && locks < profile.lockCount) {
                         locks += 1;
                         lock = 0;
-                        playOnce(profile.lockedSound);
+                        playLockTone(profile.lockedSound);
                         if (locks >= profile.lockCount && lockSound) { lockSound.stop(); lockSound = null; }
                     } else if (id === 'launcher') {
-                        if (lock !== 1) playOnce(profile.lockedSound);
+                        if (!wasLocked) playLockTone(profile.lockedSound);
                         lock = 1;
                         if (lockSound) { lockSound.stop(); lockSound = null; }
                     } else lock = 1;
@@ -1834,7 +2008,13 @@ export function createRangeSim(opts) {
                 const to = target.position.clone().sub(muzzle.position).normalize();
                 const ang = Math.acos(Math.max(-1, Math.min(1, to.dot(muzzle.forward.clone().normalize()))));
                 if (ang > profile.loseAngle) { locks = 0; lock = 0; }
-            } else lock = Math.max(0, lock - stepDt);
+            } else {
+                // Outside the cone or lockRange the per-frame pick (vtable
+                // +0x168, 0x0061E1DE) finds no target. That differs from the
+                // held one, so the launcher zeroes its accumulator and stage
+                // (0x0061E26E): the lock restarts, it does not drain.
+                lock = 0;
+            }
         }
 
         if (holding && id === 'charge' && salvoLeft <= 0) {
@@ -1954,25 +2134,19 @@ export function createRangeSim(opts) {
 
         if (salvoLeft > 0) {
             const ordv = (salvoExtra && salvoExtra.ordv) || profile.ord;
-            const delay = (salvoExtra && salvoExtra.salvoDelay != null) ? salvoExtra.salvoDelay : (profile.salvoDelay || 0);
-            // salvoDelay 0 is one tick in-game (MAG stages 1-2, the Burst Gun
-            // and Pummel pellets): dump the rest of the salvo now instead of
-            // one round per frame. The opening round already played fireSound.
-            if (delay <= 1e-6) {
-                const quiet = Object.assign({}, salvoExtra || {}, { muteReport: true });
-                while (salvoLeft > 0) {
-                    if (!fireMuzzles(ordv, quiet)) { salvoLeft = 0; break; }
-                    salvoLeft -= 1;
-                }
-                salvoTimer = 0;
-            } else {
-                salvoTimer -= stepDt;
-                if (salvoTimer <= 0) {
-                    if (fireMuzzles(ordv, salvoExtra || {})) salvoLeft -= 1;
-                    else salvoLeft = 0;
-                    salvoTimer = delay;
-                }
+            const delay = Math.max(0, (salvoExtra && salvoExtra.salvoDelay != null) ? salvoExtra.salvoDelay : (profile.salvoDelay || 0));
+            // CannonClass salvo (0x0061920D adds dt, 0x00619276 fires): every
+            // round the banked timer owes leaves this step, salvoDelay added
+            // back per round. salvoDelay 0 drains the salvo at once; Fang's
+            // 0.001 puts all 15 rounds out within a frame or two. Out of ammo
+            // ends the salvo (0x0061929F).
+            salvoTimer -= stepDt;
+            while (salvoLeft > 0 && salvoTimer <= 1e-9) {
+                if (!fireMuzzles(ordv, salvoExtra || {})) { salvoLeft = 0; break; }
+                salvoLeft -= 1;
+                salvoTimer += delay;
             }
+            if (salvoLeft <= 0) salvoTimer = 0;
         }
         if (salvoLeft <= 0) releaseTotal = 0;
 
@@ -2050,9 +2224,15 @@ export function createRangeSim(opts) {
         let hint = '';
         if ((id === 'launcher' || id === 'multilock') && holding) {
             frame = lockCrosshair();
-            hint = id === 'multilock'
-                ? 'Locks ' + locks + ' / ' + profile.lockCount + ' — release to fire'
-                : (lock >= 1 ? 'Locked — release to fire' : 'Locking ' + Math.round(lock * 100) + '%');
+            const miss = lockMiss === 'range' ? 'Out of lock range (' + Math.round(profile.lockRange) + ' m)'
+                : lockMiss === 'cone' ? 'Outside the lock cone (' + Number((Number(profile.coneAngle) || 0).toFixed(3)) + ' rad)'
+                    : lockMiss === 'signature' ? 'No signature for this seeker: it never locks' : '';
+            if (id === 'multilock') {
+                hint = 'Locks ' + locks + ' / ' + profile.lockCount
+                    + (miss && locks < profile.lockCount ? ' · ' + miss : ' — release to fire');
+            } else {
+                hint = lock >= 1 ? 'Locked — release to fire' : (miss || 'Locking ' + Math.round(lock * 100) + '%');
+            }
         } else if (id === 'charge' && holding) {
             const levels = profile.charge;
             const n = levels.length || 1;

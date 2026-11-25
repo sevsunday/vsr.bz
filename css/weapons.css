@@ -56,31 +56,111 @@
     font-size: 0.875rem;
 }
 
-.vt-wpn-status {
-    margin: 0;
-    color: var(--kb-text-muted);
-    font-size: 0.85rem;
-}
-
-.vt-wpn-status.is-error {
-    color: var(--kb-danger);
-}
-
 .vt-wpn-foot {
     color: var(--kb-text-muted);
     font-size: 0.78rem;
     line-height: 1.5;
 }
 
-/* ---- pickers ------------------------------------------------------- */
+/* ---- pick bar and drawers ------------------------------------------- */
 
-.vt-wpn-pickers {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.85rem;
-    margin-bottom: 0.85rem;
+.vt-wpn-pick {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 12rem;
+    max-width: 100%;
 }
 
+/* main.css gives .btn-outline-secondary a text-coloured border shorthand,
+   which the --bs-btn-* variables cannot reach. */
+.btn.vt-wpn-pick,
+.btn.vt-wpn-drawer-tab {
+    border-color: var(--kb-border-default);
+    color: var(--kb-text-primary);
+}
+
+.btn.vt-wpn-pick:hover,
+.btn.vt-wpn-pick:focus-visible,
+.btn.vt-wpn-drawer-tab:hover,
+.btn.vt-wpn-drawer-tab:focus-visible {
+    border-color: var(--kb-border-strong);
+    background: color-mix(in oklab, var(--kb-primary) 8%, transparent);
+    color: var(--kb-text-primary);
+}
+
+.vt-wpn-drawer {
+    --bs-offcanvas-width: min(32rem, 100vw);
+}
+
+.vt-wpn-drawer .offcanvas-header {
+    padding-block: 0.6rem;
+    border-bottom: 1px solid var(--kb-border-subtle);
+}
+
+/* Ship / weapon / target switcher at the top of the drawer: the pick bar
+   again, one button per picker, the open one marked. */
+.vt-wpn-drawer-nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+}
+
+.btn.vt-wpn-drawer-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    padding: 0.3rem 0.45rem;
+    text-align: start;
+}
+
+.vt-wpn-drawer-tab .vt-wpn-media {
+    width: 32px;
+    height: 32px;
+}
+
+.vt-wpn-drawer-tab-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.vt-wpn-drawer-tab-text > span:first-child {
+    font-size: 0.72rem;
+    color: var(--kb-text-muted);
+}
+
+.vt-wpn-drawer-tab-text > span:last-child {
+    font-size: 0.82rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.btn.vt-wpn-drawer-tab.active,
+.btn.vt-wpn-drawer-tab.active:hover {
+    border-color: var(--kb-primary);
+    background: color-mix(in oklab, var(--kb-primary) 14%, transparent);
+    color: var(--kb-text-primary);
+}
+
+.btn.vt-wpn-drawer-tab.active .vt-wpn-drawer-tab-text > span:first-child {
+    color: var(--kb-primary);
+}
+
+.vt-wpn-slots-head {
+    gap: 0.75rem;
+}
+
+.vt-wpn-slots-head .vt-wpn-control-label {
+    margin-right: auto;
+}
+
+/* One picker card per drawer. The theme lifts .card on hover, which would
+   shove the list inside a drawer. */
 .vt-wpn-picker {
     min-width: 0;
 }
@@ -96,53 +176,8 @@
     padding: 0.75rem;
 }
 
-@media (min-width: 992px) {
-    .vt-wpn-pickers {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        row-gap: 0;
-    }
-
-    .vt-wpn-picker {
-        display: grid;
-        grid-row: span 6;
-        grid-template-rows: subgrid;
-        row-gap: 0;
-    }
-
-    .vt-wpn-picker > .card-header {
-        grid-row: 1;
-    }
-
-    .vt-wpn-picker > .card-body {
-        grid-row: 2 / span 5;
-        display: grid;
-        grid-template-rows: subgrid;
-        row-gap: 0.6rem;
-    }
-
-    /* Placed explicitly: an empty controls block is display:none, and
-       auto-placement would otherwise pull the search bar up into its row. */
-    .vt-wpn-picker [data-part="summary"] {
-        grid-row: 1;
-        display: grid;
-    }
-
-    .vt-wpn-picker [data-part="controls"] {
-        grid-row: 2;
-    }
-
-    .vt-wpn-picker .vt-wpn-search {
-        grid-row: 3;
-    }
-
-    .vt-wpn-picker [data-part="chips"] {
-        grid-row: 4;
-        align-content: flex-start;
-    }
-
-    .vt-wpn-picker [data-part="list"] {
-        grid-row: 5;
-    }
+.vt-wpn-drawer .vt-wpn-list {
+    max-height: none;
 }
 
 .vt-wpn-picker-head {
@@ -279,34 +314,25 @@
     gap: 0.25rem;
 }
 
+/* Bootstrap .badge on the theme's text-bg-*-muted pairs; this only sizes it.
+   Faction tags have no muted utility, so they mix their own. */
 .vt-wpn-tag {
     display: inline-flex;
     align-items: center;
     gap: 0.2rem;
-    padding: 0.05rem 0.4rem;
-    border-radius: 999px;
-    border: 1px solid var(--kb-border-subtle);
-    color: var(--kb-text-secondary);
     font-size: 0.7rem;
     font-weight: 600;
-    line-height: 1.5;
-    white-space: nowrap;
 }
 
-.vt-wpn-tag.is-assault {
-    color: var(--kb-warning);
-    border-color: color-mix(in oklab, var(--kb-warning) 55%, transparent);
+.vt-wpn-tag[data-faction] {
+    --vt-tag: var(--kb-text-secondary);
+    color: var(--vt-tag);
+    background: color-mix(in oklab, var(--vt-tag) 16%, transparent);
 }
 
-.vt-wpn-tag.is-combat {
-    color: var(--kb-info);
-    border-color: color-mix(in oklab, var(--kb-info) 55%, transparent);
-}
-
-.vt-wpn-tag[data-faction="i"] { color: var(--kb-faction-i); border-color: color-mix(in oklab, var(--kb-faction-i) 55%, transparent); }
-.vt-wpn-tag[data-faction="e"] { color: var(--kb-faction-e); border-color: color-mix(in oklab, var(--kb-faction-e) 55%, transparent); }
-.vt-wpn-tag[data-faction="f"] { color: var(--kb-faction-f); border-color: color-mix(in oklab, var(--kb-faction-f) 55%, transparent); }
-.vt-wpn-tag[data-source] { color: var(--kb-accent); border-color: color-mix(in oklab, var(--kb-accent) 55%, transparent); }
+.vt-wpn-tag[data-faction="i"] { --vt-tag: var(--kb-faction-i); }
+.vt-wpn-tag[data-faction="e"] { --vt-tag: var(--kb-faction-e); }
+.vt-wpn-tag[data-faction="f"] { --vt-tag: var(--kb-faction-f); }
 
 a.vt-wpn-source-link {
     text-decoration: none;
@@ -372,33 +398,28 @@ a.vt-wpn-source-link {
     gap: 0.3rem;
 }
 
+/* Filter chips: btn btn-sm btn-outline-secondary rounded-pill. The pressed
+   chip takes its faction's tint (or the theme primary). */
 .vt-wpn-chip {
     --vt-chip: var(--kb-primary);
-    border: 1px solid var(--kb-border-subtle);
-    background: transparent;
-    color: var(--kb-text-secondary);
-    border-radius: 999px;
-    padding: 0.05rem 0.55rem;
-    font-size: 0.75rem;
-    font-weight: 650;
-    line-height: 1.5;
+    --bs-btn-padding-y: 0.05rem;
+    --bs-btn-padding-x: 0.55rem;
+    --bs-btn-font-size: 0.75rem;
+    --bs-btn-font-weight: 650;
+    --bs-btn-active-color: var(--kb-text-primary);
+    --bs-btn-active-bg: color-mix(in oklab, var(--vt-chip) 18%, transparent);
+    --bs-btn-active-border-color: var(--vt-chip);
+}
+
+/* A category the ship has a hardpoint for. */
+.vt-wpn-chip.is-fit:not(.active) {
+    --bs-btn-border-color: color-mix(in oklab, var(--kb-primary) 55%, transparent);
+    --bs-btn-color: var(--kb-text-primary);
 }
 
 .vt-wpn-chip[data-faction="i"] { --vt-chip: var(--kb-faction-i); }
 .vt-wpn-chip[data-faction="e"] { --vt-chip: var(--kb-faction-e); }
 .vt-wpn-chip[data-faction="f"] { --vt-chip: var(--kb-faction-f); }
-
-.vt-wpn-chip.is-active {
-    color: var(--kb-text-primary);
-    border-color: var(--vt-chip);
-    background: color-mix(in oklab, var(--vt-chip) 18%, transparent);
-}
-
-.vt-wpn-chip:hover,
-.vt-wpn-chip:focus-visible {
-    color: var(--kb-text-primary);
-    outline: none;
-}
 
 .vt-wpn-list {
     max-height: 40vh;
@@ -494,37 +515,27 @@ a.vt-wpn-source-link {
     white-space: nowrap;
 }
 
-.vt-wpn-chip:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
 .vt-wpn-hps {
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem;
 }
 
+/* Hardpoint groups: btn btn-sm btn-outline-secondary, .active on the picked
+   group. A group that does not hold the shown weapon is dimmed. */
 .vt-wpn-hp {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    padding: 0.15rem 0.45rem 0.15rem 0.2rem;
-    border-radius: 0.45rem;
-    border: 1px solid var(--kb-border-subtle);
-    background: transparent;
-    font: inherit;
-    font-size: 0.72rem;
-    line-height: 1.2;
+    --bs-btn-padding-y: 0.15rem;
+    --bs-btn-padding-x: 0.45rem;
+    --bs-btn-font-size: 0.72rem;
+    --bs-btn-line-height: 1.2;
+    --bs-btn-active-color: var(--kb-text-primary);
+    --bs-btn-active-bg: var(--kb-primary-muted);
+    --bs-btn-active-border-color: var(--kb-primary);
     text-align: left;
-    color: var(--kb-text-secondary);
     opacity: 0.7;
-    cursor: pointer;
-}
-
-.vt-wpn-hp:focus-visible {
-    outline: 2px solid var(--kb-primary);
-    outline-offset: 2px;
 }
 
 .vt-wpn-hp img {
@@ -542,16 +553,15 @@ a.vt-wpn-source-link {
     color: var(--kb-text-muted);
 }
 
-.vt-wpn-hp.is-match {
+.vt-wpn-hp.is-match,
+.vt-wpn-hp.active {
     opacity: 1;
 }
 
-.vt-wpn-hp.is-firing,
-.vt-wpn-hp.is-slot {
-    opacity: 1;
-    color: var(--kb-text-primary);
-    border-color: var(--kb-primary);
-    background: color-mix(in oklab, var(--kb-primary) 14%, transparent);
+/* A group that can mount the shown weapon. */
+.vt-wpn-hp.is-match:not(.active) {
+    --bs-btn-border-color: color-mix(in oklab, var(--kb-primary) 55%, transparent);
+    --bs-btn-bg: color-mix(in oklab, var(--kb-primary) 6%, transparent);
 }
 
 /* The Scenario weapon has no hardpoint on this ship: a hypothetical mount. */
@@ -590,31 +600,15 @@ a.vt-wpn-source-link {
     border-style: dashed;
 }
 
+/* Confidence tier: a .badge on text-bg-success/warning/info/secondary-muted. */
 .vt-wpn-tier {
-    --vt-tier: var(--kb-text-muted);
     margin-left: auto;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.1rem 0.55rem;
-    border-radius: 999px;
-    border: 1px solid color-mix(in oklab, var(--vt-tier) 60%, transparent);
-    background: color-mix(in oklab, var(--vt-tier) 14%, transparent);
-    color: var(--vt-tier);
     font-size: 0.75rem;
-    font-weight: 700;
     cursor: help;
-    white-space: nowrap;
 }
-
-.vt-wpn-tier[data-tier="exact"] { --vt-tier: var(--kb-success); }
-.vt-wpn-tier[data-tier="estimated"] { --vt-tier: var(--kb-warning); }
-.vt-wpn-tier[data-tier="components"] { --vt-tier: var(--kb-info); }
-.vt-wpn-tier[data-tier="none"] { --vt-tier: var(--kb-text-muted); }
 
 .vt-wpn-tier.is-inline {
     margin-left: 0;
-    padding: 0 0.4rem;
     font-size: 0.68rem;
 }
 
@@ -731,17 +725,15 @@ a.vt-wpn-source-link {
     color: var(--kb-text-muted);
 }
 
+/* table table-sm table-hover: Bootstrap and the theme draw rows and borders.
+   This keeps the label / value alignment. */
 .vt-wpn-stats {
-    width: 100%;
-    margin: 0;
-    border-collapse: collapse;
     font-size: 0.85rem;
 }
 
 .vt-wpn-stats th,
 .vt-wpn-stats td {
-    padding: 0.28rem 0;
-    border-bottom: 1px solid var(--kb-border-subtle);
+    padding-left: 0;
     vertical-align: baseline;
     line-height: 1.3;
 }
@@ -780,6 +772,30 @@ a.vt-wpn-source-link {
 
 .vt-wpn-stats .vt-wpn-stat-empty {
     color: var(--kb-text-muted);
+}
+
+/* The formula under a value (Lock-on: base / signature = seconds). */
+.vt-wpn-stat-sub {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--kb-text-muted);
+}
+
+.vt-wpn-est {
+    font-size: 0.65rem;
+    font-weight: 600;
+    vertical-align: 0.1em;
+}
+
+/* image / heat / radar: the one this launcher reads stands out. */
+.vt-wpn-sig.is-read {
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
+.vt-wpn-sig.is-muted {
+    opacity: 0.6;
 }
 
 .vt-wpn-strip {
@@ -860,23 +876,6 @@ a.vt-wpn-source-link {
 .vt-wpn-extra-table tr.is-headline td {
     color: var(--kb-text-primary);
     font-weight: 650;
-}
-
-.vt-wpn-notes {
-    margin: 0;
-    padding: 0.6rem 0.75rem 0.6rem 1.9rem;
-    border-radius: 0.5rem;
-    border: 1px dashed var(--kb-border-subtle);
-    font-size: 0.78rem;
-    color: var(--kb-text-secondary);
-}
-
-.vt-wpn-notes li + li {
-    margin-top: 0.2rem;
-}
-
-.vt-wpn-note-warning {
-    color: var(--kb-warning);
 }
 
 .vt-wpn-empty {
@@ -1047,28 +1046,273 @@ a.vt-wpn-source-link {
     filter: drop-shadow(0 0 6px color-mix(in oklab, var(--kb-bg-body) 70%, transparent));
 }
 
+/* The theme lifts every .card on hover. These sit on the stage, where the
+   lift would shove them; the glass fill and border still come from .card. */
+.vt-wpn-range-card.card:hover,
+.vt-wpn-range-weave.card:hover {
+    transform: none;
+}
+
+/* Target card, bottom left; the weapon panel holds the bottom right. */
 .vt-wpn-range-card {
     position: absolute;
+    left: 0.75rem;
     bottom: 0.75rem;
-    min-width: 16rem;
-    max-width: min(28rem, 46%);
+    min-width: 14rem;
+    max-width: min(22rem, 40%);
     color: var(--kb-text-primary);
-    background: color-mix(in oklab, var(--kb-bg-body) 74%, transparent);
-    border: 1px solid var(--kb-border-subtle);
-    border-radius: 0.5rem;
-    padding: 0.45rem 0.65rem;
+}
+
+.vt-wpn-range-card > .card-body {
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
+    padding: 0.45rem 0.65rem;
 }
 
-.vt-wpn-range-card-weapon {
+/* Small mono readout, top left: what the numbers say about this pairing. */
+.vt-wpn-range-readout {
+    position: absolute;
+    top: 0.75rem;
     left: 0.75rem;
+    max-width: min(22rem, 46%);
+    padding: 0.35rem 0.55rem;
+    border-radius: 0.4rem;
+    background: color-mix(in oklab, var(--kb-bg-body) 58%, transparent);
+    color: var(--vt-xp-hud-text);
+    font-size: 0.72rem;
+    line-height: 1.45;
+    pointer-events: auto;
 }
 
-.vt-wpn-range-card-target {
+.vt-wpn-range-ro-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    min-width: 0;
+    margin-bottom: 0.15rem;
+    white-space: nowrap;
+}
+
+.vt-wpn-range-ro-tag {
+    flex: none;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--kb-text-muted);
+}
+
+.vt-wpn-range-ro-tag.is-approx {
+    color: var(--kb-warning);
+}
+
+.vt-wpn-range-ro-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
+}
+
+.vt-wpn-range-ro-arch {
+    flex: none;
+    color: var(--kb-text-muted);
+}
+
+.vt-wpn-range-ro-line {
+    display: grid;
+    grid-template-columns: 3.4rem minmax(0, 1fr);
+    gap: 0.4rem;
+    white-space: nowrap;
+}
+
+.vt-wpn-range-ro-k {
+    color: var(--kb-text-muted);
+    letter-spacing: 0.06em;
+}
+
+.vt-wpn-range-ro-v {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
+}
+
+.vt-wpn-range-ro-v.is-warn,
+.vt-wpn-range-ro-est {
+    color: var(--kb-warning);
+}
+
+/* Weapon panel, bottom right: the Explorer's status gauge (css/game-hud.css)
+ * beside its pill rows, with the sim's hint above. */
+.vt-wpn-range-status {
+    position: absolute;
     right: 0.75rem;
-    text-align: right;
+    bottom: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: calc(4px * var(--vt-xp-scale));
+    pointer-events: none;
+}
+
+.vt-wpn-range-status-row {
+    display: flex;
+    align-items: flex-end;
+    gap: calc(5px * var(--vt-xp-scale));
+}
+
+.vt-wpn-range-status .vt-xp-gaugepanel {
+    position: relative;
+    flex: none;
+}
+
+.vt-wpn-range-hint {
+    margin: 0;
+    padding: calc(2px * var(--vt-xp-scale)) calc(7px * var(--vt-xp-scale));
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--kb-bg-body) 62%, transparent);
+    color: var(--vt-xp-hud-text);
+    font-size: calc(9px * var(--vt-xp-scale));
+    line-height: 1.2;
+}
+
+.vt-wpn-range-pills {
+    width: calc(150px * var(--vt-xp-scale));
+    pointer-events: auto;
+}
+
+.vt-wpn-range-pills-empty {
+    margin: 0;
+    padding: calc(3px * var(--vt-xp-scale)) calc(7px * var(--vt-xp-scale));
+    border-radius: calc(8px * var(--vt-xp-scale));
+    background: color-mix(in srgb, var(--kb-bg-body) 62%, transparent);
+    font-size: calc(9px * var(--vt-xp-scale));
+}
+
+.vt-wpn-range-pill {
+    margin-bottom: 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.vt-wpn-range-pill:hover {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vt-xp-hull-ok) 65%, transparent);
+}
+
+.vt-wpn-range-pill:has(input:focus-visible) {
+    outline: 2px solid var(--kb-primary);
+    outline-offset: 1px;
+}
+
+/* With the switch on, the pill that is firing goes green like the selected one. */
+.vt-wpn-range-pill.is-firing {
+    opacity: 1;
+    background: var(--vt-xp-hull-ok);
+    color: var(--kb-bg-body);
+}
+
+.vt-wpn-range-pill.is-firing .vt-xp-wpn-badge {
+    border-color: var(--vt-xp-hull-ok);
+}
+
+/* Lighter than the Explorer's empty row so the swap button stays readable. */
+.vt-wpn-range-pill.is-empty {
+    opacity: 0.75;
+    cursor: default;
+}
+
+.vt-wpn-range-pill.is-empty .vt-xp-wpn-name {
+    font-style: italic;
+}
+
+.vt-wpn-range-pill.is-virtual {
+    border: 1px dashed color-mix(in srgb, var(--vt-xp-hud-text) 70%, transparent);
+}
+
+.vt-wpn-range-pill.is-weave.is-picked {
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--vt-weave-c) 80%, transparent);
+}
+
+.vt-wpn-range-pill.is-excluded {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.vt-wpn-range-pill-key {
+    flex: none;
+    min-width: 1.1em;
+    text-align: center;
+    font-size: calc(8px * var(--vt-xp-scale));
+    opacity: 0.75;
+}
+
+.vt-wpn-range-pill.is-weave .vt-wpn-range-pill-key {
+    padding: 0 0.2em;
+    border-radius: 3px;
+    background: color-mix(in oklab, var(--vt-weave-c) 45%, transparent);
+    opacity: 1;
+}
+
+.vt-wpn-range-pill .vt-wpn-range-pill-pick {
+    flex: none;
+    width: calc(10px * var(--vt-xp-scale));
+    height: calc(10px * var(--vt-xp-scale));
+    margin: 0;
+}
+
+.vt-wpn-range-pill-mult {
+    flex: none;
+    font-size: calc(8px * var(--vt-xp-scale));
+    opacity: 0.85;
+}
+
+.vt-wpn-range-pill-tag {
+    flex: none;
+    font-size: calc(7px * var(--vt-xp-scale));
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--kb-warning);
+}
+
+.vt-wpn-range-pill.is-on .vt-wpn-range-pill-tag,
+.vt-wpn-range-pill.is-firing .vt-wpn-range-pill-tag {
+    color: inherit;
+}
+
+.vt-wpn-range-pill-swap {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: calc(14px * var(--vt-xp-scale));
+    height: calc(14px * var(--vt-xp-scale));
+    margin-right: calc(-3px * var(--vt-xp-scale));
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    font-size: calc(9px * var(--vt-xp-scale));
+    line-height: 1;
+    opacity: 0.8;
+    cursor: pointer;
+}
+
+.vt-wpn-range-pill-swap:hover,
+.vt-wpn-range-pill-swap:focus-visible {
+    opacity: 1;
+    background: color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.vt-wpn-range-pill-swap:focus-visible {
+    outline: 2px solid var(--kb-primary);
+    outline-offset: 1px;
+}
+
+/* A mid-width stage leaves no room for the full-scale panel beside the target card. */
+@media (max-width: 991.98px) {
+    .vt-wpn-range-hud {
+        --vt-xp-scale: 1.1;
+    }
 }
 
 @media (max-width: 640px) {
@@ -1077,6 +1321,7 @@ a.vt-wpn-source-link {
     }
 
     .vt-wpn-range-hud {
+        --vt-xp-scale: 1;
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
@@ -1088,6 +1333,17 @@ a.vt-wpn-source-link {
         top: 38%;
     }
 
+    .vt-wpn-range-readout {
+        top: 0.5rem;
+        left: 0.5rem;
+        max-width: calc(100% - 1rem);
+    }
+
+    .vt-wpn-range-readout .is-extra,
+    .vt-wpn-range-ro-head {
+        display: none;
+    }
+
     .vt-wpn-range-card {
         position: static;
         min-width: 0;
@@ -1095,17 +1351,45 @@ a.vt-wpn-source-link {
         width: 100%;
     }
 
-    .vt-wpn-range-card-target {
-        text-align: left;
+    .vt-wpn-range-card > .card-body {
+        gap: 0.15rem;
+        padding: 0.3rem 0.5rem;
+        font-size: 0.8rem;
     }
 
-    .vt-wpn-range-card-target .vt-wpn-range-bar-row {
-        flex-direction: row;
+    .vt-wpn-range-status {
+        position: static;
+        align-self: stretch;
     }
-}
 
-.vt-wpn-range-weapon strong {
-    margin-right: 0.35rem;
+    .vt-wpn-range-status-row {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .vt-wpn-range-pills {
+        flex: 1 1 auto;
+        width: auto;
+        min-width: 0;
+        max-width: 13rem;
+    }
+
+    /* Tap targets: the pills grow past the game's 16 px rows. */
+    .vt-wpn-range-pill {
+        height: 1.75rem;
+        font-size: 0.75rem;
+    }
+
+    .vt-wpn-range-pill-swap {
+        width: 1.5rem;
+        height: 1.5rem;
+        font-size: 0.8rem;
+    }
+
+    .vt-wpn-range-pill .vt-wpn-range-pill-pick {
+        width: 0.9rem;
+        height: 0.9rem;
+    }
 }
 
 .vt-wpn-range-target-name {
@@ -1118,8 +1402,14 @@ a.vt-wpn-source-link {
     gap: 0.5rem;
 }
 
-.vt-wpn-range-card-target .vt-wpn-range-bar-row {
-    flex-direction: row-reverse;
+.vt-wpn-range-lock-row[hidden] {
+    display: none;
+}
+
+.vt-wpn-range-lock-text {
+    min-width: 3.4rem;
+    text-align: right;
+    font-size: 0.75rem;
 }
 
 .vt-wpn-range-bar-label {
@@ -1132,21 +1422,16 @@ a.vt-wpn-source-link {
 
 .vt-wpn-range-meter {
     flex: 1 1 auto;
-    height: 8px;
+    height: 0.5rem;
     border-radius: 999px;
     background: color-mix(in oklab, var(--kb-text-primary) 12%, transparent);
-    overflow: hidden;
 }
 
 .vt-wpn-range-meter-fill {
-    height: 100%;
     width: 100%;
     border-radius: inherit;
-    transition: width 90ms linear;
-}
-
-.vt-wpn-range-meter-fill.is-ammo {
-    background: var(--kb-primary);
+    /* A meter tracks the sim; this only smooths it, so it stays short. */
+    transition: width calc(var(--vt-anim-duration, 0.4s) * 0.225) linear;
 }
 
 .vt-wpn-range-meter-fill.is-hp {
@@ -1157,30 +1442,27 @@ a.vt-wpn-source-link {
     background: var(--kb-danger);
 }
 
-.vt-wpn-range-lock {
-    height: 4px;
-    border-radius: 999px;
-    background: color-mix(in oklab, var(--kb-text-primary) 12%, transparent);
-    overflow: hidden;
-}
-
 .vt-wpn-range-lock-fill {
-    height: 100%;
     width: 0;
     background: var(--kb-warning);
-    transition: width 60ms linear;
+    transition: width calc(var(--vt-anim-duration, 0.4s) * 0.15) linear;
+}
+
+/* Locked: red, like the lock circle on the target. */
+.vt-wpn-range-lock-fill.is-locked {
+    background: var(--kb-danger);
 }
 
 .vt-wpn-range-float {
     position: absolute;
     transform: translate(-50%, -50%);
     color: var(--kb-warning);
-    font-family: var(--vt-font-mono, monospace);
     font-weight: 700;
     font-size: 1.05rem;
     pointer-events: none;
     text-shadow: 0 0 6px color-mix(in oklab, var(--kb-bg-body) 80%, transparent);
-    animation: vt-wpn-range-float 0.9s ease-out forwards;
+    /* 0.9 s at the theme's 0.4 s step; 0 under prefers-reduced-motion. */
+    animation: vt-wpn-range-float calc(var(--vt-anim-duration, 0.4s) * 2.25) var(--vt-anim-ease, ease-out) forwards;
 }
 
 @keyframes vt-wpn-range-float {
@@ -1188,113 +1470,12 @@ a.vt-wpn-source-link {
     to { opacity: 0; margin-top: -42px; }
 }
 
-.vt-wpn-range-hint {
-    color: var(--kb-text-secondary);
-    font-size: 0.85rem;
-}
-
-/* Loadout: one card per hardpoint group. Header row (key, icon, category,
- * multiplicity) over a full-width weapon select, so weapon names never
- * truncate against the header. */
-.vt-wpn-range-loadout {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-    gap: 0.6rem 0.75rem;
-    margin-top: 0.75rem;
-}
-
-.vt-wpn-range-slot {
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-    min-width: 0;
-    margin: 0;
-    padding: 0.5rem 0.65rem 0.6rem;
-    border: 1px solid var(--kb-border-subtle);
-    border-radius: 0.6rem;
-    background: var(--kb-bg-card);
-    color: var(--kb-text-secondary);
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.vt-wpn-range-slot:hover {
-    border-color: color-mix(in oklab, var(--kb-primary) 45%, var(--kb-border-subtle));
-}
-
-.vt-wpn-range-slot.is-active {
-    border-color: var(--kb-primary);
-    color: var(--kb-text-primary);
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--kb-primary) 35%, transparent);
-}
-
-.vt-wpn-range-slot:has(input:focus-visible) {
-    outline: 2px solid var(--kb-primary);
-    outline-offset: 2px;
-}
-
-.vt-wpn-range-slot.is-empty {
-    cursor: default;
-    color: var(--kb-text-muted);
-}
-
-.vt-wpn-range-slot.is-empty:hover {
-    border-color: var(--kb-border-subtle);
-}
-
-.vt-wpn-range-slot-head {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    min-width: 0;
-    line-height: 1.2;
-}
-
-.vt-wpn-range-slot-key {
-    display: inline-flex;
-    flex: 0 0 auto;
-    width: 1.35rem;
-    height: 1.35rem;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0.3rem;
-    font-family: var(--vt-font-mono, monospace);
-    font-size: 0.75rem;
-    background: color-mix(in oklab, var(--kb-text-primary) 10%, transparent);
-}
-
-.vt-wpn-range-slot.is-active .vt-wpn-range-slot-key {
-    color: var(--kb-primary-fg);
-    background: var(--kb-primary);
-}
-
-.vt-wpn-range-slot-icon {
-    flex: 0 0 auto;
-    width: 20px;
-    height: 20px;
-}
-
-.vt-wpn-range-slot-cat {
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-weight: 600;
-}
-
-.vt-wpn-range-slot-sub {
-    font-weight: 400;
-    color: var(--kb-text-muted);
-}
-
+/* Multiplicity chip in the weapon switch's priority list. */
 .vt-wpn-range-slot-mult {
     display: inline-block;
     flex: 0 0 auto;
     padding: 0 0.35rem;
     border-radius: 0.3rem;
-    font-family: var(--vt-font-mono, monospace);
     font-size: 0.72rem;
     line-height: 1.3;
     color: var(--kb-primary);
@@ -1302,43 +1483,9 @@ a.vt-wpn-source-link {
     text-transform: none;
 }
 
-.vt-wpn-range-slot .form-select {
-    width: 100%;
-    min-width: 0;
-}
-
-.vt-wpn-range-slot-fixed {
-    display: block;
-    padding: 0.3rem 0.5rem;
-    border: 1px dashed var(--kb-border-subtle);
-    border-radius: 0.375rem;
-    font-family: var(--vt-font-mono, monospace);
-    font-size: 0.8rem;
-    color: var(--kb-text-primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 .vt-wpn-range-empty {
     color: var(--kb-text-muted);
     margin: 0.5rem 0 0;
-}
-
-.vt-wpn-honesty {
-    display: inline-block;
-    font-size: 0.72rem;
-    letter-spacing: 0.02em;
-    border: 1px solid var(--kb-border-subtle);
-    color: var(--kb-text-secondary);
-    border-radius: 999px;
-    padding: 0.05rem 0.45rem;
-    margin-right: 0.25rem;
-}
-
-.vt-wpn-honesty.is-approx {
-    color: var(--kb-warning);
-    border-color: color-mix(in oklab, var(--kb-warning) 45%, var(--kb-border-subtle));
 }
 
 .vt-wpn-range-bar {
@@ -1361,29 +1508,50 @@ a.vt-wpn-source-link {
     width: auto;
 }
 
-.vt-wpn-range-label input[type="range"] {
-    accent-color: var(--kb-primary);
+.vt-wpn-range-slider {
+    width: 8rem;
 }
 
-.vt-wpn-range-volume input[type="range"] {
-    width: 6.5rem;
+.vt-wpn-range-volume > .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
 }
 
 .vt-wpn-range-volume .bi {
     width: 1.1rem;
     text-align: center;
-    color: var(--kb-text-secondary);
 }
 
 .vt-wpn-range-volume [data-range-volume-text] {
-    min-width: 2.6rem;
+    min-width: 2.4rem;
     text-align: right;
     font-size: 0.8rem;
 }
 
-.vt-wpn-range-arch {
+.vt-wpn-range-volume-menu {
+    width: 15rem;
+    padding: 0.65rem 0.8rem 0.55rem;
+}
+
+.vt-wpn-range-volume-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.1rem;
+    color: var(--kb-text-secondary);
+    font-size: 0.85rem;
+}
+
+.vt-wpn-range-volume-menu .form-range {
+    display: block;
+    margin-bottom: 0.45rem;
+}
+
+.vt-wpn-range-volume-note {
+    margin: 0;
     color: var(--kb-text-muted);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
 }
 
 .vt-wpn-range-note {
@@ -1392,7 +1560,7 @@ a.vt-wpn-source-link {
     margin: 0.5rem 0 0;
 }
 
-/* Weapon switch: one colour per loadout slot, shared by the card key, the
+/* Weapon switch: one colour per hardpoint group, shared by the pill key, the
  * priority list, the ribbon and the damage split. */
 .is-c0 { --vt-weave-c: var(--kb-primary); }
 .is-c1 { --vt-weave-c: var(--kb-info); }
@@ -1400,45 +1568,27 @@ a.vt-wpn-source-link {
 .is-c3 { --vt-weave-c: var(--kb-success); }
 .is-c4 { --vt-weave-c: var(--kb-danger); }
 
-.vt-wpn-range-slot.is-weave .vt-wpn-range-slot-key {
-    color: var(--kb-text-primary);
-    background: color-mix(in oklab, var(--vt-weave-c) 28%, transparent);
-}
-
-.vt-wpn-range-slot.is-picked {
-    border-color: color-mix(in oklab, var(--kb-primary) 55%, var(--kb-border-subtle));
-    color: var(--kb-text-primary);
-}
-
-.vt-wpn-range-slot.is-firing {
-    border-color: var(--kb-primary);
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--kb-primary) 40%, transparent);
-}
-
-.vt-wpn-range-slot-pick {
-    flex: 0 0 auto;
-    margin: 0;
-}
-
-.vt-wpn-range-slot-why {
-    font-size: 0.75rem;
-    line-height: 1.3;
-    color: var(--kb-text-muted);
-}
-
 .vt-wpn-range-weave {
+    margin-top: 0.75rem;
+}
+
+.vt-wpn-range-weave > .card-body {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    margin-top: 0.75rem;
     padding: 0.75rem 0.85rem;
-    border: 1px solid var(--kb-border-subtle);
-    border-radius: 0.75rem;
-    background: var(--kb-bg-card);
 }
 
 .vt-wpn-range-weave[hidden] {
-    display: none;
+    display: none !important;
+}
+
+.vt-wpn-range-group {
+    width: auto;
+}
+
+.vt-wpn-range-group[hidden] {
+    display: none !important;
 }
 
 .vt-wpn-range-weave-controls {
@@ -1487,23 +1637,17 @@ a.vt-wpn-source-link {
 }
 
 .vt-wpn-range-weave-order {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
     margin: 0;
-    padding: 0;
-    list-style: none;
 }
 
+/* list-group-item draws the frame; the left edge carries the weapon colour. */
 .vt-wpn-range-weave-item {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.25rem 0.6rem;
     padding: 0.35rem 0.55rem;
-    border: 1px solid var(--kb-border-subtle);
     border-left: 3px solid var(--vt-weave-c, var(--kb-border-subtle));
-    border-radius: 0.5rem;
     font-size: 0.85rem;
 }
 
@@ -1544,10 +1688,6 @@ a.vt-wpn-source-link {
     margin-left: auto;
 }
 
-.vt-wpn-range-weave-move {
-    padding: 0 0.3rem;
-    color: var(--kb-text-secondary);
-}
 
 .vt-wpn-range-weave-ribbon {
     display: flex;

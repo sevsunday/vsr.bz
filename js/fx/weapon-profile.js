@@ -632,6 +632,31 @@ function stageFramesOf(targetReticle, stages) {
     return frames;
 }
 
+/* Which GameObjectClass signature scales the launcher's lock (vtable +0x16C):
+ * ImageLauncher imageSignature (0x0061CB33), RadarLauncher and
+ * TorpedoLauncher radarSignature (0x00621A17, 0x00626AC9), ThermalLauncher
+ * heatSignature (0x00626553). MultiLauncher derives from ImageLauncher
+ * (guide 7696); its vtable is built at runtime, so the dump cannot confirm
+ * the slot. null is the base LauncherClass, which adds dt (0x0061E173). */
+function lockSignatureOf(chain, id) {
+    const names = new Set(chain || []);
+    if (names.has('thermallauncher')) return 'heat';
+    if (names.has('radarlauncher') || names.has('torpedolauncher')) return 'radar';
+    if (names.has('imagelauncher') || names.has('multilauncher') || id === 'multilock') return 'image';
+    return null;
+}
+
+/* TargetingGunClass.leaderName as { shotSpeed, lifeSpan, ammoCost, stickTime },
+ * read from the Ordnance bucket so a caller without the whole db still gets
+ * the leader's reach. */
+function leaderOf(name, ordDb, db) {
+    const bucket = ordDb || (db && db.Ordnance);
+    if (!name || !bucket) return null;
+    const ov = ordnanceEntry({ Ordnance: bucket }, name);
+    if (!ov || !ov.present) return null;
+    return { shotSpeed: ov.shotSpeed, lifeSpan: ov.lifeSpan, ammoCost: ov.ammoCost, stickTime: ov.stickTime };
+}
+
 /* `db` (the whole database, optional) lets render, flash and particle names
  * that point into another ODF resolve; without it they resolve as inlined. */
 function buildProfile(entry, ordDb, db) {
@@ -654,7 +679,12 @@ function buildProfile(entry, ordDb, db) {
     const special = sec(map, 'SpecialItemClass') || {};
     const chain = chainOf(entry, 'inheritanceChain');
     const term = chain[chain.length - 1] || '';
-    const looping = term === 'machinegun' || num(prop(cannon, 'soundPerShot'), term === 'machinegun' ? 0 : 1) === 0;
+    // CannonClass SoundPerShot: 0 loops, 1 starts one fireSound per shot,
+    // 2 keeps one instance (guide 7348-7352, the same as OnlyOneSound).
+    const soundPerShot = Math.round(num(prop(cannon, 'soundPerShot'), term === 'machinegun' ? 0 : 1));
+    const looping = term === 'machinegun' || soundPerShot === 0;
+    const replaceFireSound = bool(prop(cannon, 'OnlyOneSound'), false) || soundPerShot === 2;
+    const leaderName = stemOf(prop(targeting, 'leaderName'));
     const ord = ordnanceOf(map, entry, 'ordnance.', 'Ordnance.inheritanceChain', ordTerminalOf(ordDb, prop(wc, 'ordName')));
     const wd = (key) => classDefault(WEAPON_DEFAULTS, WEAPON_PARENT, term, key);
     // shotDelay lives on CannonClass for cannons, on LauncherClass for the
@@ -670,6 +700,11 @@ function buildProfile(entry, ordDb, db) {
         category: String(prop(wc, 'wpnCategory') || '').trim().toUpperCase().slice(0, 4),
         reticle: String(prop(wc, 'wpnReticle') || '').trim().toLowerCase(),
         fireSound: stemOf(prop(wc, 'fireSound')),
+        soundPerShot,
+        // OnlyOneSound (class+0x790) or SoundPerShot 2: each round stops the
+        // playing fireSound and starts it again (0x0061931F-0x00619340).
+        replaceFireSound,
+        aiRange: num(prop(wc, 'aiRange'), 0),
         flashRef: prop(wc, 'flashName') || '',
         flashTime: num(prop(wc, 'flashTime'), 0),   // how long the muzzle flash render lives (0 = its own animateTime)
         looping,
@@ -684,6 +719,7 @@ function buildProfile(entry, ordDb, db) {
         shotAlternate: bool(prop(cannon, 'shotAlternate'), false),
         raveFlash,
         raveColors: raveFlash ? raveColorsOf(map) : [],
+        lockSignature: lockSignatureOf(chain, id),
         lockDelay: num(prop(launcher, 'lockDelay'), wd('lockdelay') || 0),
         // An omitted lockRange is the round's own reach, shotSpeed x lifeSpan
         // (read from the LauncherClass loader; the guide's 0 is not the engine's).
@@ -703,7 +739,8 @@ function buildProfile(entry, ordDb, db) {
         targetReticle: String(prop(launcher, 'targetReticle') || '').trim().toLowerCase(),
         armedReticle: String(prop(det, 'armedReticle') || prop(cannon, 'armedReticle') || '').trim().toLowerCase(),
         busyReticle: String(prop(cannon, 'busyReticle') || '').trim().toLowerCase(),
-        leaderName: stemOf(prop(targeting, 'leaderName')),
+        leaderName,
+        leader: id === 'targeting' ? leaderOf(leaderName, ordDb, db) : null,
         leaderSound: stemOf(prop(targeting, 'leaderSound')),
         firstDelay: num(prop(targeting, 'firstDelay'), 1),
         tagSalvo: Math.max(1, Math.round(num(prop(targeting, 'salvoCount'), 10))),

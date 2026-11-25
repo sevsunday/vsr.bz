@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/layout.css">
   <link rel="stylesheet" href="../css/vtstats-theme.css">
+  <link rel="stylesheet" href="../css/game-hud.css">
   <link rel="stylesheet" href="../css/weapons.css">
   <script type="importmap">
   {
@@ -160,10 +161,10 @@
       <h1 class="vt-wpn-title">Weapons Lab</h1>
       <ul class="nav nav-pills vt-wpn-tabs" role="tablist">
         <li class="nav-item" role="presentation">
-          <button class="nav-link active" id="vt-wpn-tab-scenario" data-bs-toggle="pill"
-                  data-bs-target="#vt-wpn-pane-scenario" data-vt-wpn-tab="scenario" type="button" role="tab"
-                  aria-controls="vt-wpn-pane-scenario" aria-selected="true">
-            <i class="bi bi-bullseye me-1"></i>Scenario
+          <button class="nav-link active" id="vt-wpn-tab-range" data-bs-toggle="pill"
+                  data-bs-target="#vt-wpn-pane-range" data-vt-wpn-tab="range" type="button" role="tab"
+                  aria-controls="vt-wpn-pane-range" aria-selected="true">
+            <i class="bi bi-crosshair me-1"></i>Shooting range
           </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -173,31 +174,35 @@
             <i class="bi bi-grid-3x3 me-1"></i>Damage matrix
           </button>
         </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" id="vt-wpn-tab-range" data-bs-toggle="pill"
-                  data-bs-target="#vt-wpn-pane-range" data-vt-wpn-tab="range" type="button" role="tab"
-                  aria-controls="vt-wpn-pane-range" aria-selected="false">
-            <i class="bi bi-crosshair me-1"></i>Shooting range
-          </button>
-        </li>
       </ul>
     </header>
 
-    <p id="vt-wpn-status" class="vt-wpn-status" role="status" hidden></p>
+    <p id="vt-wpn-status" class="alert alert-secondary py-2 px-3 mb-3 small" role="status" hidden></p>
 
     <div class="tab-content vt-wpn-panes">
-      <section class="tab-pane fade show active" id="vt-wpn-pane-scenario" role="tabpanel"
-               aria-labelledby="vt-wpn-tab-scenario" tabindex="0">
-        <div id="vt-wpn-pickers" class="vt-wpn-pickers"></div>
-        <div id="vt-wpn-result" class="vt-wpn-result" aria-live="polite"></div>
+      <section class="tab-pane fade show active" id="vt-wpn-pane-range" role="tabpanel"
+               aria-labelledby="vt-wpn-tab-range" tabindex="0">
+        <div id="vt-wpn-pickbar" class="d-flex flex-wrap gap-2 mb-3" role="group" aria-label="Ship, weapon and target"></div>
+        <div id="vt-wpn-range" class="vt-wpn-range"></div>
+        <div id="vt-wpn-result" class="vt-wpn-result mt-3" aria-live="polite"></div>
+        <div class="offcanvas offcanvas-end vt-wpn-drawer" tabindex="-1" id="vt-wpn-drawer" aria-labelledby="vt-wpn-drawer-title">
+          <div class="offcanvas-header flex-column align-items-stretch gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <h2 class="offcanvas-title h6 mb-0" id="vt-wpn-drawer-title">Ship, weapon and target</h2>
+              <button type="button" class="btn-close ms-auto" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="vt-wpn-drawer-nav" role="tablist" aria-label="Picker" data-drawer-nav></div>
+          </div>
+          <div class="offcanvas-body" id="vt-wpn-drawers">
+            <div id="vt-wpn-drawer-shooter-body" role="tabpanel" data-drawer-pane="shooter" hidden></div>
+            <div id="vt-wpn-drawer-weapon-body" role="tabpanel" data-drawer-pane="weapon" hidden></div>
+            <div id="vt-wpn-drawer-target-body" role="tabpanel" data-drawer-pane="target" hidden></div>
+          </div>
+        </div>
       </section>
       <section class="tab-pane fade" id="vt-wpn-pane-matrix" role="tabpanel"
                aria-labelledby="vt-wpn-tab-matrix" tabindex="0">
         <div id="vt-wpn-matrix" class="vt-wpn-matrix"></div>
-      </section>
-      <section class="tab-pane fade" id="vt-wpn-pane-range" role="tabpanel"
-               aria-labelledby="vt-wpn-tab-range" tabindex="0">
-        <div id="vt-wpn-range" class="vt-wpn-range"></div>
       </section>
     </div>
 

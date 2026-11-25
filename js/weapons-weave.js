@@ -19,8 +19,20 @@
 export const TURN_SEC = 1 / 20;
 // startSalvo() never re-arms a trigger faster than this.
 export const MIN_COOLDOWN_SEC = 0.05;
-// Closing stops at the range's nearest distance.
+// Closing stops this far off the target's surface, past the no-overlap floor.
 export const CLOSE_STOP_M = 20;
+// Direct fire opens with this fraction of its reach as clear air to the hull.
+// Renderer choice: no ODF names an opening distance.
+export const START_REACH_FRACTION = 0.5;
+// Daylight between the two hull boxes at the floor. Renderer choice.
+export const SURFACE_MARGIN_M = 1;
+// The range slider's ceiling (lockStartDistance in js/fx/weapon-sim.js).
+export const OPENING_MAX_M = 400;
+// TargetingGun (0x00625A9A) fires no new leader while one is alive, so a tag
+// that sticks holds its hardpoint for the leader's stickTime. 'salvo' re-arms
+// when the missile burst ends instead. One-line switch.
+export const TAG_RETAG_AFTER = 'leader';
+const LOBBED_FLIGHT = 2000;
 
 const EPS = 1e-6;
 export const PLAN_MAX_SEC = 600;
@@ -28,7 +40,7 @@ const PLAN_MAX_STEPS = 60000;
 const PLAN_MAX_PULLS = 4000;
 const PREVIEW_SEC = 8;
 
-export const WEAVE_ARCHETYPES = new Set(['projectile', 'beam', 'mortar', 'missile', 'detonator']);
+export const WEAVE_ARCHETYPES = new Set(['projectile', 'beam', 'mortar', 'missile', 'detonator', 'targeting']);
 const LOBBED = new Set(['mortar', 'detonator']);
 const UTILITY = new Set(['shield', 'blink', 'phantom', 'damper', 'site', 'magnet', 'jetpack']);
 const EXCLUDED = {
@@ -37,7 +49,6 @@ const EXCLUDED = {
     charge: 'Charge gun: it holds the trigger to charge and fires on release.',
     arc: 'Arc stream: it fires only while the trigger is held.',
     static: 'Damage field: it surrounds the ship while the trigger is held.',
-    targeting: 'TAG: its missile salvo runs on its own timer after the tag lands.',
     torpedo: 'Steered torpedo: the damage is in the launched object.',
     popper: 'Popper: the damage is in its second stage.',
     spray: 'Payload: the damage is in what it spawns on impact.',
@@ -73,6 +84,130 @@ export function mdmDetonates(target) {
     return !(target && target.building);
 }
 
+function leaderReachOf(profile) {
+    const lead = profile && profile.leader;
+    if (!lead || !(lead.shotSpeed > 0) || !(lead.lifeSpan > 0) || lead.lifeSpan >= 1e20) return null;
+    return lead.shotSpeed * lead.lifeSpan;
+}
+
+/* How far a weapon is used at: { reach, source, flight }.
+ * - Launchers lock inside LauncherClass lockRange (guide 7554-7595; an
+ *   omitted lockRange is shotSpeed x lifeSpan, which buildProfile stores).
+ * - TAG's leader has to touch the hull: the leader's shotSpeed x lifeSpan.
+ *   Tested before the lobbed branch because TAG weapons also declare aiRange
+ *   (gtagcr_c 160 while leadcr_c reaches 150 x 1.1 = 165 m).
+ * - Lobbed rounds: aiRange when it sits inside the ballistic throw, else the throw.
+ * - Everything else flies shotSpeed x lifeSpan. */
+export function engagementReach(profile, gravity) {
+    if (!profile) return { reach: null, source: null, flight: null };
+    const ord = profile.ord || {};
+    const flight = ord.shotSpeed > 0 && ord.lifeSpan > 0 && ord.lifeSpan < 1e20
+        ? ord.shotSpeed * ord.lifeSpan : null;
+    const id = profile.id;
+    if (id === 'launcher' || id === 'multilock') {
+        const reach = profile.lockRange > 0 ? profile.lockRange : flight;
+        return { reach: reach > 0 ? reach : null, source: reach > 0 ? 'lockRange' : null, flight };
+    }
+    if (id === 'targeting') {
+        const reach = leaderReachOf(profile);
+        return { reach, source: reach ? 'leader' : null, flight };
+    }
+    const lobbed = id === 'mortar' || id === 'detonator' || id === 'popper' || id === 'spray'
+        || (flight != null && flight > LOBBED_FLIGHT);
+    if (lobbed) {
+        const g = Number(gravity) || 0;
+        const speed = ord.shotSpeed || 0;
+        const ballistic = speed > 0 && g > 0 ? (speed * speed) / g : null;
+        const ai = profile.aiRange > 0 ? profile.aiRange : null;
+        if (ai != null && (ballistic == null || ai <= ballistic + EPS)) return { reach: ai, source: 'aiRange', flight };
+        if (ballistic != null) return { reach: ballistic, source: 'ballistic', flight };
+        return { reach: null, source: null, flight };
+    }
+    if (flight > 0) return { reach: flight, source: 'envelope', flight };
+    return { reach: null, source: null, flight };
+}
+
+/* Centre-to-centre opening distance given `floor`, the centre distance at
+ * which the hull boxes clear with SURFACE_MARGIN_M to spare. Lock range is
+ * measured to the centre (the memdump rule). A leader or a direct round opens
+ * with clear air to the hull: 90% of leader reach, START_REACH_FRACTION of a
+ * direct round's reach. OPENING_MAX_M still caps it. */
+export function openingCentre(eng, floor) {
+    const base = Math.max(1, Number(floor) || 1);
+    const cap = Math.max(OPENING_MAX_M, base);
+    if (!eng || !(eng.reach > 0)) return null;
+    if (eng.source === 'lockRange') return Math.max(base, Math.min(cap, eng.reach * 0.9));
+    if (eng.source === 'leader' || eng.source === 'envelope') {
+        const frac = eng.source === 'leader' ? 0.9 : START_REACH_FRACTION;
+        return Math.max(base, Math.min(cap, base - SURFACE_MARGIN_M + eng.reach * frac));
+    }
+    return null;
+}
+
+/* TAG: the pull fires only the leader, so busy is 0 and the missiles are
+ * not the pull. cooldown is the whole cycle: shotDelay, or the leader's
+ * flight plus stickTime ('leader') or the missile burst ('salvo'). */
+function tagWeapon(out, calc, profile) {
+    const reach = leaderReachOf(profile);
+    if (!(reach > 0)) {
+        out.excluded = 'The leader round has no reach.';
+        return out;
+    }
+    const lead = profile.leader;
+    const f = calc.fire;
+    const g = Math.max(1, calc.g || 1);
+    const p = calc.projectile || {};
+    const salvoCount = Math.max(1, profile.tagSalvo || 1);
+    const salvoDelay = Math.max(0, profile.tagSalvoDelay || 0);
+    const firstDelay = Math.max(0, profile.firstDelay || 0);
+    const stickTime = Math.max(0, lead.stickTime || 0);
+    const hold = TAG_RETAG_AFTER === 'salvo' ? firstDelay + (salvoCount - 1) * salvoDelay : stickTime;
+    const cooldown = Math.max(pullCooldown(f.shotDelay, false, 1), lead.lifeSpan + hold);
+    return Object.assign(out, {
+        perHit: calc.perHit,
+        letter: calc.letter,
+        g,
+        alternating: false,
+        barrels: g,
+        shotDelay: f.shotDelay,
+        shotVariance: f.shotVariance || 0,
+        salvoCount,
+        salvoDelay,
+        cooldown,
+        busy: 0,
+        cycle: cooldown,
+        calcInterval: calc.shotInterval,
+        ammoPerRound: calc.ammoPerShot > 0 ? calc.ammoPerShot : 0,
+        reach,
+        reachSource: 'leader',
+        aiRange: p.aiRange != null ? p.aiRange : null,
+        shotSpeed: p.shotSpeed,
+        hitscan: false,
+        lob: false,
+        shotPitch: 0,
+        gravity: 0,
+        homing: true,
+        pulse: false,
+        cap: 0,
+        burst: null,
+        tier: 'estimated',
+        warnings: (calc.warnings || []).slice(),
+        tag: {
+            leaderSpeed: lead.shotSpeed,
+            leaderLife: lead.lifeSpan,
+            leaderAmmo: lead.ammoCost > 0 ? lead.ammoCost : 0,
+            // Planner choice: tag only when the tank can also pay the first
+            // missile volley. The engine would fire a leader on 1 ammo, but a
+            // tag no missile can follow deals nothing.
+            pullAmmo: (lead.ammoCost > 0 ? lead.ammoCost : 0) + g * (calc.ammoPerShot > 0 ? calc.ammoPerShot : 0),
+            stickTime,
+            firstDelay,
+            hold,
+            retag: TAG_RETAG_AFTER,
+        },
+    });
+}
+
 /* One weapon of the switch: o = { key, profile, calc, gravity }. calc is
  * VTWeaponsCalc.weaveInput(); profile is buildProfile() of the same stem. */
 export function weaveWeapon(o) {
@@ -88,6 +223,7 @@ export function weaveWeapon(o) {
     };
     out.excluded = exclusionReason(archetype, calc);
     if (out.excluded) return out;
+    if (archetype === 'targeting') return tagWeapon(out, calc, profile);
     const f = calc.fire;
     const g = Math.max(1, calc.g || 1);
     const lob = LOBBED.has(archetype);
@@ -226,7 +362,9 @@ function earliestFire(s, st, i) {
     if (w.cap && (slot.armed || 0) >= w.cap) return Infinity;
     const sw = st.current >= 0 && st.current !== i ? s.switchSec : 0;
     let t = Math.max(st.now, slot.readyAt || 0, st.freeAt + sw, s.notBefore || 0);
-    const need = w.ammoPerRound;
+    // A TAG pull spends only the leader (each missile pays as it launches),
+    // but waits until the first missile volley is affordable too.
+    const need = w.tag ? w.tag.pullAmmo : w.ammoPerRound;
     if (need > 0) {
         if (need > s.maxAmmo + EPS) return Infinity;
         if (ammoAt(s, st, t) + EPS < need) {
@@ -409,6 +547,49 @@ export function planWeave(o) {
         const w = weapons[i];
         const slot = s.weapons[i];
         const rec = out.weapons[i];
+        if (w.tag) {
+            // The leader leaves on this pull and the player is free at once.
+            // A hit queues salvoCount missiles per hardpoint at firstDelay,
+            // then salvoDelay apart. Every missile pays its ammoCost from the
+            // tank the filler also uses; the planner sets the whole salvo's
+            // ammo aside at the pull so the filler cannot spend it first.
+            const d0 = distanceAt(motion, tPull);
+            const hitAt = tPull + (w.tag.leaderSpeed > 0 ? d0 / w.tag.leaderSpeed : 0);
+            const missileT = w.shotSpeed > 0 ? d0 / w.shotSpeed : 0;
+            let ammo = ammoAt(s, st, tPull) - w.tag.leaderAmmo;
+            rec.ammo += w.tag.leaderAmmo;
+            out.ammoUsed += w.tag.leaderAmmo;
+            let fired = 0;
+            for (let k = 0; k < w.salvoCount; k++) {
+                const tr = hitAt + w.tag.firstDelay + k * w.salvoDelay;
+                let volley = 0;
+                for (let b = 0; b < w.barrels; b++) {
+                    if (w.ammoPerRound > 0) {
+                        if (ammo + EPS < w.ammoPerRound) break;
+                        ammo -= w.ammoPerRound;
+                        rec.ammo += w.ammoPerRound;
+                        out.ammoUsed += w.ammoPerRound;
+                    }
+                    volley += 1;
+                    pending.push({ t: tr + missileT, i, dmg: deal[i], frees: false, t0: tr, d0 });
+                }
+                if (!volley) break;
+                fired += volley;
+            }
+            rec.pulls += 1;
+            rec.rounds += fired;
+            if (rec.firstAt == null) rec.firstAt = tPull;
+            if (out.firstShotAt == null) out.firstShotAt = tPull;
+            if (out.pulls.length < PLAN_MAX_PULLS) out.pulls.push({ t: tPull, index: i, d: d0, rounds: fired });
+            // Inside leader reach the leader flies d / shotSpeed, not its
+            // whole lifeSpan, so the hardpoint frees that much sooner.
+            slot.readyAt = Math.max(tPull + pullCooldown(w.shotDelay, false, 1), hitAt + w.tag.hold);
+            st.ammo = ammo;
+            st.freeAt = tPull;
+            st.current = i;
+            st.now = tPull;
+            continue;
+        }
         let ammo = ammoAt(s, st, tPull);
         let fired = 0;
         for (let k = 0; k < w.salvoCount; k++) {

@@ -2012,10 +2012,10 @@ def run_cockpits(args):
     """Bake cockpit meshes referenced by the model corpus.
 
     The mesh origin is not documented. Measured on ivtank_cockpit (printed
-    below): the shooting range parents the GLB to the camera and subtracts this
-    bbox center so the cockpit sits around the eye. Bank clip names are
-    recorded when the ODF declares them; the baked mesh rarely carries the
-    clips, so the range does not play them.
+    below): the mesh is authored around the pilot's eye, so the shooting range
+    parents the GLB to the camera at its origin and does not subtract the
+    bbox center. Bank clip names are recorded when the ODF declares them; the
+    baked mesh rarely carries the clips, so the range does not play them.
     """
     roots = resolve_roots(args.steam_base)
     msh_index = {}
@@ -2105,7 +2105,7 @@ def run_cockpits(args):
 
     doc = {
         "schema_version": 1,
-        "origin": "bbox center; the range parents the mesh to the camera and subtracts center",
+        "origin": "authored mesh origin at the pilot's eye; the range parents the mesh to the camera without subtracting the bbox center",
         "models": by_model,
         "meshes": mesh_info,
     }

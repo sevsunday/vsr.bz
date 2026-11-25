@@ -1,0 +1,156 @@
+/* In-game HUD pieces shared by the Game Explorer (css/explorer.css) and the
+ * Weapons Lab shooting range (css/weapons.css): the game palette, the
+ * StatusPanel hull / ammo "C" gauge and the WeaponPanel pill rows. Where each
+ * piece sits stays with the page. Markup and geometry: js/explorer/hud.js. */
+
+.vt-xp-hud {
+  /* Game palette, overwritten from data/ui/explorer/palette.json. */
+  --vt-xp-hud-text: var(--kb-text-primary);
+  --vt-xp-hull-ok: var(--kb-success);
+  --vt-xp-hull-warn: var(--kb-warning);
+  --vt-xp-hull-bad: var(--kb-danger);
+  --vt-xp-ammo: var(--kb-info);
+  --vt-xp-radar: var(--kb-info);
+  --vt-xp-panel: color-mix(in srgb, var(--kb-info) 50%, transparent);
+  /* bzgame_*.cfg pixel geometry, scaled for modern displays. */
+  --vt-xp-scale: 1.35;
+  font-family: var(--vt-font-system, system-ui, sans-serif);
+  color: var(--vt-xp-hud-text);
+}
+
+/* The box is the SVG viewBox (GAUGE_W x GAUGE_H in js/explorer/hud.js) in
+ * scaled px, so one viewBox unit is one px * scale. */
+.vt-xp-gaugepanel {
+  position: absolute;
+  width: calc(164px * var(--vt-xp-scale));
+  height: calc(90px * var(--vt-xp-scale));
+}
+
+.vt-xp-gauge {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Left half of a wide oval: a dark track under tick-dashed fills. */
+.vt-xp-gauge-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--kb-bg-body) 60%, transparent);
+  stroke-width: 13;
+  stroke-linecap: butt;
+}
+
+.vt-xp-gauge-hull,
+.vt-xp-gauge-ammo {
+  fill: none;
+  stroke-width: 13;
+  stroke-linecap: butt;
+  stroke-dasharray: 4.2 1.3;
+}
+
+.vt-xp-gauge-hull { stroke: var(--vt-xp-hull-ok); }
+.vt-xp-gauge-hull.is-warn { stroke: var(--vt-xp-hull-warn); }
+.vt-xp-gauge-hull.is-bad { stroke: var(--vt-xp-hull-bad); }
+.vt-xp-gauge-ammo { stroke: var(--vt-xp-ammo); }
+
+/* Numbers sit just right of the open ends (GAUGE_CX + the half stroke),
+ * clear of the arc. */
+.vt-xp-hull-text,
+.vt-xp-ammo-text {
+  position: absolute;
+  left: calc(123px * var(--vt-xp-scale));
+  width: calc(40px * var(--vt-xp-scale));
+  text-align: left;
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-size: calc(12px * var(--vt-xp-scale));
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--vt-xp-hud-text);
+  text-shadow: 0 0 2px var(--kb-bg-body);
+}
+
+.vt-xp-hull-text { top: calc(50% - 13px * var(--vt-xp-scale)); }
+.vt-xp-ammo-text { top: calc(50% + 2px * var(--vt-xp-scale)); }
+
+.vt-xp-weapons {
+  width: calc(128px * var(--vt-xp-scale));
+  display: flex;
+  flex-direction: column;
+  gap: calc(3px * var(--vt-xp-scale));
+}
+
+/* Pill rows: a circular icon badge overlapping the left edge, name, shots. */
+.vt-xp-wpn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: calc(3px * var(--vt-xp-scale));
+  height: calc(16px * var(--vt-xp-scale));
+  margin-left: calc(8px * var(--vt-xp-scale));
+  padding: 0 calc(5px * var(--vt-xp-scale)) 0 calc(12px * var(--vt-xp-scale));
+  border-radius: calc(8px * var(--vt-xp-scale));
+  background: color-mix(in srgb, var(--kb-bg-body) 62%, transparent);
+  color: var(--vt-xp-hud-text);
+  font-size: calc(9px * var(--vt-xp-scale));
+  line-height: 1;
+  opacity: 0.92;
+}
+
+.vt-xp-wpn.is-on {
+  opacity: 1;
+  background: var(--vt-xp-hull-ok);
+  color: var(--kb-bg-body);
+}
+
+.vt-xp-wpn.is-on .vt-xp-wpn-name,
+.vt-xp-wpn.is-on .vt-xp-wpn-shots {
+  text-shadow: none;
+}
+
+.vt-xp-wpn.is-empty {
+  opacity: 0.5;
+}
+
+.vt-xp-wpn-badge {
+  position: absolute;
+  left: calc(-8px * var(--vt-xp-scale));
+  top: calc(-1px * var(--vt-xp-scale));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(18px * var(--vt-xp-scale));
+  height: calc(18px * var(--vt-xp-scale));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--kb-bg-body) 85%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vt-xp-hud-text) 45%, transparent);
+}
+
+.vt-xp-wpn.is-on .vt-xp-wpn-badge {
+  border-color: var(--vt-xp-hull-ok);
+}
+
+.vt-xp-wpn-badge img {
+  width: calc(13px * var(--vt-xp-scale));
+  height: calc(13px * var(--vt-xp-scale));
+  object-fit: contain;
+}
+
+.vt-xp-wpn-name {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.vt-xp-wpn-shots {
+  min-width: calc(26px * var(--vt-xp-scale));
+  text-align: right;
+  font-family: var(--vt-font-mono, ui-monospace, monospace);
+  font-variant-numeric: tabular-nums;
+}
+
+.vt-xp-wpn.is-empty .vt-xp-wpn-shots {
+  font-size: calc(11px * var(--vt-xp-scale));
+}

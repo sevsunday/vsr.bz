@@ -470,6 +470,9 @@
                 lockDelay: isLauncher ? (val('lockdelay', true) || 0) : 0,
                 lockRange: num(merged.lockrange, null),
                 targetCount: num(merged.targetcount, null),
+                // LauncherClass coneAngle in radians (guide default 1.5707), as
+                // js/fx/weapon-profile.js reads it.
+                coneAngle: isLauncher ? num(prop(rec, 'LauncherClass', 'coneAngle'), 1.5707) : null,
                 defaulted,
             };
         }
@@ -563,6 +566,7 @@
             let ammoCost = null;
             let ammoUnit = null;
             let projectile = null;
+            let leaderRange = null;
             const aiRange = num(wc.airange, null);
 
             const projectileFor = (o, defaulted) => {
@@ -778,7 +782,12 @@
                         let leader = ord.sec('LeaderRoundClass') ? ord : null;
                         if (terminal === 'targeting') {
                             const lead = ordnanceView(prop(rec, 'TargetingGunClass', 'leaderName'), null);
-                            if (lead && !lead.missing) leader = lead;
+                            if (lead && !lead.missing) {
+                                leader = lead;
+                                const sp = ordValue(lead, 'OrdnanceClass', 'shotspeed', null);
+                                const life = ordValue(lead, 'OrdnanceClass', 'lifespan', null);
+                                if (sp != null && life != null && life < 1e20) leaderRange = sp * life;
+                            }
                         }
                         if (leader) {
                             const lv = dmgValues(leader.sec('LeaderRoundClass'));
@@ -811,8 +820,18 @@
                         notes.push('Each volley fires ' + fire.salvoCount + ' ' + ord.stem + ' after the leader lands; the cycle adds firstDelay (' + fmt(fire.firstDelay) + ' s) and ignores leader flight time.');
                         if (leadAmmo) notes.push('Leader round ammo (' + fmt(leadAmmo) + ' per volley) is not included.');
                     }
-                    if (fire.lockDelay > 0) notes.push('Fire rate ignores the ' + fmt(fire.lockDelay) + ' s lock-on time.');
+                    if (fire.lockDelay > 0) {
+                        notes.push('A lock takes lockDelay x (targetCount - 1) / targetCount, divided by the target\'s image, heat or radar signature for this launcher. Every release needs a fresh lock, so time to kill adds one lock before the first shot and waits max(cycle, lock) between shots. That cadence is estimated; DPS ignores the lock.');
+                    }
                 }
+            }
+
+            // LauncherClass loader: an omitted lockRange is the round's own
+            // shotSpeed x lifeSpan (the guide's 0 is not what the engine stores).
+            // Same default as js/fx/weapon-profile.js.
+            if (LAUNCHER_TERMINALS.has(terminal) && fire.lockRange == null
+                && projectile && projectile.range > 0 && projectile.range < 1e12) {
+                fire.lockRange = projectile.range;
             }
 
             if (fire.initialShotDelay > 0) {
@@ -843,6 +862,7 @@
                 ammoUnit,
                 projectile,
                 ordnance: ord ? ord.stem : null,
+                leaderRange,
                 notes,
                 warnings,
             };
@@ -1211,14 +1231,20 @@
             const info = unitInfo(rec.stem);
             const go = sec(rec, 'GameObjectClass') || {};
             const mt = sec(rec, 'MorphTankClass');
-            const deployed = !!(opts && opts.deployed && mt);
+            // A TurretTankClass unit (Turret, Guardian, Xyr Guard, Sentinel)
+            // only fires deployed and cannot move while it is, so the lab
+            // treats it as always deployed.
+            const turret = !mt && !!sec(rec, 'TurretTankClass');
+            const deployed = turret || !!(opts && opts.deployed && mt);
             let maxAmmo = num(go.maxammo, 0);
             let addAmmo = num(go.addammo, 0);
-            if (deployed) {
+            if (deployed && mt) {
                 maxAmmo = num(mt.maxammo, maxAmmo);
                 addAmmo = num(mt.addammo, addAmmo);
             }
-            const drive = driveSpeed(rec, deployed);
+            let maxHealth = num(go.maxhealth, 0);
+            if (deployed && mt) maxHealth = num(mt.maxhealth, maxHealth);
+            const drive = turret ? null : driveSpeed(rec, deployed);
             return {
                 stem: rec.stem,
                 name: info.name,
@@ -1226,13 +1252,29 @@
                 faction: info.faction,
                 thumb: info.thumb,
                 canDeploy: !!mt,
+                alwaysDeployed: turret,
                 deployed,
+                maxHealth,
                 maxAmmo,
                 addAmmo,
                 velocForward: drive ? drive.speed : null,
                 velocSource: drive ? drive.source : null,
                 hardpoints: parseHardpoints(rec, deployed),
             };
+        }
+
+        // A GameObjectClass number, following classLabel when the ODF omits it.
+        function goNum(rec, key, fallback) {
+            const seen = new Set();
+            let cur = rec;
+            while (cur && !seen.has(cur.stem)) {
+                seen.add(cur.stem);
+                const raw = prop(cur, 'GameObjectClass', key);
+                if (raw != null && String(raw).trim() !== '') return num(raw, fallback);
+                const parent = refStem(prop(cur, 'GameObjectClass', 'classLabel'));
+                cur = parent ? unitRec(parent) : null;
+            }
+            return fallback;
         }
 
         function target(stem, opts) {
@@ -1258,6 +1300,7 @@
                 faction: info.faction,
                 thumb: info.thumb,
                 canDeploy: !!mt,
+                alwaysDeployed: !mt && !!sec(rec, 'TurretTankClass'),
                 deployed,
                 armorClass: info.armorClass,
                 shieldClass,
@@ -1267,6 +1310,11 @@
                 addHealth,
                 // GameObjectClass allowMDMCollisionDetonation (guide default -1 = auto).
                 mdmRule: Math.round(num(go.allowmdmcollisiondetonation, -1)),
+                // Guide 1590-1597, default 1.0. An authored 0 stays 0: that
+                // launcher never locks this unit.
+                imageSignature: goNum(rec, 'imagesignature', 1),
+                heatSignature: goNum(rec, 'heatsignature', 1),
+                radarSignature: goNum(rec, 'radarsignature', 1),
             };
         }
 
@@ -1561,6 +1609,26 @@
                 }
             }
 
+            let lock = null;
+            if (f.lockDelay > 0) {
+                const lt = lockTime(v, tg);
+                if (lt) {
+                    lock = Object.assign({}, lt, {
+                        lockDelay: f.lockDelay,
+                        stages: f.targetCount > 1 ? f.targetCount : 0,
+                        lockRange: f.lockRange,
+                        coneAngle: f.coneAngle,
+                        targetSet: !!tg,
+                    });
+                    const baseText = lock.stages > 1
+                        ? 'lockDelay ' + fmt(f.lockDelay) + ' x (' + lock.stages + ' - 1) / ' + lock.stages + ' = ' + fmt(lock.base) + ' s'
+                        : 'lockDelay ' + fmt(f.lockDelay) + ' s';
+                    if (!lock.signature) explain.lock = baseText + ' (a base launcher reads no signature)';
+                    else if (lock.never) explain.lock = baseText + '; ' + lock.signature + 'Signature 0 never locks';
+                    else explain.lock = baseText + ' / ' + lock.signature + 'Signature ' + fmt(lock.signatureValue) + ' = ' + fmt(lock.seconds) + ' s';
+                }
+            }
+
             const ttk = {
                 maxHealth: tg ? tg.maxHealth : null,
                 addHealth: tg ? tg.addHealth : null,
@@ -1570,6 +1638,8 @@
                 tankFraction: null,
                 effectiveDps: null,
                 cannotOutdamage: false,
+                lockSec: null,
+                estimated: false,
             };
             if (tg && dps != null) {
                 const hp = tg.maxHealth;
@@ -1584,11 +1654,28 @@
                     const initial = f.initialShotDelay || 0;
                     ttk.hitsToKill = Math.ceil(hp / perHit);
                     ttk.shotsToKill = Math.ceil(ttk.hitsToKill / roundsPerShot);
-                    ttk.seconds = initial + (ttk.shotsToKill - 1) * (interval || 0);
+                    const gapName = alternating ? 'interval ' : 'cycle ';
+                    if (lock && lock.never) {
+                        ttk.seconds = Infinity;
+                        ttk.estimated = true;
+                        warnings.push(v.name + ' never locks ' + tg.name + ' (' + lock.signature + 'Signature 0), so it cannot finish the kill as a guided weapon.');
+                        explain.ttk = lock.signature + 'Signature 0: the lock never completes.';
+                    } else if (lock) {
+                        // Every release clears the lock, so each shot waits for
+                        // the slower of the fire cycle and a fresh lock.
+                        const gap = Math.max(interval || 0, lock.seconds);
+                        ttk.lockSec = lock.seconds;
+                        ttk.estimated = true;
+                        ttk.seconds = initial + lock.seconds + (ttk.shotsToKill - 1) * gap;
+                        explain.ttk = (initial > 0 ? 'InitialShotDelay ' + fmt(initial) + ' s + ' : '')
+                            + 'lock ' + fmt(lock.seconds) + ' s + (shots ' + ttk.shotsToKill + ' - 1) x max(' + gapName + fmt(interval) + ' s, lock ' + fmt(lock.seconds) + ' s) = ' + fmt(ttk.seconds) + ' s (estimated)';
+                    } else {
+                        ttk.seconds = initial + (ttk.shotsToKill - 1) * (interval || 0);
+                        explain.ttk = (initial > 0 ? 'InitialShotDelay ' + fmt(initial) + ' s + ' : '')
+                            + '(shots ' + ttk.shotsToKill + ' - 1) x ' + gapName + fmt(interval) + ' s = ' + fmt(ttk.seconds) + ' s';
+                    }
                     explain.hitsToKill = 'ceil(maxHealth ' + fmt(hp) + ' / ' + fmt(perHit) + ') = ' + ttk.hitsToKill;
                     explain.shotsToKill = shotGroupPhrase(f, g, roundsPerShot) + '. ceil(' + ttk.hitsToKill + ' / ' + roundsPerShot + ') = ' + ttk.shotsToKill;
-                    explain.ttk = (initial > 0 ? 'InitialShotDelay ' + fmt(initial) + ' s + ' : '')
-                        + '(shots ' + ttk.shotsToKill + ' - 1) x ' + (alternating ? 'interval ' : 'cycle ') + fmt(interval) + ' s = ' + fmt(ttk.seconds) + ' s';
                     if (sh && v.ammoMode === 'perShot' && shotCost > 0 && sh.maxAmmo > 0) {
                         ttk.tankFraction = ttk.hitsToKill * shotCost / sh.maxAmmo;
                         explain.tankFraction = ttk.hitsToKill + ' x ' + fmt(shotCost) + ' ammo / maxAmmo ' + fmt(sh.maxAmmo) + ' = ' + fmt(ttk.tankFraction * 100, 0) + '%';
@@ -1669,6 +1756,7 @@
                 dps,
                 ammo,
                 ttk,
+                lock,
                 projectile: p ? Object.assign({
                     salvoCount: f.salvoCount, salvoDelay: f.salvoDelay, shotDelay: f.shotDelay,
                     shotVariance: f.shotVariance, lockDelay: f.lockDelay, lockRange: f.lockRange,
@@ -1746,9 +1834,57 @@
             };
         }
 
+        // Which target signature a launcher terminal locks on. Mirrors
+        // lockSignatureOf() in js/fx/weapon-profile.js.
+        function lockSignatureName(terminal) {
+            if (terminal === 'thermallauncher') return 'heat';
+            if (terminal === 'radarlauncher' || terminal === 'torpedolauncher') return 'radar';
+            if (terminal === 'imagelauncher' || terminal === 'multilauncher') return 'image';
+            return null;
+        }
+
+        // lockDelay x (targetCount - 1) / targetCount / signature (0x0061E6CD
+        // stage interval, vtable +0x16C accumulate). A base launcher has no
+        // signature term. Signature 0 never completes.
+        function lockTime(weapon, targetUnit) {
+            const v = typeof weapon === 'string' ? variant(weapon) : weapon;
+            const t = typeof targetUnit === 'string' ? target(targetUnit) : targetUnit;
+            if (!v || !v.fire || !(v.fire.lockDelay > 0)) return null;
+            const stages = v.fire.targetCount > 1 ? v.fire.targetCount : 0;
+            const base = stages > 1 ? v.fire.lockDelay * (stages - 1) / stages : v.fire.lockDelay;
+            const signature = lockSignatureName(v.terminal);
+            if (!signature) return { seconds: base, never: false, signature: null, signatureValue: 1, base };
+            const raw = t ? t[signature + 'Signature'] : null;
+            const value = raw != null && Number.isFinite(Number(raw)) ? Number(raw) : 1;
+            if (!(value > 0)) return { seconds: null, never: true, signature, signatureValue: value, base };
+            return { seconds: base / value, never: false, signature, signatureValue: value, base };
+        }
+
+        // Mirror of engagementReach() in js/weapons-weave.js, on the
+        // calculator's variant (this file cannot import that module).
+        function engagementOf(weapon) {
+            const v = typeof weapon === 'string' ? variant(weapon) : weapon;
+            if (!v) return { reach: null, source: null, flight: null };
+            const p = v.projectile;
+            const flight = p && p.range > 0 && p.range < 1e12 && !p.lobbed ? p.range : null;
+            if (LAUNCHER_TERMINALS.has(v.terminal) && v.terminal !== 'torpedolauncher') {
+                const reach = v.fire && v.fire.lockRange > 0 ? v.fire.lockRange : flight;
+                return { reach: reach || null, source: reach ? 'lockRange' : null, flight };
+            }
+            if (v.terminal === 'targeting') {
+                const reach = v.leaderRange > 0 ? v.leaderRange : null;
+                return { reach, source: reach ? 'leader' : null, flight };
+            }
+            if (p && p.lobbed) {
+                return p.aiRange > 0 ? { reach: p.aiRange, source: 'aiRange', flight } : { reach: null, source: 'lobbed', flight };
+            }
+            return { reach: flight, source: flight ? 'envelope' : null, flight };
+        }
+
         const ctx = {
             scope, families, familiesIn, weaponStemsFor, packOf, units, family, variant, shooter, target, unitInfo,
             resolveVariant, fittingVariants, defaultWeapon, damageLetter, compute, computeGroup, weaveInput,
+            lockTime, engagementOf,
             reticleFrame: (name) => (reticleFrames && reticleFrames[name]) || null,
             hasReticles: !!reticleFrames,
         };

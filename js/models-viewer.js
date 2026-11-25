@@ -3368,6 +3368,87 @@ export class ObjectViewer {
 
   isDriveDeployed() { return this._driveDeployed; }
 
+  /* Shooting range: hold the `deploy` clip's last frame (deployed) or the
+   * bind pose, with no drive machinery. Returns false when the model has no
+   * deploy clip. */
+  setDeployPose(on) {
+    const name = this._findClip('deploy');
+    if (!name || !this._mixer || !this._actions[name]) return false;
+    this._stopBankPoses();
+    if (this._activeAction) { this._activeAction.stop(); this._activeAction = null; }
+    this._rebaseArticulation(true);
+    if (!on) {
+      this._mixer.setTime(0);
+      return true;
+    }
+    const action = this._actions[name];
+    action.reset();
+    action.setEffectiveWeight(1);
+    action.setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = true;
+    action.play();
+    action.time = action.getClip().duration;
+    action.paused = true;
+    this._activeAction = action;
+    this._mixer.update(0);
+    // The clip also turns the aim joints (the ISDF Turret's turret_y goes
+    // from +90 deg folded to level), so aim and recoil compose on this pose.
+    this._rebaseArticulation(false);
+    return true;
+  }
+
+  /* Aim joints and recoil nodes take their current transform as rest, or
+   * (`bind`) go back to the load-time rest. */
+  _rebaseArticulation(bind) {
+    const joints = this._artYawNodes.concat(this._artPitchNodes, this._artHeadNode ? [this._artHeadNode] : []);
+    for (const n of joints) {
+      const u = n.userData;
+      if (!u._restQuat) continue;
+      if (!u._bindQuat) u._bindQuat = u._restQuat.clone();
+      if (bind) {
+        u._restQuat.copy(u._bindQuat);
+        n.quaternion.copy(u._bindQuat);
+      } else {
+        u._restQuat.copy(n.quaternion);
+      }
+    }
+    for (const rec of this._artRecoil) {
+      if (!rec.bindPos) rec.bindPos = rec.restPos.clone();
+      if (bind) {
+        rec.restPos.copy(rec.bindPos);
+        rec.node.position.copy(rec.bindPos);
+      } else {
+        rec.restPos.copy(rec.node.position);
+        rec.axis.copy(ART_LOCAL_Z).applyQuaternion(rec.node.quaternion).normalize();
+      }
+    }
+  }
+
+  /* Can the turret (or a walker head) turn to aim? */
+  canAimTurret() {
+    return !!(this._artYawNodes.length || this._artHeadNode);
+  }
+
+  /* Can a turret pitch joint (or a walker head) raise the gun? */
+  canPitchAim() {
+    return this._hasPitch();
+  }
+
+  /* Shooting range, for guns fixed to the hull: turn the whole hull about
+   * the vertical through its pivot (yaw), then tilt the nose about the
+   * hull's own side axis (pitch, positive = nose up). */
+  setRangeShipAim(yaw, pitch) {
+    if (!this._spin) return;
+    const fwd = new THREE.Vector3(0, 0, -1);
+    if (this._model) fwd.applyQuaternion(this._model.quaternion);
+    fwd.y = 0;
+    if (fwd.lengthSq() < 1e-8) fwd.set(0, 0, -1);
+    fwd.normalize();
+    const side = new THREE.Vector3().crossVectors(fwd, SPIN_UP).normalize();
+    const tilt = new THREE.Quaternion().setFromAxisAngle(side, pitch || 0);
+    this._spin.quaternion.setFromAxisAngle(SPIN_UP, yaw || 0).multiply(tilt);
+  }
+
   /* Play (or stop) the drive-managed clip. `loop = true` for cyclic gaits
    * (walk / run / turn / idle); `loop = false` for POSE clips (the hover bank
    * set) which play once and HOLD the final frame -- responsive lean, no
