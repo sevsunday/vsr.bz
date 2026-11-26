@@ -65,9 +65,9 @@
 
   const DELTA_R_STEPS = [
     { term: 'eq-perf', title: 'Your match score', x: 8, y: 63,
-      body: 'Your share of the damage your lobby did to the enemy &mdash; players, scavs, extractors, AI units and buildings, every point paid the same &mdash; measured against everyone in the lobby.' },
+      body: 'Your share of the damage your lobby did to the enemy &mdash; players, scavs, extractors, AI units and buildings, every point paid the same &mdash; measured against everyone in the lobby. Damage to buildings in the last three minutes is left out: that is the winners knocking down a beaten base.' },
     { term: 'eq-exp', title: 'The expected bar', x: 63, y: 63,
-      body: 'What a player at your current rating was predicted to score against this exact lobby. The higher your rating, the higher the bar.' },
+      body: 'What a player at your current rating was predicted to score against the other team in this match. The higher your rating, and the weaker the opposition, the higher the bar. Your teammates do not move it.' },
     { term: 'eq-gap', title: 'The surprise', x: 70, y: 5,
       body: 'Beat the prediction and this is positive; fall short and it&rsquo;s negative. Play exactly to expectations and it&rsquo;s roughly zero.' },
     { term: 'eq-k', title: 'Move speed', x: 36, y: 5,
@@ -424,19 +424,20 @@
       <p class="mb-0 text-muted small">A commander who fights <em>and</em> commands earns extra credit naturally because the bar dropped.</p>`;
   }
 
-  // Worked example (real numbers from data/processed/elo_history.json:
-  // Domakus 2026-05-08T23-46-02 — before=1790.45, after=1818.78,
-  // delta=+28.33, performance=+0.8895, expected=+0.3865, K back-solved
-  // = 28.33 / (2.5 * 0.5030) = 22.53). Re-read that history entry after
-  // any re-rate; the values shift even though the story doesn't.
+  // Worked example (real numbers from data/processed/elo_history.json,
+  // ELO_SCHEMA_VERSION 22: Domakus 2026-10-09T01-20-18 — before=1946.67,
+  // after=1967.88, delta=+21.21, performance=+0.9509, expected=+0.4320,
+  // K back-solved = 21.21 / (2.5 * 0.5189) = 16.35). Re-read that history
+  // entry after any re-rate; the values shift even though the story
+  // doesn't. Gate: _investigation/check_explainer_examples.mjs.
   function workedExampleHtml() {
-    return `<p class="mb-2">In a recent <strong>Domakus</strong> match, his VSR-T moved from <strong>1790.5</strong> to <strong>1818.8</strong> (+28.3).</p>
+    return `<p class="mb-2">In a recent <strong>Domakus</strong> match, his VSR-T moved from <strong>1946.7</strong> to <strong>1967.9</strong> (+21.2).</p>
       <ul class="mb-2">
-        <li>Match performance: <strong>+0.89</strong> (top of the lobby &mdash; the scale runs roughly &minus;1 to +1, where 0 is an average game)</li>
-        <li>Expected: <strong>+0.39</strong> (already a high-rated player &mdash; the bar was high)</li>
-        <li>Move speed (K): <strong>~23</strong> (settled veteran)</li>
+        <li>Match performance: <strong>+0.95</strong> (top of the lobby &mdash; the scale runs roughly &minus;1 to +1, where 0 is an average game)</li>
+        <li>Expected: <strong>+0.43</strong> (already a high-rated player &mdash; the bar was high)</li>
+        <li>Move speed (K): <strong>~16</strong> (settled veteran)</li>
       </ul>
-      <p class="mb-0">He beat the bar by +0.50, his move speed scaled that surprise, and the rating ticked up &mdash; the three steps of the formula, with real numbers.</p>`;
+      <p class="mb-0">He beat the bar by +0.52, his move speed scaled that surprise, and the rating ticked up &mdash; the three steps of the formula, with real numbers.</p>`;
   }
 
   // ------------------------------------------------------------------
@@ -444,9 +445,10 @@
   // VSR-C pill (it sits above the ladder table). Deliberately NOT an
   // annotated stage (scope control): a plain pre-rendered KaTeX handicap
   // formula + the mirror-blend story + a worked example with real corpus
-  // numbers (elo_commander_history.json, 2026-08-23T03-25-36 Oldboy:
-  // team_handicap.diff=64.85, F9bomber before 1578.49 expected 0.7007
-  // delta -14.01, mort before 1495.55 expected 0.2993 delta +14.01.
+  // numbers (elo_commander_history.json, CMDR_ELO_SCHEMA_VERSION 15,
+  // 2026-08-23T03-25-36 Oldboy: team_handicap.diff=23.67, F9bomber
+  // before 1607.44 expected 0.6895 delta -13.79, mort before 1492.49
+  // expected 0.3105 delta +13.79.
   // Re-read that duel after any re-rate; the values shift even though
   // the story doesn't).
   // Returns '' while KaTeX is still loading (callers render it after
@@ -463,7 +465,7 @@
       <p class="mb-2"><em>R</em> is each commander&rsquo;s rating; <em>T</em> is each team&rsquo;s average thug rating (their pre-match VSR-T); <em>&lambda;</em> converts a thug-team edge into rating points (currently 1:1 &mdash; a 100-point average-thug advantage counts like 100 rating points). Winning with the weaker roster pays big; losing with it barely costs.</p>
       <p class="mb-2">The ladder&rsquo;s history also includes hundreds of <strong>hand-logged community duels</strong> from <a href="https://f9bomber.com" target="_blank" rel="noopener">F9bomber</a>&rsquo;s match ledger (2025 onward, 3v3/4v4/5v5 only, deduplicated against our own recordings &mdash; a recorded match always supersedes the ledger). They rate at the same K as recorded duels; the thug handicap applies whenever the players involved already had ratings at that point in history, and reads zero before the rating era began &mdash; exactly like our own earliest matches. Community-sourced duels are tagged on every ladder row and duel log.</p>
       <p class="mb-2">Since the proto-v4 collector, every duel also records a <strong>commander economy read</strong> against the other commander, measured across the whole game: pools held, time the scrap bank spent out of green, scrap spent on real combat ships (empty scouts and empty Xypos excluded), and upgrades held. Three further readouts &mdash; ships built per ship lost, the same without empty scouts, and loose share (across the whole match, how much of the scrap earned was loose collected by scavengers) &mdash; are shown and not scored. The blend weight &alpha;<sub>c</sub> sits at 1 (outcome-pure). It stays there until a fresh sample, recorded after 23 Oct 2026, clears a pre-registered rule that asks for more than &ldquo;the leader of the stat also won that match.&rdquo; The formula can&rsquo;t be tuned to fit the matches that judge it. The first real telemetry match is the humility anchor: the composite pointed at the commander who lost.</p>
-      <p class="mb-0 text-muted small">Real example: in the 2026-08-23 Oldboy match, F9bomber was already the higher-rated commander (1578 vs 1496) and his thugs averaged <strong>+65 stronger</strong>, so he was the <strong>70% favorite</strong>. He lost anyway: <strong>&minus;14.0</strong> for the stacked favorite, <strong>+14.0</strong> for mort. New commanders move fast (K decays 40 &rarr; 20 over the first 5 duels) and stay <strong>provisional</strong> below 5 rated games. A ranked <code>#</code> additionally requires <strong>8 proto-v4 games or 25 older games</strong> (pre-v4 recordings and F9Stats), a game within 90 days of the newest match, and a command game within 90 days (or 3 commander games after going stale while still thugging); everyone else stays visible in the Unranked table.</p>`;
+      <p class="mb-0 text-muted small">Real example: in the 2026-08-23 Oldboy match, F9bomber was already the higher-rated commander (1607 vs 1492) and his thugs averaged <strong>+24 stronger</strong>, so he was the <strong>69% favorite</strong>. He lost anyway: <strong>&minus;13.8</strong> for the favorite, <strong>+13.8</strong> for mort. New commanders move fast (K decays 40 &rarr; 20 over the first 5 duels) and stay <strong>provisional</strong> below 5 rated games. A ranked <code>#</code> additionally requires <strong>8 proto-v4 games or 25 older games</strong> (pre-v4 recordings and F9Stats), a game within 90 days of the newest match, and a command game within 90 days (or 3 commander games after going stale while still thugging); everyone else stays visible in the Unranked table.</p>`;
   }
 
   // ------------------------------------------------------------------

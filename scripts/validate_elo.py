@@ -123,7 +123,7 @@ from typing import Any
 # Constants
 # ---------------------------------------------------------------------------
 
-VALIDATOR_VERSION = 12  # v1.12: VTSR-2v2 prediction replay (#23)
+VALIDATOR_VERSION = 13  # v1.13: joint-model switch test (#24)
 
 # 2026-10-23 VTSR-C amendment. Confirmation duels are dated strictly after
 # this day. Mirrors elo_commander.ECON_SEMANTICS_AMENDED_ON; the history
@@ -2002,6 +2002,46 @@ def _softmax_mean(values: list[float], tau: float) -> float | None:
     if total <= 0:
         return sum(values) / len(values)
     return sum(v * w for v, w in zip(values, weights)) / total
+
+
+def metric_joint_model(processed_dir: Path) -> dict[str, Any]:
+    """#24 -- the joint commanding-and-fighting model's switch test.
+
+    Pre-registered in ``critique/decisions/joint-skill-model.md``. This
+    function scores nothing itself: it reads the append-only prediction
+    ledger (``data/joint_test_ledger.json``) through
+    ``joint_test.score_ledger`` and reports where the test stands
+    (``not_started`` / ``running`` / ``passed`` / ``withdrawn`` /
+    ``ended``), plus the forensic model's size from
+    ``elo_joint_current.json`` when that file exists. Absent-safe.
+    """
+    try:
+        import joint_test
+    except Exception as exc:  # noqa: BLE001
+        return {"available": False,
+                "skipped_reason": f"joint_test unavailable ({exc})"}
+    out = joint_test.score_ledger(joint_test.load_ledger())
+    out["memo"] = "critique/decisions/joint-skill-model.md"
+    model: dict[str, Any] = {"available": False}
+    current_path = processed_dir / "elo_joint_current.json"
+    if current_path.exists():
+        try:
+            cur = _load_json(current_path)
+            model = {
+                "available": True,
+                "config_hash": cur.get("config_hash"),
+                "games": cur.get("games"),
+                "recorded_games": cur.get("recorded_games"),
+                "damage_rows": cur.get("damage_rows"),
+                "parameters": cur.get("parameters"),
+                "current_block": cur.get("current_block"),
+                "players": len(cur.get("ratings") or []),
+                "computed_at": cur.get("computed_at"),
+            }
+        except Exception as exc:  # noqa: BLE001
+            model = {"available": False, "skipped_reason": str(exc)}
+    out["model"] = model
+    return out
 
 
 def metric_cmdr_t_term(
@@ -5620,6 +5660,51 @@ def render_markdown_report(
         lines.append("- " + (fg.get("skipped_reason") or "unavailable"))
     lines.append("")
 
+    # §24 -- joint-model switch test (v1.13).
+    jm = results.get("joint_model") or {}
+    lines.append("## §24 — Joint model switch test (v1.13)")
+    lines.append("")
+    lines.append(
+        "Pre-registered in `critique/decisions/joint-skill-model.md`. Scored "
+        "from the append-only ledger `data/joint_test_ledger.json`: for every "
+        "recorded duel dated after the freeze, the joint model's, the frozen "
+        "baseline's and the live formula's win chance as first computed. "
+        "Gain = baseline log-loss minus joint log-loss per duel."
+    )
+    lines.append("")
+    if jm.get("available"):
+        model = jm.get("model") or {}
+        lines.append(f"- **Status:** **{jm.get('status')}**"
+                     + (f" — next look at {jm.get('next_look')} duels" if jm.get("next_look") else ""))
+        lines.append(f"- **Freeze date:** {jm.get('freeze_date') or 'memo not signed'}; "
+                     f"**duels logged:** {jm.get('duels')}; looks at {jm.get('looks_at')}, "
+                     f"pass at {jm.get('pass_se')} SE")
+        if model.get("available"):
+            lines.append(f"- **Forensic model:** {model.get('games')} games "
+                         f"({model.get('recorded_games')} recorded), {model.get('damage_rows')} damage rows, "
+                         f"{model.get('parameters')} parameters, block {model.get('current_block')}, "
+                         f"settings `{model.get('config_hash')}`")
+        run = jm.get("running") or {}
+        if run:
+            lines.append(f"- **So far (n={run.get('n')}):** gain {_fmt_num(run.get('gain'), 4)} "
+                         f"± {_fmt_num(run.get('gain_se'), 4)} (z {_fmt_num(run.get('z'), 2)}); log-loss joint "
+                         f"{_fmt_num(run.get('log_loss_joint'), 4)}, baseline {_fmt_num(run.get('log_loss_baseline'), 4)}, "
+                         f"live {_fmt_num(run.get('log_loss_live'), 4)}; winners called "
+                         f"{_fmt_pct(run.get('accuracy_joint'))} vs {_fmt_pct(run.get('accuracy_baseline'))}; "
+                         f"calibration slope {_fmt_num(run.get('calibration_slope'), 2)} "
+                         f"± {_fmt_num(run.get('calibration_slope_se'), 2)}")
+        if jm.get("looks"):
+            lines.append("")
+            lines.append("| look | gain ± SE | z | over-confident | ahead of live | passed | withdraw |")
+            lines.append("|---|---|---|---|---|---|---|")
+            for lk in jm["looks"]:
+                lines.append(f"| {lk.get('look')} | {_fmt_num(lk.get('gain'), 4)} ± {_fmt_num(lk.get('gain_se'), 4)} "
+                             f"| {_fmt_num(lk.get('z'), 2)} | {lk.get('over_confident')} | {lk.get('ahead_of_live')} "
+                             f"| {lk.get('passed')} | {lk.get('withdraw')} |")
+    else:
+        lines.append("- " + (jm.get("skipped_reason") or "unavailable"))
+    lines.append("")
+
     # Active weights footer.
     lines.append("## Active weights")
     lines.append("")
@@ -5693,9 +5778,13 @@ def render_json_report(
     schema_version 14: ``vtsr_2v2`` drops ``win_loss_recorded`` /
     ``win_loss_f9`` (the 2v2 ladders became recorded-only, so
     ``win_loss`` is the recorded figure).
+    schema_version 15 (v1.13, joint model): adds top-level
+    ``joint_model`` (#24 -- the switch test's state, read from the
+    prediction ledger). Additive; mirrored as
+    ``latest_detail.joint_model`` in validation_summary.json.
     """
     return {
-        "schema_version":   14,
+        "schema_version":   15,
         "validator_version": VALIDATOR_VERSION,
         "weights":          weights,
         **results,
@@ -5888,6 +5977,9 @@ def write_validation_summary(results: dict, processed_dir: Path) -> Path:
             # v1.5: one row per determined match. The page computes
             # cumulative and rolling-30 itself. Absent on older summaries.
             "accuracy_timeline": cwa.get("accuracy_timeline") or [],
+            # v1.13: the joint model's switch test (status, duels logged,
+            # looks). The preview line and the ELO page read `status`.
+            "joint_model": results.get("joint_model") or {},
         },
         "history": prev_history,
     }
@@ -6174,6 +6266,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  WARN: failed to load {history_2v2_path}: {exc}")
     print("[validate_elo] [23] VTSR-2v2 prediction replay ...")
     vtsr_2v2 = metric_vtsr_2v2(history_2v2)
+    # v1.13: the joint model's switch test. Reads the ledger only.
+    print("[validate_elo] [24] joint-model switch test ...")
+    joint_model = metric_joint_model(processed_dir)
 
     # Player count totals (corpus-wide, for the report header).
     seen_keys: set[str] = set()
@@ -6269,6 +6364,8 @@ def main(argv: list[str] | None = None) -> int:
         "vtsr_1v1":               vtsr_1v1,
         # v1.12: separate 2v2 ladders (#23). Forensic; not in the summary.
         "vtsr_2v2":               vtsr_2v2,
+        # v1.13: joint-model switch test (#24). Mirrored in the summary.
+        "joint_model":            joint_model,
     }
 
     # Write outputs.
@@ -6398,6 +6495,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  VTSR-2v2 win/loss (sec 23):   {_fmt_pct(wl2.get('accuracy'))} n={wl2.get('n_scored')}; "
               f"perf sign agreement {_fmt_pct(pf2.get('sign_agreement'))} n={pf2.get('n_duels')}  "
               f"replay {_fmt_num(vtsr_2v2.get('replay_max_abs_diff'), decimals=4)}")
+    if joint_model.get("available"):
+        jrun = joint_model.get("running") or {}
+        print(f"  Joint model test (sec 24):    {joint_model.get('status')}; "
+              f"{joint_model.get('duels')} duels logged"
+              + (f"; gain {_fmt_num(jrun.get('gain'), 4)} (z {_fmt_num(jrun.get('z'), 2)})" if jrun else "")
+              + (f"; next look at {joint_model.get('next_look')}" if joint_model.get("next_look") else ""))
     print("==================================================")
     return 0
 

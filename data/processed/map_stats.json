@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-24T21:55:07Z",
+  "generated_at": "2026-11-26T06:01:13Z",
   "maps": {
     "beyond": {
       "avg_duration_sec": 0.0,
@@ -625,38 +625,38 @@
         "best_players": [
           {
             "beat": 1,
-            "delta_sum": 95.73,
+            "delta_sum": 98.42,
             "matches": 3,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
             "beat": 2,
-            "delta_sum": 88.35,
+            "delta_sum": 85.43,
             "matches": 3,
             "name": "Sev",
             "steam64": "76561199653748651"
           },
           {
-            "beat": 2,
-            "delta_sum": 67.53,
-            "matches": 3,
-            "name": "Lithium",
-            "steam64": "76561198002930482"
-          },
-          {
-            "beat": 2,
-            "delta_sum": 57.81,
+            "beat": 3,
+            "delta_sum": 80.33,
             "matches": 3,
             "name": "Cyber",
             "steam64": "76561198824607769"
           },
           {
             "beat": 2,
-            "delta_sum": 46.09,
+            "delta_sum": 53.97,
             "matches": 2,
             "name": "Cloaket",
             "steam64": "76561198025032941"
+          },
+          {
+            "beat": 3,
+            "delta_sum": 16.79,
+            "matches": 5,
+            "name": "Domakus",
+            "steam64": "76561198006115793"
           }
         ],
         "factions": {
@@ -2121,38 +2121,38 @@
         "best_players": [
           {
             "beat": 3,
-            "delta_sum": 49.01,
+            "delta_sum": 55.13,
             "matches": 3,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
             "beat": 1,
-            "delta_sum": 40.8,
+            "delta_sum": 46.28,
             "matches": 3,
             "name": "Domakus",
             "steam64": "76561198006115793"
           },
           {
-            "beat": 2,
-            "delta_sum": 24.6,
+            "beat": 3,
+            "delta_sum": 31.93,
             "matches": 4,
             "name": "Vivify",
             "steam64": "76561198345909972"
           },
           {
-            "beat": 2,
-            "delta_sum": 22.32,
+            "beat": 1,
+            "delta_sum": 18.96,
             "matches": 2,
             "name": "Sev",
             "steam64": "76561199653748651"
           },
           {
             "beat": 1,
-            "delta_sum": 14.98,
-            "matches": 2,
-            "name": "HappyOtter",
-            "steam64": "76561198064801924"
+            "delta_sum": 9.76,
+            "matches": 3,
+            "name": "Darkvale",
+            "steam64": "76561198136459671"
           }
         ],
         "factions": {
@@ -2542,38 +2542,38 @@
         "best_players": [
           {
             "beat": 4,
-            "delta_sum": 47.6,
+            "delta_sum": 58.18,
             "matches": 5,
             "name": "judgeguns",
             "steam64": "76561198058690608"
           },
           {
-            "beat": 4,
-            "delta_sum": 46.55,
+            "beat": 5,
+            "delta_sum": 46.84,
             "matches": 7,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
-            "beat": 2,
-            "delta_sum": 24.28,
-            "matches": 2,
-            "name": "Cloaket",
-            "steam64": "76561198025032941"
+            "beat": 3,
+            "delta_sum": 21.79,
+            "matches": 3,
+            "name": "sponge",
+            "steam64": "76561198163015714"
           },
           {
             "beat": 1,
-            "delta_sum": 12.03,
+            "delta_sum": 19.09,
             "matches": 2,
             "name": "Certified Bad Guy",
             "steam64": "76561198284800778"
           },
           {
-            "beat": 1,
-            "delta_sum": 6.08,
-            "matches": 4,
-            "name": "Darkvale",
-            "steam64": "76561198136459671"
+            "beat": 2,
+            "delta_sum": 18.19,
+            "matches": 2,
+            "name": "Cloaket",
+            "steam64": "76561198025032941"
           }
         ],
         "factions": {
@@ -3096,28 +3096,28 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 35.46,
+            "delta_sum": 36.38,
             "matches": 2,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
             "beat": 1,
-            "delta_sum": 17.73,
+            "delta_sum": 19.23,
             "matches": 2,
             "name": "Darkvale",
             "steam64": "76561198136459671"
           },
           {
             "beat": 1,
-            "delta_sum": 9.14,
+            "delta_sum": 6.22,
             "matches": 2,
             "name": "judgeguns",
             "steam64": "76561198058690608"
           },
           {
             "beat": 1,
-            "delta_sum": -22.07,
+            "delta_sum": -23.19,
             "matches": 2,
             "name": "Nomad",
             "steam64": "76561199066952713"
@@ -3484,14 +3484,14 @@
         "best_players": [
           {
             "beat": 1,
-            "delta_sum": 2.78,
+            "delta_sum": 6.34,
             "matches": 2,
             "name": "judgeguns",
             "steam64": "76561198058690608"
           },
           {
             "beat": 1,
-            "delta_sum": -6.96,
+            "delta_sum": 2.42,
             "matches": 2,
             "name": "F9bomber",
             "steam64": "76561198026325621"
@@ -3742,35 +3742,35 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 73.27,
+            "delta_sum": 60.97,
             "matches": 2,
             "name": "Lamper",
             "steam64": "76561198825004088"
           },
           {
             "beat": 2,
-            "delta_sum": 32.15,
+            "delta_sum": 30.56,
             "matches": 3,
             "name": "Nomad",
             "steam64": "76561199066952713"
           },
           {
-            "beat": 2,
-            "delta_sum": 20.57,
+            "beat": 1,
+            "delta_sum": 11.39,
             "matches": 2,
             "name": "The Wanderer",
             "steam64": "76561198169179560"
           },
           {
-            "beat": 2,
-            "delta_sum": 12.96,
+            "beat": 0,
+            "delta_sum": -7.08,
             "matches": 2,
             "name": "econchump",
             "steam64": "76561198068133931"
           },
           {
             "beat": 0,
-            "delta_sum": -16.65,
+            "delta_sum": -10.15,
             "matches": 2,
             "name": "F9bomber",
             "steam64": "76561198026325621"
@@ -4259,39 +4259,39 @@
         ],
         "best_players": [
           {
-            "beat": 4,
-            "delta_sum": 59.92,
+            "beat": 2,
+            "delta_sum": 49.04,
+            "matches": 2,
+            "name": "HappyOtter",
+            "steam64": "76561198064801924"
+          },
+          {
+            "beat": 3,
+            "delta_sum": 47.13,
             "matches": 6,
             "name": "Nomad",
             "steam64": "76561199066952713"
           },
           {
-            "beat": 4,
-            "delta_sum": 53.36,
-            "matches": 5,
-            "name": "DraconisMarch",
-            "steam64": "76561198048896649"
-          },
-          {
             "beat": 3,
-            "delta_sum": 39.51,
+            "delta_sum": 41.34,
             "matches": 4,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
-            "beat": 4,
-            "delta_sum": 30.44,
+            "beat": 3,
+            "delta_sum": 39.14,
             "matches": 6,
-            "name": "Sev",
-            "steam64": "76561199653748651"
+            "name": "Cloaket",
+            "steam64": "76561198025032941"
           },
           {
-            "beat": 2,
-            "delta_sum": 22.47,
+            "beat": 1,
+            "delta_sum": 25.94,
             "matches": 2,
-            "name": "HappyOtter",
-            "steam64": "76561198064801924"
+            "name": "Maverick",
+            "steam64": "76561198825563594"
           }
         ],
         "factions": {
@@ -5117,31 +5117,31 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 40.06,
+            "delta_sum": 37.78,
             "matches": 2,
             "name": "Nomad",
             "steam64": "76561199066952713"
           },
           {
-            "beat": 1,
-            "delta_sum": 12.41,
+            "beat": 2,
+            "delta_sum": 20.76,
             "matches": 2,
             "name": "Darkvale",
             "steam64": "76561198136459671"
           },
           {
-            "beat": 2,
-            "delta_sum": 10.6,
-            "matches": 2,
-            "name": "DraconisMarch",
-            "steam64": "76561198048896649"
-          },
-          {
-            "beat": 0,
-            "delta_sum": -2.64,
+            "beat": 1,
+            "delta_sum": 9.88,
             "matches": 2,
             "name": "judgeguns",
             "steam64": "76561198058690608"
+          },
+          {
+            "beat": 1,
+            "delta_sum": 8.92,
+            "matches": 2,
+            "name": "DraconisMarch",
+            "steam64": "76561198048896649"
           }
         ],
         "factions": {
@@ -5785,39 +5785,39 @@
         ],
         "best_players": [
           {
-            "beat": 2,
-            "delta_sum": 126.37,
+            "beat": 3,
+            "delta_sum": 119.63,
             "matches": 3,
             "name": "Muffin",
             "steam64": "76561198088149233"
           },
           {
-            "beat": 1,
-            "delta_sum": 59.64,
-            "matches": 2,
-            "name": "Certified Bad Guy",
-            "steam64": "76561198284800778"
-          },
-          {
             "beat": 2,
-            "delta_sum": 42.17,
+            "delta_sum": 40.25,
             "matches": 3,
             "name": "F9bomber",
             "steam64": "76561198026325621"
           },
           {
             "beat": 2,
-            "delta_sum": 33.56,
+            "delta_sum": 38.2,
             "matches": 3,
             "name": "Vivify",
             "steam64": "76561198345909972"
           },
           {
             "beat": 1,
-            "delta_sum": 8.44,
-            "matches": 3,
-            "name": "VTrider",
-            "steam64": "76561197974548434"
+            "delta_sum": 21.56,
+            "matches": 2,
+            "name": "Certified Bad Guy",
+            "steam64": "76561198284800778"
+          },
+          {
+            "beat": 1,
+            "delta_sum": 13.91,
+            "matches": 2,
+            "name": "Cyber",
+            "steam64": "76561198824607769"
           }
         ],
         "factions": {
@@ -6212,39 +6212,39 @@
         ],
         "best_players": [
           {
-            "beat": 3,
-            "delta_sum": 140.2,
+            "beat": 2,
+            "delta_sum": 136.18,
             "matches": 4,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
-            "beat": 2,
-            "delta_sum": 61.86,
+            "beat": 3,
+            "delta_sum": 71.12,
             "matches": 3,
-            "name": "Vivify",
-            "steam64": "76561198345909972"
+            "name": "F9bomber",
+            "steam64": "76561198026325621"
           },
           {
             "beat": 2,
-            "delta_sum": 56.41,
+            "delta_sum": 59.05,
             "matches": 3,
             "name": "Domakus",
             "steam64": "76561198006115793"
           },
           {
             "beat": 2,
-            "delta_sum": 53.54,
+            "delta_sum": 57.42,
             "matches": 3,
-            "name": "F9bomber",
-            "steam64": "76561198026325621"
+            "name": "Vivify",
+            "steam64": "76561198345909972"
           },
           {
             "beat": 1,
-            "delta_sum": -3.47,
-            "matches": 2,
-            "name": "Darkvale",
-            "steam64": "76561198136459671"
+            "delta_sum": 6.15,
+            "matches": 4,
+            "name": "judgeguns",
+            "steam64": "76561198058690608"
           }
         ],
         "factions": {
@@ -6629,39 +6629,39 @@
         ],
         "best_players": [
           {
-            "beat": 4,
-            "delta_sum": 42.69,
+            "beat": 5,
+            "delta_sum": 56.28,
             "matches": 5,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
             "beat": 1,
-            "delta_sum": 36.49,
+            "delta_sum": 39.23,
             "matches": 2,
             "name": "Cloaket",
             "steam64": "76561198025032941"
           },
           {
             "beat": 3,
-            "delta_sum": 27.82,
+            "delta_sum": 25.0,
             "matches": 6,
             "name": "Nomad",
             "steam64": "76561199066952713"
           },
           {
             "beat": 2,
-            "delta_sum": 26.19,
-            "matches": 5,
-            "name": "Darkvale",
-            "steam64": "76561198136459671"
-          },
-          {
-            "beat": 2,
-            "delta_sum": 25.25,
+            "delta_sum": 21.78,
             "matches": 4,
             "name": "Certified Bad Guy",
             "steam64": "76561198284800778"
+          },
+          {
+            "beat": 1,
+            "delta_sum": 20.67,
+            "matches": 3,
+            "name": "Lithium",
+            "steam64": "76561198002930482"
           }
         ],
         "factions": {
@@ -8281,38 +8281,38 @@
         "best_players": [
           {
             "beat": 6,
-            "delta_sum": 149.99,
+            "delta_sum": 133.35,
             "matches": 8,
             "name": "F9bomber",
             "steam64": "76561198026325621"
           },
           {
             "beat": 3,
-            "delta_sum": 60.48,
+            "delta_sum": 55.43,
             "matches": 4,
             "name": "Domakus",
             "steam64": "76561198006115793"
           },
           {
             "beat": 3,
-            "delta_sum": 34.28,
-            "matches": 7,
-            "name": "judgeguns",
-            "steam64": "76561198058690608"
+            "delta_sum": 46.79,
+            "matches": 5,
+            "name": "The Wanderer",
+            "steam64": "76561198169179560"
           },
           {
-            "beat": 3,
-            "delta_sum": 16.78,
-            "matches": 6,
-            "name": "DraconisMarch",
-            "steam64": "76561198048896649"
-          },
-          {
-            "beat": 1,
-            "delta_sum": 14.58,
+            "beat": 2,
+            "delta_sum": 26.03,
             "matches": 2,
             "name": "Sev",
             "steam64": "76561199653748651"
+          },
+          {
+            "beat": 2,
+            "delta_sum": 13.88,
+            "matches": 7,
+            "name": "judgeguns",
+            "steam64": "76561198058690608"
           }
         ],
         "factions": {
@@ -9324,15 +9324,15 @@
         "best_commanders": [],
         "best_players": [
           {
-            "beat": 2,
-            "delta_sum": 19.33,
+            "beat": 1,
+            "delta_sum": 8.21,
             "matches": 2,
             "name": "Lithium",
             "steam64": "76561198002930482"
           },
           {
             "beat": 0,
-            "delta_sum": -2.03,
+            "delta_sum": -3.6,
             "matches": 2,
             "name": "Domakus",
             "steam64": "76561198006115793"
@@ -9740,35 +9740,35 @@
         "best_players": [
           {
             "beat": 3,
-            "delta_sum": 67.52,
+            "delta_sum": 66.98,
             "matches": 3,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
             "beat": 2,
-            "delta_sum": 62.84,
+            "delta_sum": 55.26,
             "matches": 2,
             "name": "Darkvale",
             "steam64": "76561198136459671"
           },
           {
             "beat": 1,
-            "delta_sum": 33.93,
+            "delta_sum": 28.76,
+            "matches": 2,
+            "name": "Certified Bad Guy",
+            "steam64": "76561198284800778"
+          },
+          {
+            "beat": 1,
+            "delta_sum": 17.45,
             "matches": 2,
             "name": "Totokomo",
             "steam64": "76561198058222745"
           },
           {
             "beat": 1,
-            "delta_sum": 30.03,
-            "matches": 2,
-            "name": "Certified Bad Guy",
-            "steam64": "76561198284800778"
-          },
-          {
-            "beat": 0,
-            "delta_sum": -13.97,
+            "delta_sum": -8.36,
             "matches": 2,
             "name": "F9bomber",
             "steam64": "76561198026325621"
@@ -10186,38 +10186,38 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 34.91,
+            "delta_sum": 26.34,
             "matches": 3,
             "name": "judgeguns",
             "steam64": "76561198058690608"
           },
           {
             "beat": 2,
-            "delta_sum": 23.12,
+            "delta_sum": 24.1,
             "matches": 2,
             "name": "Darkvale",
             "steam64": "76561198136459671"
           },
           {
             "beat": 1,
-            "delta_sum": -1.91,
+            "delta_sum": 8.83,
+            "matches": 2,
+            "name": "Sev",
+            "steam64": "76561199653748651"
+          },
+          {
+            "beat": 2,
+            "delta_sum": 5.69,
             "matches": 3,
-            "name": "VTrider",
-            "steam64": "76561197974548434"
+            "name": "HappyOtter",
+            "steam64": "76561198064801924"
           },
           {
             "beat": 1,
-            "delta_sum": -2.78,
+            "delta_sum": -6.01,
             "matches": 2,
             "name": "F9bomber",
             "steam64": "76561198026325621"
-          },
-          {
-            "beat": 1,
-            "delta_sum": -3.52,
-            "matches": 3,
-            "name": "Nomad",
-            "steam64": "76561199066952713"
           }
         ],
         "factions": {
@@ -11199,21 +11199,21 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 76.28,
+            "delta_sum": 81.55,
             "matches": 2,
             "name": "judgeguns",
             "steam64": "76561198058690608"
           },
           {
             "beat": 1,
-            "delta_sum": 24.74,
+            "delta_sum": 21.97,
             "matches": 2,
             "name": "Nomad",
             "steam64": "76561199066952713"
           },
           {
             "beat": 0,
-            "delta_sum": -49.27,
+            "delta_sum": -54.2,
             "matches": 2,
             "name": "VTrider",
             "steam64": "76561197974548434"
@@ -11479,28 +11479,28 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 14.09,
-            "matches": 2,
-            "name": "judgeguns",
-            "steam64": "76561198058690608"
-          },
-          {
-            "beat": 1,
-            "delta_sum": 13.42,
+            "delta_sum": 17.89,
             "matches": 2,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
             "beat": 1,
-            "delta_sum": -3.36,
+            "delta_sum": 6.42,
+            "matches": 2,
+            "name": "judgeguns",
+            "steam64": "76561198058690608"
+          },
+          {
+            "beat": 1,
+            "delta_sum": 1.06,
             "matches": 2,
             "name": "Darkvale",
             "steam64": "76561198136459671"
           },
           {
             "beat": 0,
-            "delta_sum": -29.15,
+            "delta_sum": -23.56,
             "matches": 2,
             "name": "Nomad",
             "steam64": "76561199066952713"
@@ -12040,35 +12040,35 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 48.74,
+            "delta_sum": 46.04,
             "matches": 2,
             "name": "Monkey",
             "steam64": "76561199732480793"
           },
           {
             "beat": 2,
-            "delta_sum": 28.49,
+            "delta_sum": 29.81,
             "matches": 3,
             "name": "Nomad",
             "steam64": "76561199066952713"
           },
           {
             "beat": 2,
-            "delta_sum": 20.95,
+            "delta_sum": 26.6,
             "matches": 3,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
-            "beat": 0,
-            "delta_sum": -2.06,
+            "beat": 1,
+            "delta_sum": 3.41,
             "matches": 2,
             "name": "Darkvale",
             "steam64": "76561198136459671"
           },
           {
             "beat": 1,
-            "delta_sum": -21.07,
+            "delta_sum": -32.16,
             "matches": 4,
             "name": "F9bomber",
             "steam64": "76561198026325621"
@@ -12409,15 +12409,15 @@
         ],
         "best_players": [
           {
-            "beat": 0,
-            "delta_sum": -11.01,
+            "beat": 1,
+            "delta_sum": -0.37,
             "matches": 2,
             "name": "Darkvale",
             "steam64": "76561198136459671"
           },
           {
             "beat": 0,
-            "delta_sum": -30.12,
+            "delta_sum": -27.04,
             "matches": 3,
             "name": "VTrider",
             "steam64": "76561197974548434"
@@ -12748,36 +12748,36 @@
         ],
         "best_players": [
           {
-            "beat": 5,
-            "delta_sum": 71.49,
+            "beat": 8,
+            "delta_sum": 104.49,
             "matches": 8,
             "name": "Darkvale",
             "steam64": "76561198136459671"
           },
           {
             "beat": 3,
-            "delta_sum": 63.35,
+            "delta_sum": 75.32,
             "matches": 3,
             "name": "Vivify",
             "steam64": "76561198345909972"
           },
           {
+            "beat": 2,
+            "delta_sum": 64.27,
+            "matches": 3,
+            "name": "Domakus",
+            "steam64": "76561198006115793"
+          },
+          {
             "beat": 1,
-            "delta_sum": 41.96,
+            "delta_sum": 53.94,
             "matches": 4,
             "name": "Lamper",
             "steam64": "76561198825004088"
           },
           {
             "beat": 2,
-            "delta_sum": 38.54,
-            "matches": 3,
-            "name": "Domakus",
-            "steam64": "76561198006115793"
-          },
-          {
-            "beat": 2,
-            "delta_sum": 20.5,
+            "delta_sum": 17.29,
             "matches": 3,
             "name": "F9bomber",
             "steam64": "76561198026325621"
@@ -13336,39 +13336,39 @@
         ],
         "best_players": [
           {
-            "beat": 4,
-            "delta_sum": 65.56,
-            "matches": 6,
-            "name": "F9bomber",
-            "steam64": "76561198026325621"
-          },
-          {
             "beat": 2,
-            "delta_sum": 65.15,
+            "delta_sum": 96.54,
             "matches": 3,
             "name": "Sev",
             "steam64": "76561199653748651"
           },
           {
-            "beat": 3,
-            "delta_sum": 25.37,
-            "matches": 4,
-            "name": "VTrider",
-            "steam64": "76561197974548434"
+            "beat": 4,
+            "delta_sum": 83.57,
+            "matches": 6,
+            "name": "F9bomber",
+            "steam64": "76561198026325621"
           },
           {
             "beat": 1,
-            "delta_sum": 22.11,
+            "delta_sum": 34.82,
             "matches": 2,
             "name": "Domakus",
             "steam64": "76561198006115793"
           },
           {
-            "beat": 2,
-            "delta_sum": 10.95,
-            "matches": 3,
-            "name": "judgeguns",
-            "steam64": "76561198058690608"
+            "beat": 1,
+            "delta_sum": 8.01,
+            "matches": 2,
+            "name": "Vivify",
+            "steam64": "76561198345909972"
+          },
+          {
+            "beat": 1,
+            "delta_sum": 3.5,
+            "matches": 4,
+            "name": "VTrider",
+            "steam64": "76561197974548434"
           }
         ],
         "factions": {
@@ -13853,35 +13853,35 @@
         "best_players": [
           {
             "beat": 3,
-            "delta_sum": 57.0,
+            "delta_sum": 62.83,
             "matches": 3,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
             "beat": 1,
-            "delta_sum": 18.62,
+            "delta_sum": 22.6,
             "matches": 2,
             "name": "Vivify",
             "steam64": "76561198345909972"
           },
           {
             "beat": 1,
-            "delta_sum": 5.06,
+            "delta_sum": 6.94,
             "matches": 2,
             "name": "Nomad",
             "steam64": "76561199066952713"
           },
           {
             "beat": 0,
-            "delta_sum": -19.86,
+            "delta_sum": -5.92,
             "matches": 2,
             "name": "Sev",
             "steam64": "76561199653748651"
           },
           {
-            "beat": 0,
-            "delta_sum": -22.12,
+            "beat": 1,
+            "delta_sum": -8.6,
             "matches": 2,
             "name": "F9bomber",
             "steam64": "76561198026325621"
@@ -14399,36 +14399,36 @@
         ],
         "best_players": [
           {
-            "beat": 2,
-            "delta_sum": 34.68,
+            "beat": 3,
+            "delta_sum": 39.95,
             "matches": 3,
             "name": "F9bomber",
             "steam64": "76561198026325621"
           },
           {
             "beat": 2,
-            "delta_sum": 24.03,
-            "matches": 4,
-            "name": "Nomad",
-            "steam64": "76561199066952713"
-          },
-          {
-            "beat": 2,
-            "delta_sum": 5.44,
+            "delta_sum": 11.58,
             "matches": 3,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
             "beat": 1,
-            "delta_sum": 2.17,
-            "matches": 3,
-            "name": "Darkvale",
-            "steam64": "76561198136459671"
+            "delta_sum": 10.97,
+            "matches": 4,
+            "name": "Nomad",
+            "steam64": "76561199066952713"
           },
           {
             "beat": 0,
-            "delta_sum": -5.13,
+            "delta_sum": 0.64,
+            "matches": 2,
+            "name": "Certified Bad Guy",
+            "steam64": "76561198284800778"
+          },
+          {
+            "beat": 1,
+            "delta_sum": -0.53,
             "matches": 2,
             "name": "judgeguns",
             "steam64": "76561198058690608"
@@ -14832,38 +14832,38 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 75.2,
+            "delta_sum": 32.65,
             "matches": 2,
             "name": "The Wanderer",
             "steam64": "76561198169179560"
           },
           {
             "beat": 2,
-            "delta_sum": 38.41,
+            "delta_sum": 26.82,
             "matches": 2,
             "name": "Nomad",
             "steam64": "76561199066952713"
           },
           {
-            "beat": 1,
-            "delta_sum": 16.48,
-            "matches": 2,
-            "name": "Vivify",
-            "steam64": "76561198345909972"
-          },
-          {
             "beat": 2,
-            "delta_sum": 16.02,
+            "delta_sum": 18.81,
             "matches": 2,
             "name": "Darkvale",
             "steam64": "76561198136459671"
           },
           {
             "beat": 1,
-            "delta_sum": -0.35,
+            "delta_sum": 10.9,
             "matches": 2,
-            "name": "Lamper",
-            "steam64": "76561198825004088"
+            "name": "Vivify",
+            "steam64": "76561198345909972"
+          },
+          {
+            "beat": 1,
+            "delta_sum": 6.74,
+            "matches": 2,
+            "name": "judgeguns",
+            "steam64": "76561198058690608"
           }
         ],
         "factions": {
@@ -15554,38 +15554,38 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 95.39,
+            "delta_sum": 77.3,
             "matches": 2,
             "name": "Monkey",
             "steam64": "76561199732480793"
           },
           {
             "beat": 2,
-            "delta_sum": 48.54,
+            "delta_sum": 49.78,
             "matches": 2,
             "name": "Cyber",
             "steam64": "76561198824607769"
           },
           {
-            "beat": 1,
-            "delta_sum": 17.91,
+            "beat": 2,
+            "delta_sum": 27.42,
             "matches": 2,
             "name": "Sev",
             "steam64": "76561199653748651"
           },
           {
             "beat": 1,
-            "delta_sum": 14.43,
+            "delta_sum": 25.07,
             "matches": 2,
-            "name": "Certified Bad Guy",
-            "steam64": "76561198284800778"
+            "name": "Herp McDerperson",
+            "steam64": "76561197962996353"
           },
           {
-            "beat": 2,
-            "delta_sum": 9.21,
-            "matches": 5,
-            "name": "Darkvale",
-            "steam64": "76561198136459671"
+            "beat": 1,
+            "delta_sum": 14.91,
+            "matches": 3,
+            "name": "Lithium",
+            "steam64": "76561198002930482"
           }
         ],
         "factions": {
@@ -16089,35 +16089,35 @@
         "best_players": [
           {
             "beat": 1,
-            "delta_sum": 33.75,
+            "delta_sum": 23.13,
             "matches": 2,
             "name": "Vivify",
             "steam64": "76561198345909972"
           },
           {
-            "beat": 2,
-            "delta_sum": 22.49,
-            "matches": 2,
-            "name": "Nomad",
-            "steam64": "76561199066952713"
-          },
-          {
             "beat": 1,
-            "delta_sum": 12.74,
+            "delta_sum": 18.97,
             "matches": 2,
             "name": "Lithium",
             "steam64": "76561198002930482"
           },
           {
             "beat": 1,
-            "delta_sum": -35.17,
+            "delta_sum": 9.33,
+            "matches": 2,
+            "name": "Nomad",
+            "steam64": "76561199066952713"
+          },
+          {
+            "beat": 1,
+            "delta_sum": -13.8,
             "matches": 2,
             "name": "judgeguns",
             "steam64": "76561198058690608"
           },
           {
             "beat": 0,
-            "delta_sum": -51.25,
+            "delta_sum": -40.49,
             "matches": 2,
             "name": "Muffin",
             "steam64": "76561198088149233"
@@ -16697,38 +16697,38 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 26.51,
-            "matches": 2,
-            "name": "DraconisMarch",
-            "steam64": "76561198048896649"
-          },
-          {
-            "beat": 2,
-            "delta_sum": 25.38,
+            "delta_sum": 32.65,
             "matches": 4,
             "name": "Sev",
             "steam64": "76561199653748651"
           },
           {
             "beat": 1,
-            "delta_sum": 22.28,
+            "delta_sum": 17.05,
             "matches": 2,
             "name": "Monkey",
             "steam64": "76561199732480793"
           },
           {
-            "beat": 2,
-            "delta_sum": 14.91,
-            "matches": 4,
-            "name": "HappyOtter",
-            "steam64": "76561198064801924"
+            "beat": 3,
+            "delta_sum": 15.55,
+            "matches": 6,
+            "name": "Darkvale",
+            "steam64": "76561198136459671"
           },
           {
             "beat": 1,
-            "delta_sum": 9.39,
+            "delta_sum": 15.24,
             "matches": 2,
             "name": "Nomad",
             "steam64": "76561199066952713"
+          },
+          {
+            "beat": 1,
+            "delta_sum": 12.83,
+            "matches": 2,
+            "name": "DraconisMarch",
+            "steam64": "76561198048896649"
           }
         ],
         "factions": {
@@ -17167,38 +17167,38 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 50.03,
+            "delta_sum": 39.56,
             "matches": 2,
             "name": "Vivify",
             "steam64": "76561198345909972"
           },
           {
             "beat": 3,
-            "delta_sum": 30.74,
+            "delta_sum": 22.85,
             "matches": 4,
             "name": "Nomad",
             "steam64": "76561199066952713"
           },
           {
             "beat": 1,
-            "delta_sum": 10.63,
-            "matches": 2,
-            "name": "Darkvale",
-            "steam64": "76561198136459671"
-          },
-          {
-            "beat": 1,
-            "delta_sum": 6.55,
+            "delta_sum": 16.17,
             "matches": 2,
             "name": "Lithium",
             "steam64": "76561198002930482"
           },
           {
             "beat": 0,
-            "delta_sum": -1.63,
+            "delta_sum": -0.17,
             "matches": 2,
             "name": "judgeguns",
             "steam64": "76561198058690608"
+          },
+          {
+            "beat": 1,
+            "delta_sum": -0.99,
+            "matches": 2,
+            "name": "Darkvale",
+            "steam64": "76561198136459671"
           }
         ],
         "factions": {
@@ -18349,14 +18349,14 @@
         "best_players": [
           {
             "beat": 1,
-            "delta_sum": 7.12,
+            "delta_sum": 10.49,
             "matches": 2,
             "name": "F9bomber",
             "steam64": "76561198026325621"
           },
           {
             "beat": 1,
-            "delta_sum": -5.26,
+            "delta_sum": 8.56,
             "matches": 2,
             "name": "Nomad",
             "steam64": "76561199066952713"
@@ -19119,39 +19119,39 @@
         ],
         "best_players": [
           {
-            "beat": 5,
-            "delta_sum": 70.93,
-            "matches": 7,
-            "name": "F9bomber",
-            "steam64": "76561198026325621"
-          },
-          {
-            "beat": 3,
-            "delta_sum": 58.62,
+            "beat": 4,
+            "delta_sum": 88.06,
             "matches": 4,
             "name": "Lithium",
             "steam64": "76561198002930482"
           },
           {
             "beat": 4,
-            "delta_sum": 42.54,
+            "delta_sum": 51.63,
+            "matches": 6,
+            "name": "judgeguns",
+            "steam64": "76561198058690608"
+          },
+          {
+            "beat": 4,
+            "delta_sum": 46.6,
+            "matches": 7,
+            "name": "F9bomber",
+            "steam64": "76561198026325621"
+          },
+          {
+            "beat": 4,
+            "delta_sum": 32.32,
+            "matches": 8,
+            "name": "VTrider",
+            "steam64": "76561197974548434"
+          },
+          {
+            "beat": 3,
+            "delta_sum": 32.1,
             "matches": 4,
             "name": "HappyOtter",
             "steam64": "76561198064801924"
-          },
-          {
-            "beat": 7,
-            "delta_sum": 34.39,
-            "matches": 12,
-            "name": "Nomad",
-            "steam64": "76561199066952713"
-          },
-          {
-            "beat": 2,
-            "delta_sum": 31.36,
-            "matches": 4,
-            "name": "Muffin",
-            "steam64": "76561198088149233"
           }
         ],
         "factions": {
@@ -19531,35 +19531,35 @@
         "best_players": [
           {
             "beat": 1,
-            "delta_sum": 66.88,
-            "matches": 2,
-            "name": "judgeguns",
-            "steam64": "76561198058690608"
-          },
-          {
-            "beat": 1,
-            "delta_sum": 6.43,
+            "delta_sum": 0.96,
             "matches": 2,
             "name": "econchump",
             "steam64": "76561198068133931"
           },
           {
-            "beat": 0,
-            "delta_sum": -3.75,
-            "matches": 2,
-            "name": "Nomad",
-            "steam64": "76561199066952713"
-          },
-          {
-            "beat": 1,
-            "delta_sum": -7.84,
+            "beat": 2,
+            "delta_sum": 0.57,
             "matches": 3,
             "name": "F9bomber",
             "steam64": "76561198026325621"
           },
           {
+            "beat": 1,
+            "delta_sum": -2.26,
+            "matches": 2,
+            "name": "Nomad",
+            "steam64": "76561199066952713"
+          },
+          {
             "beat": 0,
-            "delta_sum": -33.18,
+            "delta_sum": -15.11,
+            "matches": 2,
+            "name": "judgeguns",
+            "steam64": "76561198058690608"
+          },
+          {
+            "beat": 0,
+            "delta_sum": -31.52,
             "matches": 2,
             "name": "Vivify",
             "steam64": "76561198345909972"
@@ -19878,14 +19878,14 @@
         "best_players": [
           {
             "beat": 1,
-            "delta_sum": -2.49,
+            "delta_sum": 0.35,
             "matches": 2,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
             "beat": 1,
-            "delta_sum": -4.41,
+            "delta_sum": -18.43,
             "matches": 2,
             "name": "Nomad",
             "steam64": "76561199066952713"
@@ -20618,38 +20618,38 @@
         "best_players": [
           {
             "beat": 4,
-            "delta_sum": 68.65,
+            "delta_sum": 66.26,
             "matches": 5,
             "name": "Sev",
             "steam64": "76561199653748651"
           },
           {
-            "beat": 4,
-            "delta_sum": 55.25,
-            "matches": 5,
-            "name": "Lithium",
-            "steam64": "76561198002930482"
-          },
-          {
-            "beat": 3,
-            "delta_sum": 47.41,
-            "matches": 3,
-            "name": "DraconisMarch",
-            "steam64": "76561198048896649"
-          },
-          {
-            "beat": 3,
-            "delta_sum": 46.26,
-            "matches": 5,
-            "name": "Darkvale",
-            "steam64": "76561198136459671"
+            "beat": 2,
+            "delta_sum": 42.96,
+            "matches": 4,
+            "name": "Monkey",
+            "steam64": "76561199732480793"
           },
           {
             "beat": 1,
-            "delta_sum": 39.41,
+            "delta_sum": 40.68,
             "matches": 2,
             "name": "Certified Bad Guy",
             "steam64": "76561198284800778"
+          },
+          {
+            "beat": 3,
+            "delta_sum": 38.43,
+            "matches": 8,
+            "name": "judgeguns",
+            "steam64": "76561198058690608"
+          },
+          {
+            "beat": 2,
+            "delta_sum": 36.06,
+            "matches": 3,
+            "name": "DraconisMarch",
+            "steam64": "76561198048896649"
           }
         ],
         "factions": {
@@ -21106,39 +21106,39 @@
         ],
         "best_players": [
           {
-            "beat": 5,
-            "delta_sum": 115.99,
+            "beat": 4,
+            "delta_sum": 117.58,
             "matches": 9,
             "name": "Nomad",
             "steam64": "76561199066952713"
           },
           {
-            "beat": 5,
-            "delta_sum": 82.49,
-            "matches": 6,
-            "name": "Lithium",
-            "steam64": "76561198002930482"
-          },
-          {
             "beat": 2,
-            "delta_sum": 64.14,
+            "delta_sum": 68.23,
             "matches": 2,
             "name": "econchump",
             "steam64": "76561198068133931"
           },
           {
-            "beat": 4,
-            "delta_sum": 61.92,
-            "matches": 7,
-            "name": "Vivify",
-            "steam64": "76561198345909972"
+            "beat": 3,
+            "delta_sum": 66.84,
+            "matches": 6,
+            "name": "Lithium",
+            "steam64": "76561198002930482"
           },
           {
             "beat": 4,
-            "delta_sum": 38.9,
+            "delta_sum": 55.21,
             "matches": 7,
             "name": "VTrider",
             "steam64": "76561197974548434"
+          },
+          {
+            "beat": 3,
+            "delta_sum": 51.49,
+            "matches": 7,
+            "name": "Vivify",
+            "steam64": "76561198345909972"
           }
         ],
         "factions": {
@@ -21542,38 +21542,38 @@
         "best_players": [
           {
             "beat": 1,
-            "delta_sum": 86.37,
+            "delta_sum": 85.7,
             "matches": 2,
             "name": "Nomad",
             "steam64": "76561199066952713"
           },
           {
             "beat": 2,
-            "delta_sum": 55.05,
+            "delta_sum": 56.26,
             "matches": 2,
             "name": "Vivify",
             "steam64": "76561198345909972"
           },
           {
-            "beat": 3,
-            "delta_sum": 28.89,
-            "matches": 3,
-            "name": "VTrider",
-            "steam64": "76561197974548434"
-          },
-          {
             "beat": 2,
-            "delta_sum": 20.76,
+            "delta_sum": 35.22,
             "matches": 4,
             "name": "F9bomber",
             "steam64": "76561198026325621"
           },
           {
-            "beat": 1,
-            "delta_sum": 0.08,
-            "matches": 4,
-            "name": "Darkvale",
-            "steam64": "76561198136459671"
+            "beat": 3,
+            "delta_sum": 27.93,
+            "matches": 3,
+            "name": "VTrider",
+            "steam64": "76561197974548434"
+          },
+          {
+            "beat": 0,
+            "delta_sum": -13.57,
+            "matches": 2,
+            "name": "The_Bylarge",
+            "steam64": "76561198834945971"
           }
         ],
         "factions": {
@@ -21932,38 +21932,38 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 32.29,
+            "delta_sum": 38.59,
             "matches": 2,
             "name": "F9bomber",
             "steam64": "76561198026325621"
           },
           {
             "beat": 2,
-            "delta_sum": 22.61,
-            "matches": 2,
-            "name": "Darkvale",
-            "steam64": "76561198136459671"
-          },
-          {
-            "beat": 1,
-            "delta_sum": 15.29,
+            "delta_sum": 34.7,
             "matches": 2,
             "name": "econchump",
             "steam64": "76561198068133931"
           },
           {
             "beat": 1,
-            "delta_sum": 9.88,
+            "delta_sum": 10.1,
             "matches": 2,
             "name": "HappyOtter",
             "steam64": "76561198064801924"
           },
           {
             "beat": 1,
-            "delta_sum": 4.66,
+            "delta_sum": 9.12,
             "matches": 2,
             "name": "Sev",
             "steam64": "76561199653748651"
+          },
+          {
+            "beat": 1,
+            "delta_sum": 6.43,
+            "matches": 2,
+            "name": "Darkvale",
+            "steam64": "76561198136459671"
           }
         ],
         "factions": {
@@ -22241,38 +22241,38 @@
         "best_players": [
           {
             "beat": 1,
-            "delta_sum": 22.59,
+            "delta_sum": 30.58,
             "matches": 3,
             "name": "Certified Bad Guy",
             "steam64": "76561198284800778"
           },
           {
+            "beat": 1,
+            "delta_sum": 14.53,
+            "matches": 2,
+            "name": "Nomad",
+            "steam64": "76561199066952713"
+          },
+          {
             "beat": 2,
-            "delta_sum": 14.06,
+            "delta_sum": -2.36,
             "matches": 3,
             "name": "Domakus",
             "steam64": "76561198006115793"
           },
           {
             "beat": 1,
-            "delta_sum": 6.76,
-            "matches": 2,
-            "name": "Nomad",
-            "steam64": "76561199066952713"
-          },
-          {
-            "beat": 0,
-            "delta_sum": -12.48,
+            "delta_sum": -14.64,
             "matches": 3,
             "name": "F9bomber",
             "steam64": "76561198026325621"
           },
           {
             "beat": 1,
-            "delta_sum": -22.39,
-            "matches": 2,
-            "name": "HappyOtter",
-            "steam64": "76561198064801924"
+            "delta_sum": -15.82,
+            "matches": 3,
+            "name": "Sev",
+            "steam64": "76561199653748651"
           }
         ],
         "factions": {
@@ -22927,38 +22927,38 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 25.92,
+            "delta_sum": 47.67,
             "matches": 4,
             "name": "Nomad",
             "steam64": "76561199066952713"
           },
           {
             "beat": 1,
-            "delta_sum": 9.53,
+            "delta_sum": 14.19,
             "matches": 2,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
             "beat": 1,
-            "delta_sum": 1.57,
+            "delta_sum": -2.06,
             "matches": 2,
             "name": "Sev",
             "steam64": "76561199653748651"
           },
           {
-            "beat": 1,
-            "delta_sum": -20.82,
-            "matches": 2,
-            "name": "judgeguns",
-            "steam64": "76561198058690608"
-          },
-          {
             "beat": 0,
-            "delta_sum": -43.17,
+            "delta_sum": -44.21,
             "matches": 2,
             "name": "Vivify",
             "steam64": "76561198345909972"
+          },
+          {
+            "beat": 0,
+            "delta_sum": -66.63,
+            "matches": 2,
+            "name": "judgeguns",
+            "steam64": "76561198058690608"
           }
         ],
         "factions": {
@@ -23531,8 +23531,8 @@
         "best_commanders": [],
         "best_players": [
           {
-            "beat": 2,
-            "delta_sum": 25.76,
+            "beat": 0,
+            "delta_sum": -10.57,
             "matches": 2,
             "name": "Darkvale",
             "steam64": "76561198136459671"
@@ -23710,38 +23710,38 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 50.93,
+            "delta_sum": 58.64,
             "matches": 3,
             "name": "Nomad",
             "steam64": "76561199066952713"
           },
           {
             "beat": 2,
-            "delta_sum": 39.52,
+            "delta_sum": 35.39,
             "matches": 2,
             "name": "judgeguns",
             "steam64": "76561198058690608"
           },
           {
-            "beat": 1,
-            "delta_sum": 14.49,
-            "matches": 2,
-            "name": "Darkvale",
-            "steam64": "76561198136459671"
-          },
-          {
             "beat": 2,
-            "delta_sum": 13.96,
+            "delta_sum": 31.14,
             "matches": 3,
             "name": "HappyOtter",
             "steam64": "76561198064801924"
           },
           {
             "beat": 1,
-            "delta_sum": 4.41,
+            "delta_sum": 11.85,
             "matches": 2,
             "name": "Vivify",
             "steam64": "76561198345909972"
+          },
+          {
+            "beat": 1,
+            "delta_sum": 4.86,
+            "matches": 2,
+            "name": "F9bomber",
+            "steam64": "76561198026325621"
           }
         ],
         "factions": {
@@ -24061,35 +24061,35 @@
         "best_players": [
           {
             "beat": 4,
-            "delta_sum": 310.63,
+            "delta_sum": 284.77,
             "matches": 5,
             "name": "HappyOtter",
             "steam64": "76561198064801924"
           },
           {
-            "beat": 5,
-            "delta_sum": 92.46,
-            "matches": 11,
-            "name": "judgeguns",
-            "steam64": "76561198058690608"
-          },
-          {
             "beat": 6,
-            "delta_sum": 73.25,
+            "delta_sum": 61.87,
             "matches": 10,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
-            "beat": 4,
-            "delta_sum": 54.39,
+            "beat": 5,
+            "delta_sum": 60.58,
             "matches": 6,
             "name": "Darkvale",
             "steam64": "76561198136459671"
           },
           {
+            "beat": 5,
+            "delta_sum": 58.09,
+            "matches": 11,
+            "name": "judgeguns",
+            "steam64": "76561198058690608"
+          },
+          {
             "beat": 2,
-            "delta_sum": 45.43,
+            "delta_sum": 54.09,
             "matches": 3,
             "name": "Vivify",
             "steam64": "76561198345909972"
@@ -24827,35 +24827,35 @@
         "best_players": [
           {
             "beat": 3,
-            "delta_sum": 64.4,
-            "matches": 3,
-            "name": "Lithium",
-            "steam64": "76561198002930482"
-          },
-          {
-            "beat": 3,
-            "delta_sum": 56.33,
+            "delta_sum": 66.22,
             "matches": 4,
             "name": "F9bomber",
             "steam64": "76561198026325621"
           },
           {
             "beat": 2,
-            "delta_sum": 41.45,
+            "delta_sum": 45.69,
+            "matches": 3,
+            "name": "Lithium",
+            "steam64": "76561198002930482"
+          },
+          {
+            "beat": 2,
+            "delta_sum": 26.4,
             "matches": 2,
             "name": "DraconisMarch",
             "steam64": "76561198048896649"
           },
           {
             "beat": 2,
-            "delta_sum": 31.64,
-            "matches": 2,
-            "name": "Cloaket",
-            "steam64": "76561198025032941"
+            "delta_sum": 21.93,
+            "matches": 5,
+            "name": "Sev",
+            "steam64": "76561199653748651"
           },
           {
             "beat": 1,
-            "delta_sum": 18.17,
+            "delta_sum": 19.25,
             "matches": 2,
             "name": "Vivify",
             "steam64": "76561198345909972"
@@ -25365,38 +25365,38 @@
         "best_players": [
           {
             "beat": 3,
-            "delta_sum": 95.23,
+            "delta_sum": 102.62,
             "matches": 3,
             "name": "Herp McDerperson",
             "steam64": "76561197962996353"
           },
           {
-            "beat": 4,
-            "delta_sum": 54.37,
+            "beat": 2,
+            "delta_sum": 45.84,
             "matches": 4,
             "name": "F9bomber",
             "steam64": "76561198026325621"
           },
           {
             "beat": 1,
-            "delta_sum": 50.97,
+            "delta_sum": 44.37,
             "matches": 2,
             "name": "The Wanderer",
             "steam64": "76561198169179560"
           },
           {
             "beat": 2,
-            "delta_sum": 36.33,
+            "delta_sum": 43.41,
+            "matches": 3,
+            "name": "VTrider",
+            "steam64": "76561197974548434"
+          },
+          {
+            "beat": 2,
+            "delta_sum": 40.42,
             "matches": 2,
             "name": "The_Bylarge",
             "steam64": "76561198834945971"
-          },
-          {
-            "beat": 3,
-            "delta_sum": 32.87,
-            "matches": 4,
-            "name": "Lithium",
-            "steam64": "76561198002930482"
           }
         ],
         "factions": {
@@ -25952,14 +25952,14 @@
         "best_players": [
           {
             "beat": 1,
-            "delta_sum": -5.15,
+            "delta_sum": 6.43,
             "matches": 2,
             "name": "VTrider",
             "steam64": "76561197974548434"
           },
           {
-            "beat": 1,
-            "delta_sum": -18.11,
+            "beat": 0,
+            "delta_sum": -32.42,
             "matches": 2,
             "name": "F9bomber",
             "steam64": "76561198026325621"
@@ -26178,39 +26178,39 @@
         ],
         "best_players": [
           {
-            "beat": 1,
-            "delta_sum": 53.42,
-            "matches": 2,
-            "name": "DraconisMarch",
-            "steam64": "76561198048896649"
-          },
-          {
             "beat": 2,
-            "delta_sum": 43.18,
+            "delta_sum": 53.18,
             "matches": 2,
             "name": "Cloaket",
             "steam64": "76561198025032941"
           },
           {
             "beat": 2,
-            "delta_sum": 36.89,
+            "delta_sum": 49.42,
             "matches": 2,
-            "name": "judgeguns",
-            "steam64": "76561198058690608"
+            "name": "DraconisMarch",
+            "steam64": "76561198048896649"
           },
           {
-            "beat": 1,
-            "delta_sum": 27.71,
+            "beat": 2,
+            "delta_sum": 34.17,
             "matches": 2,
             "name": "F9bomber",
             "steam64": "76561198026325621"
           },
           {
-            "beat": 1,
-            "delta_sum": 11.4,
+            "beat": 2,
+            "delta_sum": 30.85,
             "matches": 2,
             "name": "Nomad",
             "steam64": "76561199066952713"
+          },
+          {
+            "beat": 1,
+            "delta_sum": 21.1,
+            "matches": 2,
+            "name": "judgeguns",
+            "steam64": "76561198058690608"
           }
         ],
         "factions": {
@@ -26725,35 +26725,35 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 62.36,
+            "delta_sum": 45.81,
             "matches": 4,
             "name": "Nomad",
             "steam64": "76561199066952713"
           },
           {
             "beat": 2,
-            "delta_sum": 36.87,
+            "delta_sum": 37.88,
             "matches": 4,
             "name": "F9bomber",
             "steam64": "76561198026325621"
           },
           {
             "beat": 1,
-            "delta_sum": 18.14,
-            "matches": 2,
-            "name": "econchump",
-            "steam64": "76561198068133931"
-          },
-          {
-            "beat": 1,
-            "delta_sum": 14.12,
+            "delta_sum": 19.87,
             "matches": 2,
             "name": "Cloaket",
             "steam64": "76561198025032941"
           },
           {
             "beat": 1,
-            "delta_sum": 9.32,
+            "delta_sum": 16.39,
+            "matches": 2,
+            "name": "econchump",
+            "steam64": "76561198068133931"
+          },
+          {
+            "beat": 1,
+            "delta_sum": 12.02,
             "matches": 2,
             "name": "VTrider",
             "steam64": "76561197974548434"
@@ -27204,35 +27204,35 @@
         "best_players": [
           {
             "beat": 2,
-            "delta_sum": 68.41,
+            "delta_sum": 53.66,
             "matches": 3,
             "name": "F9bomber",
             "steam64": "76561198026325621"
           },
           {
             "beat": 1,
-            "delta_sum": 41.05,
+            "delta_sum": 34.26,
             "matches": 2,
             "name": "Domakus",
             "steam64": "76561198006115793"
           },
           {
             "beat": 1,
-            "delta_sum": 25.78,
-            "matches": 4,
-            "name": "Darkvale",
-            "steam64": "76561198136459671"
-          },
-          {
-            "beat": 2,
-            "delta_sum": 25.36,
+            "delta_sum": 26.58,
             "matches": 2,
             "name": "econchump",
             "steam64": "76561198068133931"
           },
           {
             "beat": 2,
-            "delta_sum": 17.77,
+            "delta_sum": 24.68,
+            "matches": 3,
+            "name": "Lithium",
+            "steam64": "76561198002930482"
+          },
+          {
+            "beat": 2,
+            "delta_sum": 23.28,
             "matches": 4,
             "name": "VTrider",
             "steam64": "76561197974548434"
@@ -28317,14 +28317,14 @@
         "best_players": [
           {
             "beat": 1,
-            "delta_sum": 7.11,
+            "delta_sum": 7.65,
             "matches": 2,
             "name": "Nomad",
             "steam64": "76561199066952713"
           },
           {
-            "beat": 1,
-            "delta_sum": -7.25,
+            "beat": 0,
+            "delta_sum": -30.41,
             "matches": 2,
             "name": "Monkey",
             "steam64": "76561199732480793"
@@ -28522,36 +28522,36 @@
         ],
         "best_players": [
           {
-            "beat": 3,
-            "delta_sum": 151.55,
+            "beat": 4,
+            "delta_sum": 153.29,
             "matches": 5,
             "name": "Lithium",
             "steam64": "76561198002930482"
           },
           {
-            "beat": 3,
-            "delta_sum": 49.33,
-            "matches": 3,
-            "name": "Herp McDerperson",
-            "steam64": "76561197962996353"
+            "beat": 6,
+            "delta_sum": 66.45,
+            "matches": 9,
+            "name": "Darkvale",
+            "steam64": "76561198136459671"
           },
           {
             "beat": 1,
-            "delta_sum": 39.56,
+            "delta_sum": 30.5,
             "matches": 3,
             "name": "Monkey",
             "steam64": "76561199732480793"
           },
           {
             "beat": 3,
-            "delta_sum": 39.08,
-            "matches": 9,
-            "name": "Darkvale",
-            "steam64": "76561198136459671"
+            "delta_sum": 29.47,
+            "matches": 4,
+            "name": "Cloaket",
+            "steam64": "76561198025032941"
           },
           {
             "beat": 2,
-            "delta_sum": 25.32,
+            "delta_sum": 28.9,
             "matches": 3,
             "name": "econchump",
             "steam64": "76561198068133931"

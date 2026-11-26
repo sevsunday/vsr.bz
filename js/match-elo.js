@@ -814,10 +814,29 @@
     const reasonHtml = reason && window.VTBalonce && window.VTBalonce.mainReasonHtml && reason.key
       ? window.VTBalonce.mainReasonHtml(reason)
       : (reason ? `<p class="vt-match-elo-vtsrc-verdict mb-2">${esc(reason.text)}</p>` : '');
+    // New-model preview (display only): the joint model's pre-match win
+    // chance for this match, from js/balonce-meter.js. Empty until both
+    // joint files have loaded, and when the test is not running.
+    const B = window.VTBalonce;
+    const jointHtml = (B && B.jointMatchPreviewHtml)
+      ? B.jointMatchPreviewHtml(matchId, {
+        teamLabel: (side) => {
+          const c = side === 1 ? c1 : c2;
+          return c && c.name ? `Team ${side} (${c.name})` : `Team ${side}`;
+        },
+      })
+      : '';
+    if (B && B.ensureJointLoaded
+        && (window.__vtJointHistory === undefined || window.__vtJointCurrent === undefined)) {
+      B.ensureJointLoaded().then(() => {
+        if (lastMatchId === matchId && lastJoined) paintVtsrc(lastJoined, matchId);
+      });
+    }
     body.innerHTML = `
       <p class="vt-match-elo-vtsrc-verdict mb-2">${esc(verdict)}</p>
       ${reasonHtml}
-      ${rows}`;
+      ${rows}
+      ${jointHtml}`;
     if (window.bootstrap && bootstrap.Tooltip) {
       body.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
         bootstrap.Tooltip.getOrCreateInstance(el);

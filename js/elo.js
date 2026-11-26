@@ -2203,9 +2203,14 @@
         verdict: 'A pilot who destroys a <em>ship</em> still gets full credit &mdash; and damage dealt to or by pilots always counts.',
       },
       {
-        icon: 'bi-life-preserver', title: 'Stranded at base? Not your fault',
-        body: `<p>Lower-rated players sometimes spend long stretches shipless at base waiting on a rebuild. For established low-tier players that <strong>waiting time is excluded</strong>: their damage is scaled up to the time they actually had a ship, so the rating measures what you did with a ship, not how long you went without one.</p>`,
-        verdict: 'Caveat: for low-tier players, time spent outside of base as a pilot still counts against you like normal.',
+        icon: 'bi-people-fill', title: 'Your teammates don\u2019t set your bar',
+        body: `<p>What you were expected to score is set against <strong>the other team only</strong>. It used to be set against everyone else in the match, teammates included, so thugs on a strong team got an easier bar and thugs carrying a weak one got a harder bar.</p>`,
+        verdict: 'Stronger opponents lower the bar; weaker ones raise it.',
+      },
+      {
+        icon: 'bi-building-x', title: 'Knocking down a beaten base doesn\u2019t count',
+        body: `<p>Damage to buildings in the <strong>last three minutes</strong> of a match is left out of your match score. By then the game is decided, and that damage mostly measures which team won: it was 8.5% of a winning thug\u2019s damage and 1.9% of a losing thug\u2019s.</p>`,
+        verdict: 'Everything else you hit still counts, to the last second.',
       },
       {
         icon: 'bi-person-badge-fill', title: 'The commander ladder (VSR-C)',
@@ -2557,6 +2562,42 @@
       </div>`;
     }
 
+    // ---- New model in testing (v1.13; absent-safe). ----
+    // The joint commanding-and-fighting model's switch test, straight from
+    // validate_elo.py #24 (the prediction ledger). It changes no rating
+    // until a look passes; this section only says where the test stands.
+    const jm = (v.latest_detail && v.latest_detail.joint_model) || null;
+    let jointHtml = '';
+    if (jm && jm.available) {
+      const looks = (jm.looks_at || [200, 300, 400]).join(', ');
+      const run = jm.running || null;
+      const STATUS = {
+        not_started: ['Not started', 'ok', 'The rules are written down but not signed off yet, so no game counts.'],
+        running: ['Running', 'info', `Checked at ${looks} recorded games. Next check at ${jm.next_look ?? '\u2014'}.`],
+        passed: ['Passed', 'good', 'It predicted clearly better at a check. The switch to it is being prepared.'],
+        withdrawn: ['Withdrawn', 'bad', 'It fell clearly behind today\u2019s formula at a check, so the preview was taken down.'],
+        ended: ['Ended', 'ok', 'It did not predict clearly better within 400 games. Today\u2019s ratings stay.'],
+      };
+      const [sLabel, sTone, sText] = STATUS[jm.status] || [String(jm.status || 'Unknown'), 'ok', ''];
+      const num = (x, d) => (x == null || !isFinite(x)) ? '\u2014' : Number(x).toFixed(d);
+      const soFar = run
+        ? `<table class="vt-elo-gap-table">
+            <thead><tr><th>On the ${run.n} games counted so far</th><th class="text-end">New model</th><th class="text-end">Today\u2019s formula</th></tr></thead>
+            <tbody>
+              <tr><td>Winners called</td><td class="text-end">${pct(run.accuracy_joint)}</td><td class="text-end">${pct(run.accuracy_baseline)}</td></tr>
+              <tr><td>Log-loss (lower is better)</td><td class="text-end">${num(run.log_loss_joint, 3)}</td><td class="text-end">${num(run.log_loss_baseline, 3)}</td></tr>
+            </tbody>
+          </table>
+          <p class="vt-elo-acc-blurb mt-2 mb-0">Gap so far: ${num(run.gain, 3)} \u00b1 ${num(run.gain_se, 3)} log-loss in the new model\u2019s favor. It has to be at least 2 standard errors above zero at a check.</p>`
+        : '';
+      jointHtml = `<div class="vt-elo-acc-section" id="elo-joint-test">
+        <h6>New model in testing <span class="vt-elo-badge is-${sTone}">${sLabel}</span></h6>
+        <p class="vt-elo-acc-blurb">Today VSR-T ignores who won and VSR-C ignores how well the commander fights. A new model gives every player <strong>two skills, commanding and fighting</strong>, and learns both from the same evidence: who won, and how much damage each player dealt compared with their own teammates. The commander counts as one of the team\u2019s fighters. It runs beside today\u2019s ratings and changes none of them; where it shows, it is the line labelled <em>New model (in testing)</em> next to the Balonce meter.</p>
+        <p class="vt-elo-acc-blurb"><strong>${sText}</strong> It replaces today\u2019s ratings only if it predicts recorded games clearly better than today\u2019s formula. The rule was written down before any of those games were played${jm.freeze_date ? ` (${esc(jm.freeze_date)})` : ''}, and the test stops at 400 games either way.</p>
+        ${soFar}
+      </div>`;
+    }
+
     // ---- History sparkline. ----
     // Prefer match chronology (cumulative + rolling-30) when the validator
     // emitted accuracy_timeline. Fall back to the per-run history chart.
@@ -2580,6 +2621,7 @@
       ${cmdrAccHtml}
       ${cmdrEconHtml}
       ${axisOutcomeHtml}
+      ${jointHtml}
       ${histSection}
       <p class="text-muted small mb-0">Source: <code>data/processed/validation_summary.json</code>, generated ${esc(L.generated_at || v.generated_at || '')} by <code>scripts/validate_elo.py</code>.</p>
     </div>`;

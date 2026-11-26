@@ -249,3 +249,34 @@ Hadean share of team-sides by month: 35% (2025-01), 8–16% through late
   (`team_factions`) — the faction sources
 - `elo/analysis/index.html` §7 Faction-based ELO (+ §5.6) — design discussion
 - This memo
+
+## Results
+
+### Run 2026-11-25 (first run with at least 60 confirmation duels) — HOLD
+
+`python scripts/validate_elo.py`, report §19, 800 duels (telemetry 292,
+F9 508). Confirmation sample: **74** non-mirror duels dated after
+2026-10-04. The validator had already printed this verdict on
+2026-11-20; this is the first time it is recorded here.
+
+Rule by rule, frozen `phi` (+60 Hadean, 0, 0), no refit:
+
+1. Sample size at least 60: **pass** (74).
+2. Log-loss better by at least 0.005: **FAIL**. 0.5984 to 0.6044, which
+   is 0.0061 worse.
+3. Accuracy not worse: **FAIL**. 63.5% to 62.2%.
+4. Sign and magnitude: **FAIL**. The confirmation refit gives Hadean vs
+   ISDF +0.041 ± 0.319 logit (about +7 points). The sign matches
+   discovery; the size is under the +0.18 the rule asks for.
+5. Re-rate sanity: not evaluated, since 2 to 4 fail.
+
+Discard rule: does not fire. The confirmation coefficient is above zero.
+
+**VERDICT: HOLD.** The frozen term stays unapplied. Next look at 134
+confirmation duels (the +60 cadence).
+
+For context only, not part of the rule: the full-corpus refit still
+reads +0.317 ± 0.141 (about +55 points, p 0.024), and on all 483
+non-mirror duels the frozen term improves log-loss by 0.0072 while
+losing 0.6 points of accuracy. The discovery effect has not carried
+into the games played since the rule was written.

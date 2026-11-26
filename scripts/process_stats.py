@@ -3293,6 +3293,7 @@ def load_cache_index():
             "elo_commander_current.json", "elo_commander_history.json",
             "elo_1v1_current.json", "elo_1v1_history.json",
             "elo_2v2_current.json", "elo_2v2_history.json",
+            "elo_joint_current.json", "elo_joint_history.json",
             "elo_current_unlocked.json", "elo_history_unlocked.json",
             "elo_current_max.json", "elo_history_max.json",
             "elo_current_softmax.json", "elo_history_softmax.json",
@@ -12799,6 +12800,7 @@ def main():
     # zero risk to compute_elo and zero changes to VTSR-T consumers.
     # Corpus-wide, picker-unaware; a separate ladder from VTSR-T.
     # Soft-fails so a hiccup here never blocks the rest of the pipeline.
+    cmdr_history = None
     try:
         if elo_history is None:
             raise RuntimeError("canonical VTSR-T history unavailable")
@@ -12877,6 +12879,80 @@ def main():
               f"{v2_current.get('skipped_inactive_player', 0)} inactive-player)")
     except Exception as e:
         print(f"WARN: failed to compute VTSR-2v2 ({e}); skipping.")
+
+    # ----- Joint commanding-and-fighting model (forensic) -----
+    # One model over every rated team game and every F9 duel: a commanding
+    # and a fighting skill per player, stepping by calendar quarter. Reads
+    # elo_history / cmdr_history for membership only and feeds no published
+    # rating (critique/decisions/joint-skill-model.md). Needs numpy; a
+    # machine without it warns here and produces everything else.
+    # Rows are memoised against the previous history file, so a normal run
+    # refits only new duels. Soft-fails.
+    try:
+        if elo_history is None or cmdr_history is None:
+            raise RuntimeError("VSR-T / VSR-C history unavailable")
+        import elo_joint as elo_joint_module
+        import joint_test as joint_test_module
+        joint_history_path = OUTPUT_DIR / "elo_joint_history.json"
+        joint_previous = None
+        if joint_history_path.exists() and not args.force:
+            try:
+                with open(joint_history_path, "r", encoding="utf-8") as f:
+                    joint_previous = json.load(f)
+            except (OSError, json.JSONDecodeError):
+                joint_previous = None
+        joint_current, joint_history = elo_joint_module.compute_joint(
+            all_match_data, elo_history, cmdr_history,
+            external_duels=f9_duels,
+            previous_history=joint_previous,
+        )
+        joint_current_path = OUTPUT_DIR / "elo_joint_current.json"
+        print(f"Joint model: {joint_current_path.name} "
+              f"({len(joint_current.get('ratings', []))} players · "
+              f"{joint_current.get('games', 0)} games · "
+              f"{joint_current.get('damage_rows', 0)} damage rows · "
+              f"{joint_current.get('duels_refit', 0)} duels refit)")
+
+        # Switch-test ledger: recorded duels dated after the memo's freeze
+        # date get their three win chances logged once, as first computed.
+        joint_ledger = joint_test_module.load_ledger()
+        if joint_test_module.FREEZE_DATE:
+            _f9_overlap_ids = frozenset(
+                ov.get("match_id")
+                for ov in (f9_ledger.get("overlaps") if f9_ledger else []) or []
+                if ov.get("match_id")
+            )
+            added = joint_test_module.append_ledger(
+                joint_ledger, joint_history, cmdr_history,
+                baseline=lambda: joint_test_module.frozen_baseline_expected(
+                    all_match_data, f9_duels, _f9_overlap_ids, combat_ship_odfs),
+            )
+            if (added or joint_ledger.get("freeze_date") != joint_test_module.FREEZE_DATE
+                    or not joint_test_module.LEDGER_PATH.exists()):
+                joint_ledger["freeze_date"] = joint_test_module.FREEZE_DATE
+                joint_ledger["config_hash"] = (joint_ledger.get("config_hash")
+                                               or joint_history.get("config_hash"))
+                joint_test_module.save_ledger(joint_ledger)
+            print(f"Joint test ledger: {len(joint_ledger['entries'])} duels logged "
+                  f"({added} new) since {joint_test_module.FREEZE_DATE}")
+        else:
+            print("Joint test ledger: not started (memo not signed)")
+
+        # The preview line reads the test's state from the current file.
+        _joint_score = joint_test_module.score_ledger(joint_ledger)
+        joint_current["test"] = {
+            "status": _joint_score.get("status"),
+            "freeze_date": _joint_score.get("freeze_date"),
+            "duels": _joint_score.get("duels"),
+            "looks_at": _joint_score.get("looks_at"),
+            "next_look": _joint_score.get("next_look"),
+        }
+        with open(joint_current_path, "w", encoding="utf-8") as f:
+            json.dump(joint_current, f, indent=2, ensure_ascii=False)
+        with open(joint_history_path, "w", encoding="utf-8") as f:
+            json.dump(joint_history, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"WARN: failed to compute the joint model ({e}); skipping.")
 
     # ----- VTSR-T (unlocked-priors alt mode, Phase 2B) -----
     # Re-runs the rating loop with `exclude_locked_priors=True`. The

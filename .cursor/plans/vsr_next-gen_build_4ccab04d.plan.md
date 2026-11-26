@@ -4,40 +4,40 @@ overview: "Implementation plan for everything settled in the VSR next-gen analys
 todos:
   - id: record-results
     content: Run validate_elo.py and vtsr_t_variants.py --since 2026-10-25; append the Phase 6 verdict, the forward check and the commander-fighting decision to their memos
-    status: pending
+    status: completed
   - id: parity-gate
     content: Add _investigation/check_balonce_parity.mjs (JS meter against the stored expected for all 800 duels) and register it in run_all_gates.py
-    status: pending
+    status: completed
   - id: joint-core
     content: "Write scripts/elo_joint.py: quarterly-step commanding-and-fighting model, Newton fit with step-halving, memoised walk-forward history; reproduce log-loss 0.5884 on the 252 back-test duels"
-    status: pending
+    status: completed
   - id: joint-study
     content: "Write scripts/study_joint_skill.py: back-test, configuration check against declared neighbours, skill-over-time tests, noise table, switch-test threshold, largest-gaps table"
-    status: pending
+    status: completed
   - id: joint-memo
     content: Write critique/decisions/joint-skill-model.md with the baseline fingerprint; get sign-off (the freeze date starts the confirmation clock)
-    status: pending
+    status: completed
   - id: interim-hook
     content: Add the inert EXPECTED_REFERENCE_POOL switch to both others-builders in scripts/elo.py; prove elo_history.json is byte-identical at the default
-    status: pending
+    status: completed
   - id: interim-harness-memo
     content: Write scripts/study_vtsr_t_fairness.py and critique/decisions/vtsr-t-interim-revision.md (five gates, forward check); get sign-off; run and append the results
-    status: pending
+    status: completed
   - id: interim-ship
     content: "If the gates pass: flip the three switches, ELO_SCHEMA_VERSION 22, CMDR_ELO_SCHEMA_VERSION 15, re-run pipeline and validator, review the band changes, update the explainer copy"
-    status: pending
+    status: completed
   - id: joint-pipeline
     content: Wire elo_joint into process_stats.py (soft-fail block, cache skip set, numpy in requirements); add scripts/joint_test.py and the append-only data/joint_test_ledger.json
-    status: pending
+    status: completed
   - id: joint-validator
     content: Add metric_joint_model to validate_elo.py (ledger scoring, three looks, over-confidence guard, status) and the additive validation_summary block
-    status: pending
+    status: completed
   - id: preview-ui
     content: Add the labelled new-model line to the Outcome card, the per-match Elo tab and Tools, and the test-status card on the ELO page; add the joint separation, inert, parity and config gates
-    status: pending
+    status: completed
   - id: docs-rules
     content: Update DEVELOPER_GUIDE, DATA_DICTIONARY, project-overview.mdc, data-schema.mdc and elo/analysis/index.html (lift retired, Phase 7(c) closed, joint model and test)
-    status: pending
+    status: completed
 isProject: false
 ---
 

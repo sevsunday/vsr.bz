@@ -1,5 +1,5 @@
 {
-  "schema_version": 21,
+  "schema_version": 22,
   "excludes_locked_priors": false,
   "expected_performance_mode": "median",
   "expected_performance_softmax_tau": 200.0,
@@ -67,7 +67,9 @@
   "min_player_count": 6,
   "min_per_side": 3,
   "min_duration_sec": 0,
-  "computed_at": "2026-11-22T06:05:03Z",
+  "expected_reference_pool": "opponents",
+  "trim_late_structure_damage": true,
+  "computed_at": "2026-11-26T06:01:46Z",
   "match_count": 292,
   "matches_excluded_low_player_count": 65,
   "matches_excluded_short_side": 0,
@@ -83,12 +85,12 @@
     "enemy_damage_share": 1.0
   },
   "lowtier_lift": {
-    "enabled": true,
+    "enabled": false,
     "cutoff": 1460.0,
     "taper": 60.0,
     "axis": "enemy_damage_share",
     "min_ship_minutes": 2.0,
-    "eligible_count": 6
+    "eligible_count": 0
   },
   "commander_axis_prior": {
     "enemy_damage_share": -0.171
@@ -99,8 +101,8 @@
   "commander_baseline_observed": {
     "enemy_damage_share": {
       "n": 584,
-      "running_mean": -0.1808,
-      "shrunk_baseline_at_corpus_end": -0.1803,
+      "running_mean": -0.1911,
+      "shrunk_baseline_at_corpus_end": -0.1902,
       "locked": false
     }
   },
@@ -109,7 +111,7 @@
       "name": "VTrider",
       "steam64": "76561197974548434",
       "vtsr": 1634.3,
-      "thug_elo": 2138.6,
+      "thug_elo": 2205.9,
       "wins_elo": 1634.3,
       "matches_played": 187,
       "matches_as_commander": 32,
@@ -128,23 +130,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-18T05-43-51",
-      "last_delta": 12.25,
+      "last_delta": 10.63,
       "peak_vtsr": 1638.7,
       "peak_at": "2026-11-14T04-07-54",
       "win_history": [
-        -11.39,
-        16.13,
-        1.19,
-        12.29,
-        19.61,
-        5.79,
-        -23.21,
-        13.75,
-        14.29,
-        12.25
+        8.49,
+        12.81,
+        -7.85,
+        11.25,
+        16.37,
+        2.84,
+        -19.4,
+        11.43,
+        10.48,
+        10.63
       ],
       "axis_means": {
-        "enemy_damage_share": 0.6046
+        "enemy_damage_share": 0.6235
       },
       "lowtier_lift_factor": 0.0
     },
@@ -152,7 +154,7 @@
       "name": "Muffin",
       "steam64": "76561198088149233",
       "vtsr": 1584.9,
-      "thug_elo": 1896.4,
+      "thug_elo": 1920.2,
       "wins_elo": 1584.9,
       "matches_played": 52,
       "matches_as_commander": 11,
@@ -171,23 +173,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-01T20-59-45",
-      "last_delta": -5.41,
+      "last_delta": -5.31,
       "peak_vtsr": 1597.4,
       "peak_at": "2026-10-17T05-27-49",
       "win_history": [
-        -23.72,
-        -17.76,
-        -11.51,
-        14.04,
-        5.42,
-        11.08,
-        -29.22,
-        -1.78,
-        32.96,
-        -5.41
+        -17.96,
+        -20.57,
+        -8.97,
+        -16.86,
+        5.68,
+        5.5,
+        -33.57,
+        0.06,
+        22.17,
+        -5.31
       ],
       "axis_means": {
-        "enemy_damage_share": 0.3627
+        "enemy_damage_share": 0.3964
       },
       "lowtier_lift_factor": 0.0
     },
@@ -195,7 +197,7 @@
       "name": "Sev",
       "steam64": "76561199653748651",
       "vtsr": 1573.0,
-      "thug_elo": 1751.9,
+      "thug_elo": 1761.4,
       "wins_elo": 1573.0,
       "matches_played": 171,
       "matches_as_commander": 63,
@@ -214,23 +216,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-18T05-20-02",
-      "last_delta": -13.71,
+      "last_delta": -13.24,
       "peak_vtsr": 1582.5,
       "peak_at": "2026-11-14T04-42-04",
       "win_history": [
-        -10.77,
-        18.5,
-        -4.68,
-        -6.16,
-        9.79,
-        -7.97,
-        28.94,
-        -14.9,
-        -17.23,
-        -13.71
+        -12.1,
+        21.9,
+        -6.33,
+        4.34,
+        8.77,
+        -12.03,
+        26.76,
+        -21.43,
+        -12.1,
+        -13.24
       ],
       "axis_means": {
-        "enemy_damage_share": 0.0877
+        "enemy_damage_share": 0.0815
       },
       "lowtier_lift_factor": 0.0
     },
@@ -238,7 +240,7 @@
       "name": "Cyber",
       "steam64": "76561198824607769",
       "vtsr": 1558.5,
-      "thug_elo": 1832.9,
+      "thug_elo": 1864.7,
       "wins_elo": 1558.5,
       "matches_played": 32,
       "matches_as_commander": 6,
@@ -257,23 +259,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-16T05-13-14",
-      "last_delta": 13.22,
+      "last_delta": 5.12,
       "peak_vtsr": 1565.4,
       "peak_at": "2026-05-08T23-15-37",
       "win_history": [
-        -22.77,
-        3.44,
-        -5.95,
-        34.55,
-        13.99,
-        -5.44,
-        10.73,
-        -14.72,
-        31.37,
-        13.22
+        -20.87,
+        5.13,
+        -24.24,
+        33.75,
+        16.03,
+        3.95,
+        22.69,
+        -17.7,
+        26.23,
+        5.12
       ],
       "axis_means": {
-        "enemy_damage_share": 0.3285
+        "enemy_damage_share": 0.3521
       },
       "lowtier_lift_factor": 0.0
     },
@@ -281,7 +283,7 @@
       "name": "blue",
       "steam64": "76561198043392032",
       "vtsr": 1548.8,
-      "thug_elo": 1677.6,
+      "thug_elo": 1698.0,
       "wins_elo": 1548.8,
       "matches_played": 23,
       "matches_as_commander": 15,
@@ -300,23 +302,23 @@
         "d": 0
       },
       "last_match_id": "2026-10-24T04-56-49",
-      "last_delta": 9.69,
+      "last_delta": 8.47,
       "peak_vtsr": 1561.4,
       "peak_at": "2026-05-22T03-21-34",
       "win_history": [
-        66.6,
-        45.07,
-        -14.11,
-        14.9,
-        -25.25,
-        -39.73,
-        -5.28,
-        -13.66,
-        -8.9,
-        9.69
+        36.7,
+        49.85,
+        2.25,
+        28.06,
+        -19.62,
+        -27.81,
+        2.25,
+        -5.51,
+        2.71,
+        8.47
       ],
       "axis_means": {
-        "enemy_damage_share": 0.1363
+        "enemy_damage_share": 0.0998
       },
       "lowtier_lift_factor": 0.0
     },
@@ -324,7 +326,7 @@
       "name": "econchump",
       "steam64": "76561198068133931",
       "vtsr": 1545.3,
-      "thug_elo": 1592.5,
+      "thug_elo": 1622.7,
       "wins_elo": 1545.3,
       "matches_played": 66,
       "matches_as_commander": 7,
@@ -343,23 +345,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-18T05-43-51",
-      "last_delta": 1.89,
+      "last_delta": 2.52,
       "peak_vtsr": 1557.4,
       "peak_at": "2026-11-08T02-40-06",
       "win_history": [
-        -26.69,
-        23.01,
-        -2.17,
-        19.07,
-        -3.78,
-        -19.53,
-        -13.54,
-        -9.16,
-        -13.54,
-        1.89
+        -27.03,
+        14.88,
+        0.67,
+        26.27,
+        8.43,
+        -13.17,
+        -11.75,
+        -4.24,
+        -11.16,
+        2.52
       ],
       "axis_means": {
-        "enemy_damage_share": -0.0264
+        "enemy_damage_share": -0.0347
       },
       "lowtier_lift_factor": 0.0
     },
@@ -367,7 +369,7 @@
       "name": "Nomad",
       "steam64": "76561199066952713",
       "vtsr": 1545.2,
-      "thug_elo": 1828.6,
+      "thug_elo": 1867.0,
       "wins_elo": 1545.2,
       "matches_played": 203,
       "matches_as_commander": 18,
@@ -386,23 +388,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-16T05-13-14",
-      "last_delta": 11.38,
+      "last_delta": 10.96,
       "peak_vtsr": 1550.5,
       "peak_at": "2026-05-21T02-33-38",
       "win_history": [
-        20.99,
-        -11.79,
-        3.0,
-        12.67,
-        15.06,
-        4.21,
-        -13.04,
-        -6.06,
-        16.48,
-        11.38
+        17.72,
+        3.65,
+        -4.66,
+        12.71,
+        16.9,
+        -1.22,
+        -12.14,
+        -1.56,
+        20.53,
+        10.96
       ],
       "axis_means": {
-        "enemy_damage_share": 0.0816
+        "enemy_damage_share": 0.1113
       },
       "lowtier_lift_factor": 0.0
     },
@@ -410,7 +412,7 @@
       "name": "Sly",
       "steam64": "76561198076339639",
       "vtsr": 1544.7,
-      "thug_elo": 1771.2,
+      "thug_elo": 1778.4,
       "wins_elo": 1544.7,
       "matches_played": 6,
       "matches_as_commander": 1,
@@ -429,19 +431,19 @@
         "d": 0
       },
       "last_match_id": "2026-05-22T22-04-31",
-      "last_delta": -21.37,
+      "last_delta": -14.46,
       "peak_vtsr": 1553.5,
       "peak_at": "2026-04-27T00-00-33",
       "win_history": [
-        132.46,
-        81.47,
-        87.32,
-        -20.24,
-        11.57,
-        -21.37
+        130.45,
+        82.13,
+        87.61,
+        -20.49,
+        13.12,
+        -14.46
       ],
       "axis_means": {
-        "enemy_damage_share": 0.5661
+        "enemy_damage_share": 0.5721
       },
       "lowtier_lift_factor": 0.0
     },
@@ -449,7 +451,7 @@
       "name": "Manslayer",
       "steam64": "76561198107254044",
       "vtsr": 1544.2,
-      "thug_elo": 1835.8,
+      "thug_elo": 1759.1,
       "wins_elo": 1544.2,
       "matches_played": 7,
       "matches_as_commander": 0,
@@ -468,20 +470,20 @@
         "d": 0
       },
       "last_match_id": "2026-10-07T03-16-57",
-      "last_delta": 50.31,
+      "last_delta": 68.16,
       "peak_vtsr": 1544.2,
       "peak_at": "2026-10-07T03-16-57",
       "win_history": [
-        29.29,
-        140.81,
-        -18.34,
-        85.6,
-        12.81,
-        35.31,
-        50.31
+        39.23,
+        108.16,
+        -21.05,
+        96.45,
+        -5.57,
+        -26.33,
+        68.16
       ],
       "axis_means": {
-        "enemy_damage_share": 0.5244
+        "enemy_damage_share": 0.3718
       },
       "lowtier_lift_factor": 0.0
     },
@@ -489,7 +491,7 @@
       "name": "Lithium",
       "steam64": "76561198002930482",
       "vtsr": 1541.8,
-      "thug_elo": 1588.7,
+      "thug_elo": 1593.9,
       "wins_elo": 1541.8,
       "matches_played": 137,
       "matches_as_commander": 40,
@@ -508,23 +510,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-11T04-22-07",
-      "last_delta": 12.75,
+      "last_delta": 10.34,
       "peak_vtsr": 1597.5,
       "peak_at": "2026-09-14T03-41-22",
       "win_history": [
-        -17.33,
-        -1.84,
-        3.48,
-        -5.59,
-        5.33,
-        13.12,
-        17.64,
-        -7.0,
-        -3.28,
-        12.75
+        -20.41,
+        -0.13,
+        1.22,
+        -2.7,
+        15.61,
+        2.34,
+        26.01,
+        -13.94,
+        -1.94,
+        10.34
       ],
       "axis_means": {
-        "enemy_damage_share": -0.1145
+        "enemy_damage_share": -0.153
       },
       "lowtier_lift_factor": 0.0
     },
@@ -532,7 +534,7 @@
       "name": "MAX",
       "steam64": "76561198877763773",
       "vtsr": 1538.3,
-      "thug_elo": 1807.1,
+      "thug_elo": 1782.9,
       "wins_elo": 1538.3,
       "matches_played": 8,
       "matches_as_commander": 5,
@@ -551,21 +553,21 @@
         "d": 0
       },
       "last_match_id": "2026-11-01T20-59-45",
-      "last_delta": 65.24,
+      "last_delta": 62.52,
       "peak_vtsr": 1544.2,
       "peak_at": "2026-10-24T19-28-10",
       "win_history": [
-        92.81,
-        61.48,
-        92.28,
-        -2.55,
-        -27.97,
-        11.39,
-        14.41,
-        65.24
+        22.32,
+        41.66,
+        104.96,
+        25.09,
+        -19.94,
+        21.62,
+        24.68,
+        62.52
       ],
       "axis_means": {
-        "enemy_damage_share": 0.3253
+        "enemy_damage_share": 0.2454
       },
       "lowtier_lift_factor": 0.0
     },
@@ -573,7 +575,7 @@
       "name": "tom",
       "steam64": "76561198079394192",
       "vtsr": 1537.4,
-      "thug_elo": 1788.0,
+      "thug_elo": 1800.5,
       "wins_elo": 1537.4,
       "matches_played": 8,
       "matches_as_commander": 1,
@@ -592,21 +594,21 @@
         "d": 0
       },
       "last_match_id": "2026-05-22T22-04-31",
-      "last_delta": 61.12,
+      "last_delta": 91.33,
       "peak_vtsr": 1538.0,
       "peak_at": "2026-05-16T02-25-32",
       "win_history": [
-        18.79,
-        72.72,
-        62.33,
-        87.06,
-        -12.42,
-        22.97,
-        -24.58,
-        61.12
+        41.71,
+        68.64,
+        -3.04,
+        92.72,
+        -27.69,
+        41.69,
+        -4.87,
+        91.33
       ],
       "axis_means": {
-        "enemy_damage_share": 0.4283
+        "enemy_damage_share": 0.4156
       },
       "lowtier_lift_factor": 0.0
     },
@@ -614,7 +616,7 @@
       "name": "FlameFrags",
       "steam64": "76561198760085514",
       "vtsr": 1522.1,
-      "thug_elo": 1376.8,
+      "thug_elo": 1347.8,
       "wins_elo": 1522.1,
       "matches_played": 2,
       "matches_as_commander": 0,
@@ -633,15 +635,15 @@
         "d": 0
       },
       "last_match_id": "2026-09-19T01-03-13",
-      "last_delta": -62.03,
+      "last_delta": -60.29,
       "peak_vtsr": 1522.1,
       "peak_at": "2026-09-19T01-03-13",
       "win_history": [
-        -61.13,
-        -62.03
+        -91.93,
+        -60.29
       ],
       "axis_means": {
-        "enemy_damage_share": -0.6571
+        "enemy_damage_share": -0.7815
       },
       "lowtier_lift_factor": 0.0
     },
@@ -649,7 +651,7 @@
       "name": "dd",
       "steam64": "76561198088036138",
       "vtsr": 1519.3,
-      "thug_elo": 1670.8,
+      "thug_elo": 1621.1,
       "wins_elo": 1519.3,
       "matches_played": 30,
       "matches_as_commander": 6,
@@ -668,23 +670,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-18T05-43-51",
-      "last_delta": -19.8,
+      "last_delta": -28.59,
       "peak_vtsr": 1525.1,
       "peak_at": "2026-11-18T05-20-02",
       "win_history": [
-        6.72,
-        -14.71,
-        -16.14,
-        29.0,
-        -4.25,
-        1.49,
-        19.55,
-        45.63,
-        37.97,
-        -19.8
+        -19.76,
+        -15.92,
+        -21.31,
+        22.09,
+        12.81,
+        32.41,
+        30.65,
+        4.48,
+        22.15,
+        -28.59
       ],
       "axis_means": {
-        "enemy_damage_share": -0.0056
+        "enemy_damage_share": -0.0417
       },
       "lowtier_lift_factor": 0.0
     },
@@ -692,7 +694,7 @@
       "name": "Snake",
       "steam64": "76561198045727092",
       "vtsr": 1519.3,
-      "thug_elo": 1910.9,
+      "thug_elo": 2020.5,
       "wins_elo": 1519.3,
       "matches_played": 39,
       "matches_as_commander": 17,
@@ -711,23 +713,23 @@
         "d": 0
       },
       "last_match_id": "2026-05-29T21-23-11",
-      "last_delta": 21.41,
+      "last_delta": 16.23,
       "peak_vtsr": 1540.1,
       "peak_at": "2026-05-15T00-23-45",
       "win_history": [
-        8.95,
-        -19.97,
-        8.87,
-        -17.5,
-        -25.15,
-        -8.96,
-        -1.53,
-        37.31,
-        -0.26,
-        21.41
+        20.65,
+        -11.9,
+        5.56,
+        -3.47,
+        -21.46,
+        -5.98,
+        15.29,
+        32.28,
+        0.89,
+        16.23
       ],
       "axis_means": {
-        "enemy_damage_share": 0.4676
+        "enemy_damage_share": 0.5423
       },
       "lowtier_lift_factor": 0.0
     },
@@ -735,7 +737,7 @@
       "name": "Totokomo",
       "steam64": "76561198058222745",
       "vtsr": 1517.8,
-      "thug_elo": 1429.4,
+      "thug_elo": 1353.3,
       "wins_elo": 1517.8,
       "matches_played": 21,
       "matches_as_commander": 1,
@@ -754,23 +756,23 @@
         "d": 0
       },
       "last_match_id": "2026-05-22T03-21-34",
-      "last_delta": 76.4,
+      "last_delta": 29.28,
       "peak_vtsr": 1518.5,
       "peak_at": "2026-05-08T23-15-37",
       "win_history": [
-        -30.58,
-        8.67,
-        -0.37,
-        9.38,
-        28.87,
-        -20.01,
-        -37.15,
-        70.36,
-        -29.01,
-        76.4
+        -31.5,
+        10.79,
+        -7.13,
+        -0.2,
+        31.07,
+        -18.13,
+        -33.26,
+        42.84,
+        -28.07,
+        29.28
       ],
       "axis_means": {
-        "enemy_damage_share": -0.2776
+        "enemy_damage_share": -0.3403
       },
       "lowtier_lift_factor": 0.0
     },
@@ -778,7 +780,7 @@
       "name": "Domakus",
       "steam64": "76561198006115793",
       "vtsr": 1513.6,
-      "thug_elo": 2043.9,
+      "thug_elo": 2109.3,
       "wins_elo": 1513.6,
       "matches_played": 109,
       "matches_as_commander": 24,
@@ -797,23 +799,23 @@
         "d": 0
       },
       "last_match_id": "2026-10-26T01-00-00",
-      "last_delta": 13.71,
+      "last_delta": 10.68,
       "peak_vtsr": 1527.9,
       "peak_at": "2026-05-03T02-15-55",
       "win_history": [
-        -4.77,
-        22.81,
-        10.66,
-        14.82,
-        5.24,
-        16.44,
-        18.37,
-        -0.14,
-        23.56,
-        13.71
+        -7.48,
+        16.52,
+        9.28,
+        12.73,
+        0.33,
+        22.36,
+        22.51,
+        2.04,
+        19.97,
+        10.68
       ],
       "axis_means": {
-        "enemy_damage_share": 0.3516
+        "enemy_damage_share": 0.3999
       },
       "lowtier_lift_factor": 0.0
     },
@@ -821,7 +823,7 @@
       "name": "appel",
       "steam64": "76561198071605768",
       "vtsr": 1512.2,
-      "thug_elo": 1450.1,
+      "thug_elo": 1441.1,
       "wins_elo": 1512.2,
       "matches_played": 3,
       "matches_as_commander": 0,
@@ -840,13 +842,13 @@
         "d": 0
       },
       "last_match_id": "2026-05-03T02-50-41",
-      "last_delta": -41.89,
+      "last_delta": -48.57,
       "peak_vtsr": 1524.0,
       "peak_at": "2026-05-03T02-15-55",
       "win_history": [
-        -49.79,
-        41.82,
-        -41.89
+        -50.64,
+        40.35,
+        -48.57
       ],
       "axis_means": {
         "enemy_damage_share": -0.2298
@@ -857,7 +859,7 @@
       "name": "Infinity",
       "steam64": "76561198123805650",
       "vtsr": 1511.9,
-      "thug_elo": 1545.4,
+      "thug_elo": 1546.2,
       "wins_elo": 1511.9,
       "matches_played": 1,
       "matches_as_commander": 1,
@@ -876,14 +878,14 @@
         "d": 0
       },
       "last_match_id": "2026-04-18T03-56-02",
-      "last_delta": 45.36,
+      "last_delta": 46.19,
       "peak_vtsr": 1511.9,
       "peak_at": "2026-04-18T03-56-02",
       "win_history": [
-        45.36
+        46.19
       ],
       "axis_means": {
-        "enemy_damage_share": 0.3489
+        "enemy_damage_share": 0.3553
       },
       "lowtier_lift_factor": 0.0
     },
@@ -891,7 +893,7 @@
       "name": "F9bomber",
       "steam64": "76561198026325621",
       "vtsr": 1511.7,
-      "thug_elo": 1766.0,
+      "thug_elo": 1771.2,
       "wins_elo": 1511.7,
       "matches_played": 205,
       "matches_as_commander": 54,
@@ -910,23 +912,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-18T05-43-51",
-      "last_delta": -1.7,
+      "last_delta": -1.05,
       "peak_vtsr": 1540.1,
       "peak_at": "2026-10-07T03-16-57",
       "win_history": [
-        4.54,
-        -1.84,
-        -8.83,
-        6.06,
-        13.93,
-        -7.81,
-        -0.1,
-        6.63,
-        -5.27,
-        -1.7
+        -9.37,
+        2.2,
+        -1.1,
+        18.77,
+        6.17,
+        -7.2,
+        -0.95,
+        -2.47,
+        0.09,
+        -1.05
       ],
       "axis_means": {
-        "enemy_damage_share": 0.0883
+        "enemy_damage_share": 0.0971
       },
       "lowtier_lift_factor": 0.0
     },
@@ -934,7 +936,7 @@
       "name": "Sahd0w",
       "steam64": "76561197980582292",
       "vtsr": 1511.4,
-      "thug_elo": 1458.8,
+      "thug_elo": 1458.1,
       "wins_elo": 1511.4,
       "matches_played": 1,
       "matches_as_commander": 0,
@@ -953,11 +955,11 @@
         "d": 0
       },
       "last_match_id": "2026-04-27T00-00-33",
-      "last_delta": -41.24,
+      "last_delta": -41.86,
       "peak_vtsr": 1511.4,
       "peak_at": "2026-04-27T00-00-33",
       "win_history": [
-        -41.24
+        -41.86
       ],
       "axis_means": {
         "enemy_damage_share": -0.437
@@ -968,7 +970,7 @@
       "name": "Shock",
       "steam64": "76561198065368630",
       "vtsr": 1511.4,
-      "thug_elo": 1497.3,
+      "thug_elo": 1468.8,
       "wins_elo": 1511.4,
       "matches_played": 3,
       "matches_as_commander": 0,
@@ -987,16 +989,16 @@
         "d": 0
       },
       "last_match_id": "2026-09-26T03-52-04",
-      "last_delta": 7.03,
+      "last_delta": -16.24,
       "peak_vtsr": 1511.4,
       "peak_at": "2026-09-26T03-52-04",
       "win_history": [
         -30.83,
-        21.09,
-        7.03
+        15.87,
+        -16.24
       ],
       "axis_means": {
-        "enemy_damage_share": -0.1824
+        "enemy_damage_share": -0.2702
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1004,7 +1006,7 @@
       "name": "D4RKN00b",
       "steam64": "76561197989973072",
       "vtsr": 1511.2,
-      "thug_elo": 1468.0,
+      "thug_elo": 1467.4,
       "wins_elo": 1511.2,
       "matches_played": 1,
       "matches_as_commander": 0,
@@ -1023,14 +1025,14 @@
         "d": 0
       },
       "last_match_id": "2026-09-17T02-51-37",
-      "last_delta": -32.02,
+      "last_delta": -32.6,
       "peak_vtsr": 1511.2,
       "peak_at": "2026-09-17T02-51-37",
       "win_history": [
-        -32.02
+        -32.6
       ],
       "axis_means": {
-        "enemy_damage_share": -0.2898
+        "enemy_damage_share": -0.2734
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1038,7 +1040,7 @@
       "name": "F9mama",
       "steam64": "76561198819202598",
       "vtsr": 1510.7,
-      "thug_elo": 1480.2,
+      "thug_elo": 1462.7,
       "wins_elo": 1510.7,
       "matches_played": 1,
       "matches_as_commander": 0,
@@ -1057,14 +1059,14 @@
         "d": 0
       },
       "last_match_id": "2026-09-30T04-05-18",
-      "last_delta": -19.8,
+      "last_delta": -37.25,
       "peak_vtsr": 1510.7,
       "peak_at": "2026-09-30T04-05-18",
       "win_history": [
-        -19.8
+        -37.25
       ],
       "axis_means": {
-        "enemy_damage_share": -0.3696
+        "enemy_damage_share": -0.3929
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1072,7 +1074,7 @@
       "name": "Lamper",
       "steam64": "76561198825004088",
       "vtsr": 1508.5,
-      "thug_elo": 1741.8,
+      "thug_elo": 1721.6,
       "wins_elo": 1508.5,
       "matches_played": 28,
       "matches_as_commander": 2,
@@ -1091,23 +1093,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-12T03-54-23",
-      "last_delta": -22.39,
+      "last_delta": -20.25,
       "peak_vtsr": 1513.5,
       "peak_at": "2026-10-24T19-28-10",
       "win_history": [
-        36.62,
-        18.69,
-        11.42,
-        -10.46,
-        -17.0,
-        32.15,
-        4.02,
-        -4.37,
-        28.14,
-        -22.39
+        33.11,
+        8.24,
+        -12.47,
+        -16.68,
+        -12.82,
+        37.72,
+        3.49,
+        -6.73,
+        36.0,
+        -20.25
       ],
       "axis_means": {
-        "enemy_damage_share": 0.1665
+        "enemy_damage_share": 0.1707
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1115,7 +1117,7 @@
       "name": "M.S",
       "steam64": "76561198820311491",
       "vtsr": 1507.2,
-      "thug_elo": 1590.1,
+      "thug_elo": 1610.5,
       "wins_elo": 1507.2,
       "matches_played": 18,
       "matches_as_commander": 3,
@@ -1134,23 +1136,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-14T06-35-06",
-      "last_delta": -19.1,
+      "last_delta": -16.09,
       "peak_vtsr": 1523.1,
       "peak_at": "2026-11-14T03-16-51",
       "win_history": [
-        -15.05,
-        30.24,
-        -11.57,
-        97.39,
-        -13.43,
-        10.55,
-        39.33,
-        -3.26,
-        -11.19,
-        -19.1
+        2.85,
+        -11.92,
+        -11.5,
+        93.98,
+        -28.31,
+        47.66,
+        37.13,
+        29.15,
+        -7.15,
+        -16.09
       ],
       "axis_means": {
-        "enemy_damage_share": -0.1366
+        "enemy_damage_share": -0.1173
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1158,7 +1160,7 @@
       "name": "Maverick",
       "steam64": "76561198825563594",
       "vtsr": 1501.0,
-      "thug_elo": 1335.8,
+      "thug_elo": 1310.8,
       "wins_elo": 1501.0,
       "matches_played": 14,
       "matches_as_commander": 4,
@@ -1177,23 +1179,23 @@
         "d": 0
       },
       "last_match_id": "2026-10-06T02-10-56",
-      "last_delta": -0.73,
+      "last_delta": -3.91,
       "peak_vtsr": 1541.2,
       "peak_at": "2026-10-03T05-48-09",
       "win_history": [
-        -63.64,
-        -18.94,
-        -15.52,
-        9.63,
-        19.72,
-        -32.23,
-        -8.98,
-        -27.28,
-        -17.03,
-        -0.73
+        -81.76,
+        -26.07,
+        -16.61,
+        4.02,
+        32.41,
+        -38.58,
+        -3.6,
+        -25.76,
+        -13.74,
+        -3.91
       ],
       "axis_means": {
-        "enemy_damage_share": -0.4421
+        "enemy_damage_share": -0.4523
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1201,7 +1203,7 @@
       "name": "Zack",
       "steam64": "76561198045619216",
       "vtsr": 1500.2,
-      "thug_elo": 1595.3,
+      "thug_elo": 1614.3,
       "wins_elo": 1500.2,
       "matches_played": 2,
       "matches_as_commander": 0,
@@ -1220,15 +1222,15 @@
         "d": 0
       },
       "last_match_id": "2026-05-09T22-30-42",
-      "last_delta": -22.06,
+      "last_delta": -10.06,
       "peak_vtsr": 1511.8,
       "peak_at": "2026-05-08T23-15-37",
       "win_history": [
-        117.36,
-        -22.06
+        124.32,
+        -10.06
       ],
       "axis_means": {
-        "enemy_damage_share": 0.4368
+        "enemy_damage_share": 0.5168
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1236,7 +1238,7 @@
       "name": "HappyOtter",
       "steam64": "76561198064801924",
       "vtsr": 1500.0,
-      "thug_elo": 1536.5,
+      "thug_elo": 1569.6,
       "wins_elo": 1500.0,
       "matches_played": 89,
       "matches_as_commander": 10,
@@ -1255,23 +1257,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-18T05-43-51",
-      "last_delta": -13.92,
+      "last_delta": -15.01,
       "peak_vtsr": 1538.8,
       "peak_at": "2026-09-11T01-10-21",
       "win_history": [
-        10.06,
-        -0.18,
-        13.94,
-        -4.9,
-        -2.02,
-        -24.12,
-        -1.73,
-        -11.71,
-        0.91,
-        -13.92
+        9.91,
+        0.19,
+        10.91,
+        2.3,
+        -2.39,
+        -18.39,
+        -2.31,
+        -13.75,
+        -5.53,
+        -15.01
       ],
       "axis_means": {
-        "enemy_damage_share": -0.133
+        "enemy_damage_share": -0.1445
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1279,7 +1281,7 @@
       "name": "AussieLag",
       "steam64": "76561198052384717",
       "vtsr": 1498.8,
-      "thug_elo": 1547.3,
+      "thug_elo": 1536.9,
       "wins_elo": 1498.8,
       "matches_played": 4,
       "matches_as_commander": 3,
@@ -1298,17 +1300,17 @@
         "d": 0
       },
       "last_match_id": "2026-09-13T05-07-44",
-      "last_delta": 42.57,
+      "last_delta": 40.65,
       "peak_vtsr": 1500.0,
       "peak_at": "2026-09-13T03-28-46",
       "win_history": [
-        19.18,
-        -35.29,
-        20.83,
-        42.57
+        9.32,
+        -20.86,
+        7.83,
+        40.65
       ],
       "axis_means": {
-        "enemy_damage_share": -0.0968
+        "enemy_damage_share": -0.1071
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1316,7 +1318,7 @@
       "name": "Vivify",
       "steam64": "76561198345909972",
       "vtsr": 1497.6,
-      "thug_elo": 1724.9,
+      "thug_elo": 1758.7,
       "wins_elo": 1497.6,
       "matches_played": 113,
       "matches_as_commander": 23,
@@ -1335,23 +1337,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-15T04-39-34",
-      "last_delta": -10.26,
+      "last_delta": -3.21,
       "peak_vtsr": 1529.8,
       "peak_at": "2026-09-18T02-32-04",
       "win_history": [
-        32.5,
-        -21.41,
-        -3.26,
-        -14.95,
-        -20.23,
-        26.57,
-        -10.94,
-        1.78,
-        14.65,
-        -10.26
+        29.04,
+        -18.87,
+        -6.81,
+        -12.24,
+        -19.99,
+        25.39,
+        -8.53,
+        -0.67,
+        23.04,
+        -3.21
       ],
       "axis_means": {
-        "enemy_damage_share": 0.0799
+        "enemy_damage_share": 0.1151
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1359,7 +1361,7 @@
       "name": "Xohm",
       "steam64": "76561198846500539",
       "vtsr": 1492.5,
-      "thug_elo": 1535.8,
+      "thug_elo": 1592.8,
       "wins_elo": 1492.5,
       "matches_played": 7,
       "matches_as_commander": 4,
@@ -1378,20 +1380,20 @@
         "d": 0
       },
       "last_match_id": "2026-11-04T05-05-09",
-      "last_delta": -13.72,
+      "last_delta": -16.62,
       "peak_vtsr": 1500.0,
       "peak_at": "2026-11-01T20-28-42",
       "win_history": [
-        17.14,
-        113.36,
-        -40.11,
-        -6.98,
-        -33.27,
-        -0.61,
-        -13.72
+        51.24,
+        109.06,
+        -28.43,
+        -17.69,
+        -22.2,
+        17.41,
+        -16.62
       ],
       "axis_means": {
-        "enemy_damage_share": -0.227
+        "enemy_damage_share": -0.1313
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1399,7 +1401,7 @@
       "name": "Herp McDerperson",
       "steam64": "76561197962996353",
       "vtsr": 1486.2,
-      "thug_elo": 1659.7,
+      "thug_elo": 1642.7,
       "wins_elo": 1486.2,
       "matches_played": 51,
       "matches_as_commander": 4,
@@ -1418,23 +1420,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-14T03-30-55",
-      "last_delta": 16.44,
+      "last_delta": -5.8,
       "peak_vtsr": 1500.0,
       "peak_at": "2026-04-16T01-27-48",
       "win_history": [
-        9.57,
-        -23.11,
-        25.49,
-        2.22,
-        12.36,
-        -12.09,
-        44.34,
-        -7.93,
-        -4.45,
-        16.44
+        10.52,
+        -23.72,
+        23.56,
+        -4.9,
+        10.35,
+        -7.18,
+        32.63,
+        -5.36,
+        3.84,
+        -5.8
       ],
       "axis_means": {
-        "enemy_damage_share": -0.0385
+        "enemy_damage_share": -0.0298
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1442,7 +1444,7 @@
       "name": "kebbz",
       "steam64": "76561198151116402",
       "vtsr": 1486.0,
-      "thug_elo": 1439.6,
+      "thug_elo": 1436.1,
       "wins_elo": 1486.0,
       "matches_played": 1,
       "matches_as_commander": 0,
@@ -1461,14 +1463,14 @@
         "d": 0
       },
       "last_match_id": "2026-10-24T20-13-52",
-      "last_delta": -60.44,
+      "last_delta": -63.86,
       "peak_vtsr": 1500.0,
       "peak_at": "2026-10-24T20-13-52",
       "win_history": [
-        -60.44
+        -63.86
       ],
       "axis_means": {
-        "enemy_damage_share": -0.8483
+        "enemy_damage_share": -0.8852
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1476,7 +1478,7 @@
       "name": "Certified Bad Guy",
       "steam64": "76561198284800778",
       "vtsr": 1482.8,
-      "thug_elo": 1542.7,
+      "thug_elo": 1525.0,
       "wins_elo": 1482.8,
       "matches_played": 83,
       "matches_as_commander": 24,
@@ -1495,23 +1497,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-12T03-54-23",
-      "last_delta": -6.06,
+      "last_delta": -14.03,
       "peak_vtsr": 1561.7,
       "peak_at": "2026-04-30T03-07-41",
       "win_history": [
-        -10.62,
-        3.72,
-        2.63,
-        -13.38,
-        -12.18,
-        -5.02,
-        -0.58,
-        4.07,
-        -2.54,
-        -6.06
+        -10.27,
+        9.8,
+        2.8,
+        -11.45,
+        -10.45,
+        -1.58,
+        -23.65,
+        -0.34,
+        7.67,
+        -14.03
       ],
       "axis_means": {
-        "enemy_damage_share": -0.0944
+        "enemy_damage_share": -0.1029
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1519,7 +1521,7 @@
       "name": "mort",
       "steam64": "76561198005099553",
       "vtsr": 1479.4,
-      "thug_elo": 1674.1,
+      "thug_elo": 1660.6,
       "wins_elo": 1479.4,
       "matches_played": 50,
       "matches_as_commander": 50,
@@ -1538,23 +1540,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-18T05-43-51",
-      "last_delta": -23.65,
+      "last_delta": -19.53,
       "peak_vtsr": 1522.7,
       "peak_at": "2026-08-23T03-25-36",
       "win_history": [
-        19.68,
-        42.79,
-        13.64,
-        -30.11,
-        -8.64,
-        29.07,
-        -11.8,
-        -8.56,
-        -16.07,
-        -23.65
+        23.26,
+        2.37,
+        26.49,
+        -29.08,
+        -6.53,
+        -5.07,
+        -3.39,
+        -4.31,
+        -5.91,
+        -19.53
       ],
       "axis_means": {
-        "enemy_damage_share": 0.0265
+        "enemy_damage_share": -0.0043
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1562,7 +1564,7 @@
       "name": "PhoebeSnowDLW",
       "steam64": "76561198074708788",
       "vtsr": 1477.9,
-      "thug_elo": 1417.3,
+      "thug_elo": 1409.7,
       "wins_elo": 1477.9,
       "matches_played": 2,
       "matches_as_commander": 0,
@@ -1581,15 +1583,15 @@
         "d": 0
       },
       "last_match_id": "2026-09-17T04-43-53",
-      "last_delta": -69.01,
+      "last_delta": -70.23,
       "peak_vtsr": 1500.0,
       "peak_at": "2026-09-17T04-15-55",
       "win_history": [
-        -13.73,
-        -69.01
+        -20.08,
+        -70.23
       ],
       "axis_means": {
-        "enemy_damage_share": -0.4968
+        "enemy_damage_share": -0.6031
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1597,7 +1599,7 @@
       "name": "battlezonepedro",
       "steam64": "76561198302331404",
       "vtsr": 1477.1,
-      "thug_elo": 1472.8,
+      "thug_elo": 1476.9,
       "wins_elo": 1477.1,
       "matches_played": 2,
       "matches_as_commander": 0,
@@ -1616,15 +1618,15 @@
         "d": 0
       },
       "last_match_id": "2026-09-14T04-40-07",
-      "last_delta": -26.95,
+      "last_delta": -48.28,
       "peak_vtsr": 1500.0,
       "peak_at": "2026-09-14T04-15-16",
       "win_history": [
-        -0.24,
-        -26.95
+        25.16,
+        -48.28
       ],
       "axis_means": {
-        "enemy_damage_share": -0.2799
+        "enemy_damage_share": -0.2032
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1632,7 +1634,7 @@
       "name": "vacuum34",
       "steam64": "76561198065981902",
       "vtsr": 1475.4,
-      "thug_elo": 1340.6,
+      "thug_elo": 1342.3,
       "wins_elo": 1475.4,
       "matches_played": 4,
       "matches_as_commander": 4,
@@ -1651,17 +1653,17 @@
         "d": 0
       },
       "last_match_id": "2026-04-24T01-25-15",
-      "last_delta": -24.15,
+      "last_delta": -25.28,
       "peak_vtsr": 1500.0,
       "peak_at": "2026-04-21T22-34-34",
       "win_history": [
-        -62.46,
-        -48.93,
-        -23.83,
-        -24.15
+        -61.79,
+        -50.25,
+        -20.36,
+        -25.28
       ],
       "axis_means": {
-        "enemy_damage_share": -0.5276
+        "enemy_damage_share": -0.5226
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1669,7 +1671,7 @@
       "name": "Monkey",
       "steam64": "76561199732480793",
       "vtsr": 1467.0,
-      "thug_elo": 1556.9,
+      "thug_elo": 1462.0,
       "wins_elo": 1467.0,
       "matches_played": 54,
       "matches_as_commander": 3,
@@ -1688,23 +1690,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-18T05-43-51",
-      "last_delta": 7.26,
+      "last_delta": 13.16,
       "peak_vtsr": 1512.4,
       "peak_at": "2026-04-21T22-34-34",
       "win_history": [
-        -26.93,
-        -7.7,
-        -15.7,
-        20.32,
-        24.9,
-        14.48,
-        56.33,
-        -3.89,
-        -11.19,
-        7.26
+        -15.06,
+        -9.77,
+        -6.66,
+        16.22,
+        2.36,
+        11.9,
+        54.1,
+        3.84,
+        2.46,
+        13.16
       ],
       "axis_means": {
-        "enemy_damage_share": -0.169
+        "enemy_damage_share": -0.2084
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1712,7 +1714,7 @@
       "name": "DesUxSAsU",
       "steam64": "76561198025561228",
       "vtsr": 1466.8,
-      "thug_elo": 1356.3,
+      "thug_elo": 1361.2,
       "wins_elo": 1466.8,
       "matches_played": 3,
       "matches_as_commander": 3,
@@ -1731,16 +1733,16 @@
         "d": 0
       },
       "last_match_id": "2026-04-16T02-11-20",
-      "last_delta": -66.49,
+      "last_delta": -66.32,
       "peak_vtsr": 1500.0,
       "peak_at": "2026-04-16T01-27-48",
       "win_history": [
-        -73.19,
-        -4.0,
-        -66.49
+        -72.17,
+        -0.27,
+        -66.32
       ],
       "axis_means": {
-        "enemy_damage_share": -0.5473
+        "enemy_damage_share": -0.5348
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1748,7 +1750,7 @@
       "name": "The Wanderer",
       "steam64": "76561198169179560",
       "vtsr": 1461.3,
-      "thug_elo": 1508.8,
+      "thug_elo": 1420.0,
       "wins_elo": 1461.3,
       "matches_played": 30,
       "matches_as_commander": 0,
@@ -1767,23 +1769,23 @@
         "d": 0
       },
       "last_match_id": "2026-11-14T05-57-22",
-      "last_delta": -10.54,
+      "last_delta": -2.85,
       "peak_vtsr": 1500.0,
       "peak_at": "2026-10-10T03-52-58",
       "win_history": [
-        -15.14,
-        11.57,
-        -0.49,
-        18.86,
-        -14.98,
-        -14.02,
-        -8.82,
-        14.4,
-        -1.29,
-        -10.54
+        -15.52,
+        5.48,
+        -10.83,
+        17.58,
+        -11.59,
+        -29.31,
+        3.42,
+        -23.88,
+        4.31,
+        -2.85
       ],
       "axis_means": {
-        "enemy_damage_share": -0.2503
+        "enemy_damage_share": -0.2719
       },
       "lowtier_lift_factor": 0.0
     },
@@ -1791,7 +1793,7 @@
       "name": "Darkvale",
       "steam64": "76561198136459671",
       "vtsr": 1459.8,
-      "thug_elo": 1614.7,
+      "thug_elo": 1537.3,
       "wins_elo": 1459.8,
       "matches_played": 189,
       "matches_as_commander": 37,
@@ -1810,31 +1812,31 @@
         "d": 0
       },
       "last_match_id": "2026-11-18T05-43-51",
-      "last_delta": -13.13,
+      "last_delta": -4.64,
       "peak_vtsr": 1517.6,
       "peak_at": "2026-04-23T01-58-33",
       "win_history": [
-        -15.14,
-        -9.2,
-        13.37,
-        -14.63,
-        21.67,
-        10.09,
-        2.6,
-        -14.42,
-        -10.4,
-        -13.13
+        -2.97,
+        -22.2,
+        5.33,
+        -8.16,
+        22.87,
+        6.96,
+        3.89,
+        -7.77,
+        -9.39,
+        -4.64
       ],
       "axis_means": {
-        "enemy_damage_share": -0.094
+        "enemy_damage_share": -0.11
       },
-      "lowtier_lift_factor": 0.0033
+      "lowtier_lift_factor": 0.0
     },
     {
       "name": "The_Bylarge",
       "steam64": "76561198834945971",
       "vtsr": 1449.2,
-      "thug_elo": 1446.6,
+      "thug_elo": 1376.8,
       "wins_elo": 1449.2,
       "matches_played": 18,
       "matches_as_commander": 0,
@@ -1853,31 +1855,31 @@
         "d": 0
       },
       "last_match_id": "2026-10-31T05-45-43",
-      "last_delta": 14.33,
+      "last_delta": 20.73,
       "peak_vtsr": 1500.0,
       "peak_at": "2026-04-21T22-34-34",
       "win_history": [
-        -30.78,
-        -24.74,
-        -40.18,
-        106.57,
-        -0.38,
-        4.32,
-        -12.69,
-        19.62,
-        -7.56,
-        14.33
+        -43.82,
+        -36.51,
+        -2.0,
+        98.79,
+        -11.57,
+        -11.72,
+        -33.42,
+        -11.53,
+        -23.53,
+        20.73
       ],
       "axis_means": {
-        "enemy_damage_share": -0.2649
+        "enemy_damage_share": -0.2711
       },
-      "lowtier_lift_factor": 0.18
+      "lowtier_lift_factor": 0.0
     },
     {
       "name": "judgeguns",
       "steam64": "76561198058690608",
       "vtsr": 1420.5,
-      "thug_elo": 1604.9,
+      "thug_elo": 1424.0,
       "wins_elo": 1420.5,
       "matches_played": 159,
       "matches_as_commander": 5,
@@ -1896,31 +1898,31 @@
         "d": 0
       },
       "last_match_id": "2026-11-16T05-13-14",
-      "last_delta": 1.17,
+      "last_delta": -1.2,
       "peak_vtsr": 1565.7,
       "peak_at": "2026-09-17T04-43-53",
       "win_history": [
-        3.01,
-        -4.51,
-        -2.95,
-        -3.93,
-        -4.21,
-        6.85,
-        27.65,
-        -13.94,
-        -6.14,
-        1.17
+        -0.86,
+        -16.48,
+        2.33,
+        0.02,
+        -5.92,
+        17.82,
+        28.89,
+        -20.77,
+        -12.09,
+        -1.2
       ],
       "axis_means": {
-        "enemy_damage_share": -0.0683
+        "enemy_damage_share": -0.267
       },
-      "lowtier_lift_factor": 0.6583
+      "lowtier_lift_factor": 0.0
     },
     {
       "name": "sponge",
       "steam64": "76561198163015714",
       "vtsr": 1407.5,
-      "thug_elo": 1741.5,
+      "thug_elo": 1596.1,
       "wins_elo": 1407.5,
       "matches_played": 33,
       "matches_as_commander": 0,
@@ -1939,31 +1941,31 @@
         "d": 0
       },
       "last_match_id": "2026-11-18T05-43-51",
-      "last_delta": 21.02,
+      "last_delta": 7.7,
       "peak_vtsr": 1500.0,
       "peak_at": "2026-04-26T22-09-13",
       "win_history": [
-        9.94,
-        9.52,
-        15.15,
-        0.06,
-        23.92,
-        43.71,
-        9.43,
-        -5.01,
-        23.81,
-        21.02
+        -0.39,
+        0.82,
+        4.75,
+        -9.83,
+        18.11,
+        32.06,
+        2.71,
+        7.13,
+        8.33,
+        7.7
       ],
       "axis_means": {
-        "enemy_damage_share": 0.0946
+        "enemy_damage_share": -0.0801
       },
-      "lowtier_lift_factor": 0.875
+      "lowtier_lift_factor": 0.0
     },
     {
       "name": "DraconisMarch",
       "steam64": "76561198048896649",
       "vtsr": 1377.7,
-      "thug_elo": 1484.5,
+      "thug_elo": 1368.9,
       "wins_elo": 1377.7,
       "matches_played": 116,
       "matches_as_commander": 47,
@@ -1982,31 +1984,31 @@
         "d": 0
       },
       "last_match_id": "2026-11-18T05-43-51",
-      "last_delta": 33.71,
+      "last_delta": 40.79,
       "peak_vtsr": 1508.4,
       "peak_at": "2026-09-17T04-43-53",
       "win_history": [
-        13.99,
-        -6.78,
-        -18.47,
-        20.16,
-        -15.18,
-        -9.11,
-        -17.53,
-        12.43,
-        8.25,
-        33.71
+        -0.94,
+        1.62,
+        -9.8,
+        10.55,
+        -15.23,
+        -10.83,
+        -14.79,
+        4.1,
+        -8.04,
+        40.79
       ],
       "axis_means": {
-        "enemy_damage_share": -0.3374
+        "enemy_damage_share": -0.4427
       },
-      "lowtier_lift_factor": 1.0
+      "lowtier_lift_factor": 0.0
     },
     {
       "name": "Cloaket",
       "steam64": "76561198025032941",
       "vtsr": 1308.3,
-      "thug_elo": 1868.2,
+      "thug_elo": 1894.6,
       "wins_elo": 1308.3,
       "matches_played": 119,
       "matches_as_commander": 56,
@@ -2025,25 +2027,25 @@
         "d": 0
       },
       "last_match_id": "2026-11-15T04-39-34",
-      "last_delta": -14.4,
+      "last_delta": -4.79,
       "peak_vtsr": 1500.6,
       "peak_at": "2026-04-22T01-41-45",
       "win_history": [
-        -15.96,
-        13.93,
-        9.33,
-        -5.35,
-        18.24,
-        -5.51,
-        -25.04,
-        -1.77,
-        -17.21,
-        -14.4
+        -12.74,
+        12.41,
+        6.72,
+        1.96,
+        8.1,
+        1.11,
+        -20.29,
+        -1.2,
+        -14.36,
+        -4.79
       ],
       "axis_means": {
-        "enemy_damage_share": 0.3038
+        "enemy_damage_share": 0.2533
       },
-      "lowtier_lift_factor": 1.0
+      "lowtier_lift_factor": 0.0
     }
   ],
   "steam64_aliases": {

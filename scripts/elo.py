@@ -150,7 +150,17 @@ THUG_WEIGHTS = {
 
 # Enemy-damage axes only: leave out building damage in the last
 # STRUCTURE_LATE_SEC of a match (personal.enemy_structure_dealt_late).
-ENEMY_DAMAGE_TRIM_LATE_STRUCTURE = False
+# On since v22: that damage is the winners knocking down a beaten base
+# (8.5% of a winning thug's enemy damage, 1.9% of a losing thug's).
+ENEMY_DAMAGE_TRIM_LATE_STRUCTURE = True
+
+# Who a player's expected score is set against.
+#   "lobby"      the median of every other rated row, teammates included
+#   "opponents"  the median of the other team's rated rows only
+# With teammates in the reference, strong teammates lower a thug's bar and
+# weak ones raise it, so the rating change tracks team strength
+# (critique/decisions/vtsr-t-interim-revision.md). "opponents" since v22.
+EXPECTED_REFERENCE_POOL = "opponents"
 
 ALPHA = 0.0   # Wins-ELO blend weight. Stays 0 until the pre-registered
               # promote rule (critique/decisions/phase-5-wins-blend.md)
@@ -265,7 +275,13 @@ K_INACTIVITY_BOOST_MAX  = 20.0    # Hard cap on the inactivity addition.
 # when the eligible share exceeds ~1/3 of rated players OR falls below
 # ~1/10 (either direction means the band has drifted from the population
 # it was tuned against).
-LOWTIER_LIFT_ENABLED      = True
+# RETIRED in v22 (critique/decisions/vtsr-t-interim-revision.md). With the
+# expected score set against opponents only, the lift made thug ratings
+# worse at predicting winners and lifted players past the ones above them
+# (it is about 120 points at a factor of 0.6, larger than its own taper).
+# The code below stays so scripts/study_vtsr_t_fairness.py and the frozen
+# baseline of the new model's switch test can replay it.
+LOWTIER_LIFT_ENABLED      = False
 LOWTIER_LIFT_CUTOFF       = 1460.0   # eligibility hits 0 at/above this VTSR
 LOWTIER_LIFT_TAPER        = 60.0     # taper width below the cutoff
 LOWTIER_LIFT_AXIS         = "enemy_damage_share"
@@ -397,7 +413,17 @@ LOBBY_SCORE_MODES = ("zclip", "rank")
 # like cancellations. **Pre-v21 `peak_vtsr` is no longer comparable**.
 # Measured on adoption: 28 matches excluded, max |d| 50.7, mean |d| 12.1,
 # 9 band changes.
-ELO_SCHEMA_VERSION = 21
+# v22 (current) = the interim revision
+# (critique/decisions/vtsr-t-interim-revision.md), three rule changes in
+# one re-rate: the expected score is set against the other team only
+# (`EXPECTED_REFERENCE_POOL` "opponents"), building damage in the last
+# 180 s leaves the axis (`ENEMY_DAMAGE_TRIM_LATE_STRUCTURE`), and the v2.8
+# low-tier lift is retired (`LOWTIER_LIFT_ENABLED` False). Output shape
+# gains `expected_reference_pool` / `trim_late_structure_damage`.
+# **Pre-v22 `peak_vtsr` is no longer comparable**. Measured on adoption,
+# 24 players with 25+ rated matches: max |d| 110, mean |d| 44, 7
+# half-band changes.
+ELO_SCHEMA_VERSION = 22
 
 
 # ---------------------------------------------------------------------------
@@ -1252,6 +1278,31 @@ def _player_key(p: dict) -> str:
     return p.get("name") or ""
 
 
+def _row_team(row: dict) -> int | None:
+    """Team (1 or 2) of a leaderboard row: its `team`, else its slot
+    (1-5 / 6-10). The wins ladder derives teams the same way."""
+    t = row.get("team")
+    if t in (1, 2):
+        return t
+    slot = row.get("slot") or 0
+    return 1 if 1 <= slot <= 5 else (2 if 6 <= slot <= 10 else None)
+
+
+def _reference_indices(i: int, teams: list[int | None]) -> list[int]:
+    """Lobby indices whose ratings set player `i`'s expected score.
+
+    "lobby": everyone else. "opponents": the other team's rows only,
+    falling back to everyone else when the other team has no rated row
+    or a team is unknown.
+    """
+    everyone = [j for j in range(len(teams)) if j != i]
+    if EXPECTED_REFERENCE_POOL != "opponents" or teams[i] is None:
+        return everyone
+    opponents = [j for j in everyone
+                 if teams[j] is not None and teams[j] != teams[i]]
+    return opponents or everyone
+
+
 def _shadow_score_match(
     match_data: dict,
     *,
@@ -1300,6 +1351,8 @@ def _shadow_score_match(
     lobby = _rated_lobby(lobby_raw)
     n_lobby = len(keys)
     ratings_before = [ratings_snapshot.get(k, ELO_ANCHOR) for k in keys]
+    ref_teams = ([_row_team(p) for p in lobby] if len(lobby) == n_lobby
+                 else [None] * n_lobby)
 
     out: list[dict[str, Any]] = []
     for i, key in enumerate(keys):
@@ -1316,13 +1369,14 @@ def _shadow_score_match(
 
         # Same opponent-reference convention as the rated path, including
         # the v2.8 canonical anchoring on pass 2.
+        ref = _reference_indices(i, ref_teams)
         if canonical_before is not None:
             others = [
                 canonical_before.get(keys[j], ratings_before[j])
-                for j in range(n_lobby) if j != i
+                for j in ref
             ]
         else:
-            others = [r for j, r in enumerate(ratings_before) if j != i]
+            others = [ratings_before[j] for j in ref]
         r_opp_ref = opponent_reference_rating(
             others,
             mode=expected_performance_mode,
@@ -1674,6 +1728,8 @@ def _rating_pass(
         # debutants to ELO_ANCHOR.
         ratings_before = [thug_elo[k] for k in keys]
         n_lobby = len(keys)
+        ref_teams = ([_row_team(p) for p in lobby] if len(lobby) == n_lobby
+                     else [None] * n_lobby)
         # v2.8: record this match's pre-match ratings keyed by player so the
         # second (lift) pass can anchor E_i to the canonical snapshot. Only
         # meaningful on the canonical pass (lowtier_eligibility is None); the
@@ -1755,14 +1811,12 @@ def _rating_pass(
             #     rating feeds E_i, so expectations climb as they do and the
             #     lift can't run away. Only the opponent baseline is frozen.
             # Pass 1 (canonical_before_by_match is None) uses live ratings.
+            ref = _reference_indices(i, ref_teams)
             if canonical_before_by_match is not None:
                 cb = canonical_before_by_match.get(match_id, {})
-                others = [
-                    cb.get(keys[j], ratings_before[j])
-                    for j in range(n_lobby) if j != i
-                ]
+                others = [cb.get(keys[j], ratings_before[j]) for j in ref]
             else:
-                others = [r for j, r in enumerate(ratings_before) if j != i]
+                others = [ratings_before[j] for j in ref]
             r_opp_ref = opponent_reference_rating(
                 others,
                 mode=expected_performance_mode,
@@ -2051,6 +2105,10 @@ def _rating_pass(
         "min_player_count":   ELO_MIN_PLAYER_COUNT,
         "min_per_side":       ELO_MIN_PER_SIDE,
         "min_duration_sec":   ELO_MIN_DURATION_SEC,
+        # Who the expected score is set against ("lobby" | "opponents") and
+        # whether last-minutes building damage is left out of the axis.
+        "expected_reference_pool":      EXPECTED_REFERENCE_POOL,
+        "trim_late_structure_damage":   ENEMY_DAMAGE_TRIM_LATE_STRUCTURE,
         "computed_at":        datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "match_count":        rated_match_count,
         "matches_excluded_low_player_count": excluded_low_player_count,

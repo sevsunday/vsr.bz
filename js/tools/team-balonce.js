@@ -1434,9 +1434,50 @@
         ${reason}
         ${meter}
         <div class="vt-balonce-parts">${parts.join('')}</div>
+        ${renderJointPreview(state)}
         ${renderMeterFooter(state)}
       </div>
     `;
+  }
+
+  /**
+   * New-model preview: the joint commanding-and-fighting model's win
+   * chance for this layout, from current skills. Display only: Suggest,
+   * the gauge and every badge keep using the formula above. Shown for an
+   * even team game with both commanders set, on today's ratings, while
+   * the model's test is running (js/balonce-meter.js owns the rules).
+   */
+  function renderJointPreview(state) {
+    const B = window.VTBalonce;
+    if (!B || !B.jointLobbyProb || is2v2() || !state.bothCmdrs) return '';
+    if (matchSeed && ratingBasis() !== 'now') return '';
+    if (window.__vtJointCurrent === undefined) {
+      B.ensureJointCurrentLoaded().then(() => {
+        if (bodyEl && playingRoster().length >= 2) render();
+      });
+      return '';
+    }
+    if (!B.jointPreviewLive()) return '';
+    const ids = (side) => state.teams[side].map((p) => p.steam64 || null);
+    const t1 = ids(1);
+    const t2 = ids(2);
+    if (!t1.length || t1.length !== t2.length) return '';
+    const res = B.jointLobbyProb({
+      cmdr1: state.cmdrs[1].steam64,
+      cmdr2: state.cmdrs[2].steam64,
+      team1: t1,
+      team2: t2,
+    });
+    if (!res) return '';
+    const note = res.unknown
+      ? `${res.unknown} player${res.unknown === 1 ? ' is' : 's are'} new to it and counted as average.`
+      : '';
+    return B.jointPreviewHtml({
+      probT1: res.probT1,
+      note,
+      href: '../elo/index.html?tab=accuracy',
+      bsTooltip: false,
+    });
   }
 
   function signed(n) {

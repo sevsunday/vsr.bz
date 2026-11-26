@@ -342,6 +342,12 @@ INACTIVITY_WINDOW_DAYS = 90
 COMEBACK_GAMES_REQUIRED = 3
 CMDR_STALE_WINDOW_DAYS = 90
 
+# v15: the thug-mean handicap reads VSR-T v22 (expected score against the
+# other team only, late building damage out, low-tier lift retired;
+# critique/decisions/vtsr-t-interim-revision.md). Commander duel math is
+# unchanged. Pre-v15 peak_vtsr_c is not comparable where that duel was
+# the peak. Measured on adoption, 23 commanders with 15+ duels: max |d|
+# 9.0, mean |d| 3.8.
 # v14: draws are not rated (they scored 0.5 each) and, through
 # scripts/elo.py v21, no match without a recorded team winner reaches
 # the walk. Pre-v14 peak_vtsr_c is not comparable. Measured on adoption:
@@ -370,7 +376,7 @@ CMDR_STALE_WINDOW_DAYS = 90
 # comparable with schema 7 (alpha_c stays 1; the axis does not enter P).
 # v7: weight-0 loose_share audit axis. v6: opening-decision axes.
 # v5: display inactivity. v3 ratings were not comparable with schema 2.
-CMDR_ELO_SCHEMA_VERSION = 14
+CMDR_ELO_SCHEMA_VERSION = 15
 
 
 # ---------------------------------------------------------------------------

@@ -103,3 +103,16 @@ Paying every point of enemy damage the same already credits these kills about in
 ### Amendment 2026-10-27 — laid mines count
 
 Before match schema 35, a mine detonating as its own entity booked its damage to `asset_dealt`, so `enemy_dealt` missed it. The pipeline now credits that damage, and the kill, to the player who had flown a carrier of the mine. Both arms of the forward check read the corrected per-match JSON, so the comparison stays like-for-like. `ELO_SCHEMA_VERSION` 19. Measured drift against the v18 ratings, 48 players: max |Δ| 7.40, mean |Δ| 1.40, top-10 order unchanged.
+
+### Forward check 2026-11-25 — no revert
+
+`python scripts/vtsr_t_variants.py --since 2026-10-25`. Module-default replay matches the published ratings (max |d| 0.0, 48 players). **57** decided matches dated 2026-10-25 or later, above the 40 the rule asks for.
+
+| Rating | Winner AUC on the 57 matches |
+|---|---|
+| Shipped (enemy damage dealt only) | 0.610 |
+| Control (v17 four-axis) | 0.613 |
+| Enemy net damage only | 0.597 |
+| Enemy damage dealt only, late building damage removed | 0.613 |
+
+The revert rule fires when the shipped rating's AUC is more than 0.05 below the control's. The gap is 0.003. **The single axis stays.** Split-half reliability on the whole corpus is 0.957 for the shipped rating against 0.901 for the control.

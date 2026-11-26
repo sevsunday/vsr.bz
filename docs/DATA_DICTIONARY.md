@@ -3221,7 +3221,9 @@ Pipeline-emitted by [scripts/elo.py](scripts/elo.py) at the end of every `proces
 >
 > **v2.7 — retired.** A parallel `elo_*_thugs_only.json` pair plus an `[All matches | Thug-only]` toggle scored VSR-T after dropping commander rows. Product and emit are gone: one canonical `compute_elo()` pass, alt files deleted, `exclude_commanders` removed from `scripts/elo.py`, `/elo` and the dashboard always read `elo_current.json` / `elo_history.json`. Boot nukes the orphaned `vt.elo_mode` localStorage key. Canonical files may still carry leftover `excludes_commanders: false` / `rows_excluded_commander_mode: 0` until the next normal `process_stats.py` run. The v2.7-era lobby-index alignment fix in `compute_elo` (filter `lobby` with the same campod/low-activity predicate as `compute_performance_index`) remains. No `PIPELINE_VERSION` / `ELO_SCHEMA_VERSION` / `match.schema_version` bump for this retirement.
 
-> **v2.8 (current) — low-tier at-base lift.** Stops over-penalizing established-low-tier thugs for shipless time spent **at base** (commander didn't rebuild them). The positioning pass emits `at_base_pilot_sec` / `at_base_pilot_share` per player (on-foot AND within `personal_base_radius` of spawn); for eligible thug rows [scripts/elo.py](../scripts/elo.py) recomputes `thug_kill_rate` over effective (non-at-base) time and applies the gain as an additive post-clip z-shift on that row only (lobby mean/std stay canonical → non-eligible players byte-identical). Eligibility is keyed on the **canonical (no-lift) rating** — `compute_elo` runs two passes (canonical → `eligibility = clip((1460 − vtsr)/60, 0, 1)` → lifted) so the gate can't self-sustain. New top-level `lowtier_lift` block + per-rating `lowtier_lift_factor` on `elo_current.json`. Global scope (dashboard + Player Profile pages + Tools Team Balonce). Constants (`LOWTIER_LIFT_ENABLED` / `_CUTOFF` / `_TAPER` / `_AXIS` / `_MIN_SHIP_MIN`) are tunable without a schema bump; `LOWTIER_LIFT_ENABLED=False` is the kill switch. Schema bumps: `PIPELINE_VERSION 20 → 21`, `match.schema_version 8 → 9` (positioning `at_base_*` metrics), `ELO_SCHEMA_VERSION 7 → 8` (additive). **Pre-v8 `peak_vtsr` no longer comparable** — corpus re-rated. Full derivation: [DEVELOPER_GUIDE.md §13.7.3](../DEVELOPER_GUIDE.md).
+> **v2.8 — low-tier at-base lift (retired in v22, see the next note).** Stopped over-penalizing established-low-tier thugs for shipless time spent **at base** (commander didn't rebuild them). The positioning pass emits `at_base_pilot_sec` / `at_base_pilot_share` per player (on-foot AND within `personal_base_radius` of spawn); for eligible thug rows [scripts/elo.py](../scripts/elo.py) recomputes `thug_kill_rate` over effective (non-at-base) time and applies the gain as an additive post-clip z-shift on that row only (lobby mean/std stay canonical → non-eligible players byte-identical). Eligibility is keyed on the **canonical (no-lift) rating** — `compute_elo` runs two passes (canonical → `eligibility = clip((1460 − vtsr)/60, 0, 1)` → lifted) so the gate can't self-sustain. New top-level `lowtier_lift` block + per-rating `lowtier_lift_factor` on `elo_current.json`. Global scope (dashboard + Player Profile pages + Tools Team Balonce). Constants (`LOWTIER_LIFT_ENABLED` / `_CUTOFF` / `_TAPER` / `_AXIS` / `_MIN_SHIP_MIN`) are tunable without a schema bump; `LOWTIER_LIFT_ENABLED=False` is the kill switch. Schema bumps: `PIPELINE_VERSION 20 → 21`, `match.schema_version 8 → 9` (positioning `at_base_*` metrics), `ELO_SCHEMA_VERSION 7 → 8` (additive). **Pre-v8 `peak_vtsr` no longer comparable** — corpus re-rated. Full derivation: [DEVELOPER_GUIDE.md §13.7.3](../DEVELOPER_GUIDE.md). **Retired in v22** (below).
+
+> **v22 (current) — interim revision.** Three rule changes in one re-rate ([critique/decisions/vtsr-t-interim-revision.md](../critique/decisions/vtsr-t-interim-revision.md)): the expected score is set against the other team's rated rows only (`EXPECTED_REFERENCE_POOL = "opponents"`), building damage in the last 180 s (`personal.enemy_structure_dealt_late`) leaves `enemy_damage_share` (`ENEMY_DAMAGE_TRIM_LATE_STRUCTURE = True`), and the v2.8 low-tier lift is off (`LOWTIER_LIFT_ENABLED = False`). New top-level `expected_reference_pool` and `trim_late_structure_damage`. `ELO_SCHEMA_VERSION 21 → 22`, `CMDR_ELO_SCHEMA_VERSION 14 → 15` (the thug-mean handicap reads the new ratings). **Pre-v22 `peak_vtsr` is not comparable.** Full derivation: [DEVELOPER_GUIDE.md §13.7.10](../DEVELOPER_GUIDE.md).
 
 ### `data/processed/elo_current.json`
 
@@ -3319,6 +3321,8 @@ Current per-player ratings keyed for the All Matches view's VSR-T Leaderboard. T
 | `corpus_latest_date` | ISO date | Newest corpus match date the clocks are measured against (not wall-clock). |
 | `band_config` | object | Display-only VSR-T band rules from `scripts/vtsr_bands.py`: `edges` (the eleven band edges, ascending: tier lines 1300/1500/1700/1900/2100 plus the half splits 1150/1400/1600/1800/2000/2200), `tier_lines`, `splits`, `tier_width` (200; Tier 0 is open-ended and drawn this wide), `floor` (1000), `buffer_pts` (20 — points past an edge before the sticky band moves), `on_par_delta_pts` (3 — a per-game change smaller than this reads "On par"). `js/vtsr-display.js` reads it; do not hardcode. Canonical file only. |
 | `min_player_count`, `min_duration_sec` | int | ELO-exclusion gates. `min_player_count` is 6 non-campod leaderboard rows (camera-pod spectators do not count; idle thugs and partials do). `min_duration_sec` is 0 since v20 (match length is not a gate; it was 240). |
+| `expected_reference_pool` | string | **v22.** Who a player's expected score is set against: `"opponents"` (the median of the other team's rated rows; current) or `"lobby"` (the median of every other rated row, teammates included; before v22). |
+| `trim_late_structure_damage` | bool | **v22.** `true` when building damage in the last 180 s of the recording (`personal.enemy_structure_dealt_late`) is left out of `enemy_damage_share`. |
 | `computed_at` | ISO8601 | Wallclock time of the run. NOT part of the deterministic output contract. |
 | `match_count` | int | Number of matches that contributed to ratings (i.e. matches that passed both gates). |
 | `matches_excluded_*` | int | Per-reason exclusion counters. Sum + `match_count` reconciles to `len(manifest)`. |
@@ -3345,7 +3349,7 @@ Current per-player ratings keyed for the All Matches view's VSR-T Leaderboard. T
 | `alpha` | float | The EFFECTIVE blend weight this file was computed with (`vtsr = alpha·wins_elo + (1−alpha)·thug_elo`). Canonical: the module `ALPHA` (0.0). |
 | `alpha_overridden` | bool | **Stage E** — `true` only on the forensic `elo_current_alpha{10,25,50}.json` pairs (emitted via `compute_elo(alpha_override=…)`, scored by `validate_elo.py --elo-mode alpha{10,25,50}` against the pre-registered promote rule in `critique/decisions/phase-5-wins-blend.md`). On those pairs the published `vtsr` is the real blend and `peak_vtsr` tracks the blended value per match. |
 | `ratings[].matches_played` | int | Number of rated matches contributing to this rating. Excluded matches don't count. |
-| `lowtier_lift` | object | **v2.8** — metadata for the low-tier at-base lift (§13.7.3). Keys: `enabled` (bool — `true` on the published canonical file when the lift fired; `false` when disabled / nobody eligible), `cutoff` (float, default 1460), `taper` (float, default 60), `axis` (string, `"enemy_damage_share"` since v2.14; `"thug_kill_rate"` before), `min_ship_minutes` (float, small-sample guard, default 2.0), `eligible_count` (int — players with eligibility > 0). The lift recomputes that axis over effective (non-at-base) time for eligible low-tier thug rows (for `enemy_damage_share`: the player's share scaled by match minutes / effective minutes) and applies the gain as an additive post-clip z-shift on that row only; eligibility is keyed on the canonical (no-lift) rating so the gate can't self-sustain. |
+| `lowtier_lift` | object | **v2.8, retired in v22** (`enabled` is `false`, `eligible_count` 0, every `lowtier_lift_factor` 0.0) — metadata for the low-tier at-base lift (§13.7.3). Keys: `enabled` (bool — `true` on the published canonical file when the lift fired; `false` when disabled / nobody eligible), `cutoff` (float, default 1460), `taper` (float, default 60), `axis` (string, `"enemy_damage_share"` since v2.14; `"thug_kill_rate"` before), `min_ship_minutes` (float, small-sample guard, default 2.0), `eligible_count` (int — players with eligibility > 0). The lift recomputes that axis over effective (non-at-base) time for eligible low-tier thug rows (for `enemy_damage_share`: the player's share scaled by match minutes / effective minutes) and applies the gain as an additive post-clip z-shift on that row only; eligibility is keyed on the canonical (no-lift) rating so the gate can't self-sustain. |
 | `ratings[].lowtier_lift_factor` | float | **v2.8** — eligibility factor `clip((cutoff − canonical_vtsr) / taper, 0, 1)` applied to this player's thug rows. `0.0` for mid/high players (never eligible) and when the lift is off. Tapers to 0 as the player's canonical skill climbs out of the low band — the self-closing escape hatch. |
 | `ratings[].matches_as_commander` | int | **v2.4** — count of rated matches where the player held a commander slot (slot 1 / 6 — `is_commander: true` on the leaderboard row). |
 | `ratings[].matches_as_thug` | int | **v2.4** — `matches_played - matches_as_commander`. Sums to `matches_played` exactly. Both fields are 0 for players who only appear in excluded matches. |
@@ -3429,7 +3433,7 @@ Excluded matches still appear in `history[]` with `match_excluded: true`, an `ex
 
 ### `data/processed/elo_commander_current.json` + `elo_commander_history.json` — VSR-C v2 (experimental)
 
-Emitted by [scripts/elo_commander.py](../scripts/elo_commander.py) (own `schema_version`, currently 13, separate from `ELO_SCHEMA_VERSION`; v13 dropped the 240 s minimum match length, so pre-v13 `peak_vtsr_c` is not comparable) right after the canonical VSR-T pair. **Outcome-pure win/loss commander ELO with a team-strength handicap** — full derivation in [DEVELOPER_GUIDE.md §13.12](../DEVELOPER_GUIDE.md). Corpus-wide, picker-unaware, NOT in the pipeline cache key (both filenames in the `load_cache_index()` skip set). All UI consumers are 404-safe.
+Emitted by [scripts/elo_commander.py](../scripts/elo_commander.py) (own `schema_version`, currently 15, separate from `ELO_SCHEMA_VERSION`; v15 reads VSR-T v22 for the thug-mean handicap, v14 stopped rating draws and v13 dropped the 240 s minimum match length, so pre-v15 `peak_vtsr_c` is not comparable) right after the canonical VSR-T pair. **Outcome-pure win/loss commander ELO with a team-strength handicap** — full derivation in [DEVELOPER_GUIDE.md §13.12](../DEVELOPER_GUIDE.md). Corpus-wide, picker-unaware, NOT in the pipeline cache key (both filenames in the `load_cache_index()` skip set). All UI consumers are 404-safe.
 
 **v2 (proto v4 overhaul) adds an economy-performance composite, structurally INERT behind `alpha_c = 1.0`** — formulas frozen in [critique/decisions/vtsr-c-v2-composite.md](../critique/decisions/vtsr-c-v2-composite.md) BEFORE any telemetry corpus accumulated. Axes per telemetry duel (both `has_resource_data` AND `has_build_data` required), amended 2026-10-23: every axis is measured over the **whole game** (every telemetry game carries a recorded outcome). Scored candidates (weight 0.25 each): `pool_lead` (mean `pool_count`), `non_green_share` (share of live-recycler samples with `scrap < 20 × pool_count`; green and the cap count against), `combat_conversion` (combat-ship BUILD scrap excluding the empty starter ships in `starter_ship_stems`, over positive 1 Hz income), `upgrade_time` (mean `upgrade_count`). Weight 0: `replacement_ratio` (combat ships built / human vehicle deaths, cap 3), `replacement_ratio_real` (the same without starter ships built), `loose_share` (`income_loose / max(scrap_income, 1)`, whole match). Normalization is the **within-match differential** (n=2 makes lobby z-scores degenerate): `z = clip(diff / shrunk_std(axis), −2, 2) / 2` with a rolling per-axis RMS (seed prior + shrinkage 10 pseudo-duels, snapshot-before-duel / update-after); `P₁ = Σw·z / Σw`, `P₂ = −P₁`. Blend `S' = alpha_c·S + (1−alpha_c)·(P+1)/2` applies only on telemetry duels — the code branches on `alpha_c < 1.0` so the inert path never routes through blend arithmetic (golden byte-identity gate: `_investigation/golden_vtsrc_v2.py`). Duels without telemetry score outcome-pure S at ANY alpha_c (ratified fallback policy). W/L/D records always tally the RAW outcome. Fields: top-level `alpha_c`, `econ_weights`, `econ_std_prior`, `econ_std_shrinkage`, `thug_supply_cap`, `econ_std_observed {axis: {count, std}}`, `econ_prefix_secs` (`[240, 480, 720]`), `starter_ship_stems`, `econ_semantics_amended_on`; per-rating `duels_with_telemetry`; per-duel `performance {available, p, axes, prefix_diffs}` (team-1 perspective; side 2 = negation) + per-side `score_blend {alpha_c, s_raw, s_blended}`.
 
@@ -4058,3 +4062,63 @@ Chronological.
 | `map` / `map_file` / `duration_sec` / `factions` | Display context (no faction term). |
 | `sides` | `{"1": {commander, thug}, "2": {...}}`. Each `commander` is `{steam64, name, wl {before, after, delta}, enemy_dealt, combat_share}`. Each `thug` is `{steam64, name, wl {...}, enemy_dealt, perf {before, after, delta}}`. `wl` / `perf` are absent when that part did not rate. `combat_share` is the commander's share of the side's enemy damage, recorded but not scored. Within each role the two sides' deltas sum to 0. |
 
+
+## 20. Joint Model Outputs (`elo_joint_current.json` + `elo_joint_history.json`) and the test ledger
+
+Emitted by [scripts/elo_joint.py](../scripts/elo_joint.py) in its own soft-fail block after VSR-2v2 (needs numpy; skipped with a warning without it). **Forensic**: the joint commanding-and-fighting model feeds no published rating. It is being tested against today's win formula under [critique/decisions/joint-skill-model.md](../critique/decisions/joint-skill-model.md). Full derivation: [DEVELOPER_GUIDE.md §13.17](../DEVELOPER_GUIDE.md). Corpus-wide, picker-unaware, not in the pipeline cache key (both filenames in the `load_cache_index()` skip set). Every UI consumer is 404-safe. Forbidden consumers: `scripts/elo.py`, `scripts/elo_commander.py`, `scripts/elo_1v1.py`, `scripts/elo_2v2.py`, `js/all-matches-aggregator.js`.
+
+Skills are in **logit units**, not rating points. `P(team 1 wins) = logistic(C1 − C2 + mean F of team 1's fighters − mean F of team 2's fighters)`, where a side's fighters are its thugs plus its commander.
+
+### 20.1 `elo_joint_current.json`
+
+| Field | Description |
+|---|---|
+| `schema_version` | `1`. |
+| `status` | Always `"forensic"`. |
+| `config_hash` | 16-character hash of the frozen settings. Equals the hash in the memo (gate `_investigation/check_joint_config.py`). |
+| `config` | The frozen settings: `beta` (damage loading), `tau_c` / `tau_f` (prior spreads), `step_c_year` / `step_f_year` (random-walk steps), `sigma_offset`, `block_months` (3), `origin_year`, `epsilon`, `min_damage_sec`, `length_bands_min`, and the `noise` table. |
+| `computed_at` | Wall-clock time of the run. |
+| `games` / `recorded_games` / `damage_rows` / `parameters` / `blocks` | Size of the fit: all duels, recorded duels, damage rows, fitted parameters, calendar blocks. |
+| `current_block` | Label of the newest block (for example `2026Q4`). `ratings[]` are that block's skills. |
+| `elo_points_per_unit` | 173.72 (`400 / ln 10`). A display helper for commanding skill; fighting skill gets its display scale at a switch. |
+| `commander_offset_mean` | Group mean of the commander damage offset (how much less a commander's damage row reads than a thug's at the same fighting skill). |
+| `duels_refit` | Duels refitted this run. 0 when nothing new was played. |
+| `test` | The switch test's state, stamped from the ledger: `{status, freeze_date, duels, looks_at, next_look}`. `status` is `not_started`, `running`, `passed`, `withdrawn` or `ended`. The preview line shows only on `running` and `passed`. |
+| `ratings[]` | One row per player, sorted by `f` descending. |
+| `ratings[].steam64` / `name` | Identity. `steam64` is `null` for F9 ledger players with no resolved Steam64. |
+| `ratings[].f` / `f_sd` | Fighting skill and its uncertainty (from the curvature of the fit). |
+| `ratings[].c` / `c_sd` | Commanding skill and its uncertainty. `null` for a player who has never commanded. |
+| `ratings[].commander_offset` | This player's commander damage offset. Present only for players with a commander damage row. |
+| `ratings[].games` / `games_recorded` / `duels_commanded` / `last_date` | Sample sizes and the date of the player's newest game in the fit. |
+
+### 20.2 `elo_joint_history.json`
+
+Walk-forward. One row per duel from the first recorded match on; earlier F9 duels are in the fit and get no row.
+
+| Field | Description |
+|---|---|
+| `schema_version` / `status` / `config_hash` | As above. |
+| `first_row_index` | Index, in the commander history's duel order, of the first row. |
+| `duels[].match_id` / `source` / `external_row` / `date` / `block` | Identity. `source` is `telemetry` or `f9`; `external_row` is the F9 sheet row. |
+| `duels[].outcome` | `team1` or `team2`. |
+| `duels[].expected` | The model's win chance for team 1, from the fit on all earlier games. |
+| `duels[].damage_rows` | Damage rows this duel contributed. |
+| `duels[].teams{"1","2"}.commander` | `{steam64, name, c_before, c_after, f_before, f_after}`. `*_before` is read from the fit on all earlier games, `*_after` from the fit that includes this duel. |
+| `duels[].teams{"1","2"}.thugs[]` | `{steam64, name, f_before, f_after}`. |
+| `duels[].chain` | Digest of every input up to and including this duel. A row is reused on the next run only while its digest is unchanged. |
+| `duels[].complete` | `true` once `*_after` is filled. |
+
+`expected` equals `logistic` of the row's own `*_before` skills (gate `_investigation/check_joint_parity.mjs`). A refit moves players who did not play by a fraction of a point, so a player's `f_after` on one row and `f_before` on their next row can differ slightly. Per-match changes must be read as that row's own `after − before`.
+
+### 20.3 `data/joint_test_ledger.json`
+
+Committed and append-only. Written by `scripts/joint_test.py::append_ledger` from the pipeline.
+
+| Field | Description |
+|---|---|
+| `schema_version` | `1`. |
+| `freeze_date` | The memo's sign-off date (UTC). Only recorded duels dated strictly after it are logged. `null` before sign-off. |
+| `config_hash` | The joint settings the entries were logged under. A different hash aborts the append: the test has to be restarted. |
+| `entries[]` | `{match_id, date, outcome, p_joint, p_baseline, p_live, logged_at}`. The three win chances for team 1 as first computed: the joint model's, the frozen baseline's (today's formula on the VSR-T rules live at signing, replayed in memory) and the live formula's. Never rewritten. |
+
+`scripts/validate_elo.py` §24 scores it (`report.json` `joint_model`, mirrored at `validation_summary.json` `latest_detail.joint_model`): `status`, `duels`, `next_look`, `running {n, gain, gain_se, z, log_loss_joint, log_loss_baseline, log_loss_live, accuracy_joint, accuracy_baseline, calibration_slope, calibration_slope_se}` and `looks[]` (the same figures on the first 200 / 300 / 400 entries, plus `over_confident`, `ahead_of_live`, `passed`, `withdraw`).

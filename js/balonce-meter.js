@@ -357,6 +357,214 @@
     return hist.games.find((g) => g.match_id === matchId) || null;
   }
 
+  // ================================================================
+  //  New-model preview (joint commanding-and-fighting model)
+  // ================================================================
+  //
+  // scripts/elo_joint.py fits a commanding skill (C) and a fighting skill
+  // (F) per player and is being tested against the formula above
+  // (critique/decisions/joint-skill-model.md). Until that test passes its
+  // win chance is shown as ONE labelled line beside the gauge and changes
+  // nothing else: no rating, no band, no Suggest result.
+  //
+  //   P(Team 1 wins) = logistic((C1 - C2) + mean(F team 1) - mean(F team 2))
+  //
+  // with each side's commander counted among its fighters. Mirrors
+  // `elo_joint.win_probability`; gate _investigation/check_joint_parity.mjs.
+
+  const JOINT_CURRENT_URL_CANDIDATES = [
+    'data/processed/elo_joint_current.json',
+    '../data/processed/elo_joint_current.json',
+  ];
+  const JOINT_HISTORY_URL_CANDIDATES = [
+    'data/processed/elo_joint_history.json',
+    '../data/processed/elo_joint_history.json',
+  ];
+  /** Test states in which the preview shows. It is hidden before the memo
+   *  is signed (`not_started`) and once the test is `withdrawn` or `ended`. */
+  const JOINT_SHOWN_STATUSES = new Set(['running', 'passed']);
+
+  let _jointCurrentPromise = null;
+  let _jointHistoryPromise = null;
+
+  async function fetchFirstJson(urls) {
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (res && res.ok) return await res.json();
+      } catch (_) { /* try next candidate */ }
+    }
+    return null;
+  }
+
+  /** Current skills, into `window.__vtJointCurrent` (null when absent). */
+  function ensureJointCurrentLoaded() {
+    if (window.__vtJointCurrent !== undefined) {
+      return Promise.resolve(window.__vtJointCurrent);
+    }
+    if (!_jointCurrentPromise) {
+      _jointCurrentPromise = fetchFirstJson(JOINT_CURRENT_URL_CANDIDATES).then((json) => {
+        window.__vtJointCurrent = json;
+        return json;
+      });
+    }
+    return _jointCurrentPromise;
+  }
+
+  /** Per-duel history, into `window.__vtJointHistory` (null when absent). */
+  function ensureJointHistoryLoaded() {
+    if (window.__vtJointHistory !== undefined) {
+      return Promise.resolve(window.__vtJointHistory);
+    }
+    if (!_jointHistoryPromise) {
+      _jointHistoryPromise = fetchFirstJson(JOINT_HISTORY_URL_CANDIDATES).then((json) => {
+        window.__vtJointHistory = json;
+        return json;
+      });
+    }
+    return _jointHistoryPromise;
+  }
+
+  /** Both files. The dashboard needs the history for a match's pre-match
+   *  value and the current file for the test's status. */
+  function ensureJointLoaded() {
+    return Promise.all([ensureJointCurrentLoaded(), ensureJointHistoryLoaded()]);
+  }
+
+  function jointLoaded() {
+    return window.__vtJointCurrent !== undefined && window.__vtJointHistory !== undefined;
+  }
+
+  /**
+   * The joint model's win chance, team-1 perspective.
+   * @param {{c1: number, c2: number, f1: number[], f2: number[]}} opts
+   *   commanding skill of each commander, and the fighting skills of each
+   *   side's fighters (commander included)
+   */
+  function jointWinProb(opts) {
+    const o = opts || {};
+    const mean = (xs) => (Array.isArray(xs) && xs.length
+      ? xs.reduce((s, x) => s + (isNum(x) ? x : 0), 0) / xs.length
+      : 0);
+    const z = (isNum(o.c1) ? o.c1 : 0) - (isNum(o.c2) ? o.c2 : 0) + mean(o.f1) - mean(o.f2);
+    return 1 / (1 + Math.exp(-Math.max(-30, Math.min(30, z))));
+  }
+
+  /** True while the registered test is running (or has passed and the
+   *  switch has not been made yet). The pipeline stamps the status. */
+  function jointPreviewLive() {
+    const cur = window.__vtJointCurrent;
+    const status = cur && cur.test && cur.test.status;
+    return JOINT_SHOWN_STATUSES.has(status);
+  }
+
+  let _jointRowIndex = null;
+  let _jointRowIndexFor = null;
+
+  /** This match's row in elo_joint_history.json, or null. */
+  function jointRowFor(matchId) {
+    const hist = window.__vtJointHistory;
+    if (!hist || !Array.isArray(hist.duels) || !matchId) return null;
+    if (_jointRowIndexFor !== hist) {
+      _jointRowIndex = new Map();
+      for (const row of hist.duels) {
+        if (row && row.match_id) _jointRowIndex.set(row.match_id, row);
+      }
+      _jointRowIndexFor = hist;
+    }
+    return _jointRowIndex.get(matchId) || null;
+  }
+
+  /** Pre-match joint win chance for a recorded match, from the skills the
+   *  model held going in. Null when there is no row or sides are uneven. */
+  function jointMatchProb(matchId) {
+    const row = jointRowFor(matchId);
+    const t1 = row && row.teams && row.teams['1'];
+    const t2 = row && row.teams && row.teams['2'];
+    if (!t1 || !t2 || !t1.commander || !t2.commander) return null;
+    const fs = (t) => (t.thugs || []).map((p) => p.f_before).concat([t.commander.f_before]);
+    const f1 = fs(t1);
+    const f2 = fs(t2);
+    if (f1.length !== f2.length) return null;
+    return {
+      probT1: jointWinProb({ c1: t1.commander.c_before, c2: t2.commander.c_before, f1, f2 }),
+      size: f1.length,
+    };
+  }
+
+  /**
+   * Joint win chance for a lobby that has not been played, from current
+   * skills. A player the model has never seen counts as average (0).
+   * @param {{cmdr1: string, cmdr2: string, team1: string[], team2: string[]}} lobby
+   *   Steam64s; each team list includes its commander
+   * @returns {{probT1: number, unknown: number}|null}
+   */
+  function jointLobbyProb(lobby) {
+    const cur = window.__vtJointCurrent;
+    if (!cur || !Array.isArray(cur.ratings) || !lobby) return null;
+    const t1 = lobby.team1 || [];
+    const t2 = lobby.team2 || [];
+    if (!lobby.cmdr1 || !lobby.cmdr2 || !t1.length || t1.length !== t2.length) return null;
+    if (!cur.__bySteam) {
+      const map = new Map();
+      for (const r of cur.ratings) if (r && r.steam64) map.set(String(r.steam64), r);
+      Object.defineProperty(cur, '__bySteam', { value: map, enumerable: false });
+    }
+    let unknown = 0;
+    const f = (id) => {
+      const r = cur.__bySteam.get(String(id));
+      if (!r) { unknown += 1; return 0; }
+      return r.f;
+    };
+    const c = (id) => {
+      const r = cur.__bySteam.get(String(id));
+      return (r && isNum(r.c)) ? r.c : 0;
+    };
+    const f1 = t1.map(f);
+    const f2 = t2.map(f);
+    return {
+      probT1: jointWinProb({ c1: c(lobby.cmdr1), c2: c(lobby.cmdr2), f1, f2 }),
+      unknown,
+    };
+  }
+
+  /**
+   * The one labelled preview line.
+   * @param {{probT1: number, teamLabel?: (side: 1|2) => string, href?: string,
+   *          note?: string, bsTooltip?: boolean}} opts
+   */
+  function jointPreviewHtml(opts) {
+    const o = opts || {};
+    if (!isNum(o.probT1)) return '';
+    const fav = favoriteOf(o.probT1);
+    const label = typeof o.teamLabel === 'function' ? o.teamLabel : ((side) => `Team ${side}`);
+    const read = fav.team
+      ? `${esc(label(fav.team))} <span class="vt-mono">${fmtPct(fav.prob)}</span>`
+      : 'even';
+    const tip = 'A second reading from the model being tested against today\u2019s formula. '
+      + 'It gives every player a commanding skill and a fighting skill, and counts the commander as one of the team\u2019s fighters. '
+      + 'It changes no rating, band or suggestion.'
+      + (o.note ? ` ${o.note}` : '');
+    const tipAttrs = o.bsTooltip === false
+      ? `title="${esc(tip)}"`
+      : `data-bs-toggle="tooltip" data-bs-placement="top" title="${esc(tip)}"`;
+    const href = o.href || 'elo/index.html?tab=accuracy';
+    return `
+      <div class="vt-balonce-joint">
+        <span class="vt-balonce-joint-tag" ${tipAttrs}><i class="bi bi-hourglass-split" aria-hidden="true"></i>New model (in testing)</span>
+        <span class="vt-balonce-joint-read">${read}</span>
+        <a class="vt-balonce-joint-link" href="${esc(href)}" target="_blank" rel="noopener">What is this?</a>
+      </div>`;
+  }
+
+  /** Preview line for a recorded match, or '' when it should not show. */
+  function jointMatchPreviewHtml(matchId, opts) {
+    if (!jointLoaded() || !jointPreviewLive()) return '';
+    const m = jointMatchProb(matchId);
+    if (!m) return '';
+    return jointPreviewHtml(Object.assign({ probT1: m.probT1 }, opts || {}));
+  }
+
   /** Model constants as emitted by elo_commander.py (never hardcoded). */
   function cmdrConstants(source) {
     const src = source || window.__vtCmdrEloHistory || null;
@@ -986,6 +1194,9 @@
           rightLabel: `${teamPhrase(joined, 2)} disadv`,
         })}
         <div class="vt-balonce-parts">${parts.join('')}</div>
+        ${joined.hypothetical ? '' : jointMatchPreviewHtml(_lastMatchId, {
+          teamLabel: (side) => teamPhrase(joined, side),
+        })}
       </div>`;
   }
 
@@ -1775,6 +1986,14 @@
       });
     }
 
+    // New-model preview: same paint-then-repaint pattern. Both files are
+    // 404-safe, so a missing joint model just leaves the line out.
+    if (!jointLoaded()) {
+      ensureJointLoaded().then(() => {
+        if (_lastMatchId === matchId) render(currentData);
+      });
+    }
+
     // Team panels are first. Gauge + verdict sit under them, and how it
     // played out (or the cancelled / draw what-if) sits under that.
     read.innerHTML = joined.hypothetical
@@ -1856,6 +2075,15 @@
     ensureCmdrHistoryLoaded,
     ensure2v2HistoryLoaded,
     find2v2Game,
+    // new-model preview (display only)
+    ensureJointLoaded,
+    ensureJointCurrentLoaded,
+    jointWinProb,
+    jointMatchProb,
+    jointLobbyProb,
+    jointPreviewLive,
+    jointPreviewHtml,
+    jointMatchPreviewHtml,
     renderMatchSection: render,
     destroyMatchSection,
     rosterRatings,

@@ -2178,6 +2178,10 @@ The rating system is pipeline-emitted, full-corpus, and time-ordered — the das
 
 > **v21 — only recorded winners rate.** A match rates on any ladder only when `winner.decided_by` is `attested`, `clean_win`, `contested` or `adjudicated` with `winner.team` 1 or 2. Unclear matches are excluded as `no_winner` (the reserved `matches_excluded_no_winner` counter now counts them) and draws as `draw` (`matches_excluded_draw`, shadow-scored like cancellations so the Outcome card shows the what-if). VSR-C (`CMDR_ELO_SCHEMA_VERSION` 14), VSR-1v1 (2) and VSR-2v2 (4) skip draws, and the 2v2 performance duel now needs a winner too. **Pre-v21 `peak_vtsr` is not comparable.** On adoption 28 unclear games left VSR-T (286 → 258 rated; all recorded April 16 – June 5, 2026 on pre-dialog collectors with no recycler-and-factory kill) and 2 left the 2v2 performance ladder. Measured drift: VSR-T max |Δ| 50.7, mean |Δ| 12.1, 9 band changes, one player (Darkhooded2) left the ladder having played only unclear games; VSR-C max |Δ| 6.6, mean |Δ| 1.1, same duels; VSR-1v1 unchanged.
 
+> **v22 — interim revision (§13.7.10).** Three rule changes in one re-rate: the expected score is set against the other team only (`EXPECTED_REFERENCE_POOL = "opponents"`), building damage in the last 180 s leaves the axis (`ENEMY_DAMAGE_TRIM_LATE_STRUCTURE = True`), and the v2.8 low-tier lift is retired (`LOWTIER_LIFT_ENABLED = False`). `ELO_SCHEMA_VERSION 21 → 22`, `CMDR_ELO_SCHEMA_VERSION 14 → 15`. **Pre-v22 `peak_vtsr` and pre-v15 `peak_vtsr_c` are not comparable.**
+
+> **Joint model (forensic, §13.17).** `scripts/elo_joint.py` fits a commanding skill and a fighting skill per player over every rated game and every F9 duel, and is being tested against today's win formula under a pre-registered rule. It changes no rating; its win chance shows as a labelled preview.
+
 ### 13.1 Final equation
 
 The published rating is a linear blend of two components — a **Wins ELO** ($R^W_i$) and **Thug ELO** ($R^T_i$, i.e. **VSR-T**):
@@ -2223,11 +2227,13 @@ $$
 E_i \;=\; \frac{2}{1 + 10^{(\bar{R}_i - R^T_i) / S_R}} \;-\; 1
 $$
 
-and $\bar{R}_i$ is the **median** rating of player $i$'s opponents at the start of the match:
+and $\bar{R}_i$ is the **median** rating of the **other team's** rated rows at the start of the match (v22; `EXPECTED_REFERENCE_POOL = "opponents"`):
 
 $$
-\bar{R}_i \;=\; \mathrm{median}\{\, R^T_j \,:\, j \neq i \,\}
+\bar{R}_i \;=\; \mathrm{median}\{\, R^T_j \,:\, \mathrm{team}(j) \neq \mathrm{team}(i) \,\}
 $$
+
+Before v22 the median ran over every other rated row, teammates included ($j \neq i$). `_reference_indices()` falls back to that when the other team has no rated row. The worked examples in §13.6 and §13.7 were computed under the earlier rule and keep their digits.
 
 | Symbol | Meaning | Value |
 |---|---|---|
@@ -2236,7 +2242,7 @@ $$
 | $S_R$ | Rating-logistic scale (`ELO_LOGISTIC_SCALE`) | $800$ |
 | $P_i$ | Player $i$'s performance index in this match | $\in [-1, +1]$ |
 | $E_i$ | Expected performance for player $i$ vs this lobby | $\in [-1, +1]$ |
-| $\bar{R}_i$ | Median rating of player $i$'s opponents | $\geq F = 1000$ |
+| $\bar{R}_i$ | Median rating of the other team's rated rows | $\geq F = 1000$ |
 
 **Why median (not mean) for $\bar{R}_i$**: in a stratified lobby that contains a single very-high-rated outlier (e.g. VTrider at ~2700 in a lobby otherwise around 1500), the mean is pulled up so far that *every other player* looks like an underdog. Median is robust to that one outlier; the ELO update for everyone else lands close to where it would in a balanced lobby.
 
@@ -2607,6 +2613,8 @@ Domakus is a thug-row in this match (his career split is $43$ thug / $4$ command
 
 ### 13.7.3 v2.8 — low-tier at-base lift
 
+> **Retired in v22** (§13.7.10). `LOWTIER_LIFT_ENABLED = False`; `elo_current.json` `lowtier_lift.enabled` is `false` and every `lowtier_lift_factor` is 0. The code and the text below stay because `scripts/study_vtsr_t_fairness.py` and the joint model's frozen baseline (`scripts/joint_test.py`) replay it.
+
 **Problem.** Low-tier players are frequently left shipless by their commander ("not worth the economy"). They sit on foot at base, unable to deal damage or get kills, yet `thug_kill_rate` and the share axes still divide by the *full* match — so denied bench-time deflates their score for a circumstance they don't control. This is a self-reinforcing trap (low rating → denied ships → can't show skill → stays low). Validated end-to-end in `_investigation/` (Audits A/C/D/E) and `_validation/`.
 
 **At-base denial signal.** The pipeline's positioning pass ([scripts/process_stats.py](scripts/process_stats.py) `_compute_positioning`) emits, per player, `metrics.at_base_pilot_sec` = seconds spent **on foot (pilot ODF) AND within `personal_base_radius` of spawn** (the same Garden-Gnome base region used by the mobility axis). On-foot time *out in the field* (walking back from a death) is deliberately NOT counted — only "positioned to be rebuilt a ship but still shipless" time. `is_pilot_odf()` flags samples via the `user_m` ODF substring.
@@ -2702,6 +2710,39 @@ Keying on the *canonical* rating (not the lifted one) is the load-bearing stabil
 **PvE premium.** `scripts/study_pve_denial.py` measured the pool income an enemy loses per kill on 144 telemetry matches (regen 12.8 scrap per pool per minute over 31.4 base). An extractor kill costs about 28 scrap in 2 minutes and up to 79 in 5 (an upper bound), against the 1.43× tank credit its 5000 HP earns under 1:1 pay; a scavenger kill costs 8–43 scrap of income on top of its 20-scrap price, against 0.86×. No premium above 1:1 is proposed.
 
 **Frontend.** Axis lists render from `elo_current.weights`. Player-page radars fall back to bars below three axes (`VTSR_RADAR_MIN_AXES`, `.vt-axis-bar-median` marks the corpus median). The ELO page's axes pill is now **What counts**; the explainer (`js/vtsr-explainers.js` `AXES` / `RETIRED_AXES_NOTE`) and every axis label map carry the one key.
+
+### 13.7.10 v22 — interim revision: opponents-only reference, late-demolition trim, lift retired
+
+Memo: `critique/decisions/vtsr-t-interim-revision.md`. Harness: `python scripts/study_vtsr_t_fairness.py` (stdlib, writes `_validation/vtsr_t_fairness.{md,json}`).
+
+**Problem.** VSR-T is a personal performance rating, and the team result leaked into it two ways.
+
+- **Teammates in the reference.** The expected score was set against the median of everyone else in the lobby. Strong teammates lowered a thug's bar and weak ones raised it: score minus expectation rose +0.040 per 100 points of team gap (z 4.0), and thugs in the bottom fifth of team gaps averaged −1.2 points a game against +3.4 to +4.8 for the rest.
+- **Late demolition.** Building damage in the last 180 s was 8.5% of a winning thug's enemy damage and 1.9% of a losing thug's. It paid winners +2.4 points a game and cost losers 2.5.
+
+With the match result held fixed the gap slope disappears, so the two are one leak seen twice.
+
+**The change.** Three constants in `scripts/elo.py`:
+
+| Constant | Before | v22 |
+|---|---|---|
+| `EXPECTED_REFERENCE_POOL` | `"lobby"` | `"opponents"` |
+| `ENEMY_DAMAGE_TRIM_LATE_STRUCTURE` | `False` | `True` |
+| `LOWTIER_LIFT_ENABLED` | `True` | `False` |
+
+- `_reference_indices(i, teams)` picks the rows whose ratings set player `i`'s expected score. Both callers use it: `_rating_pass` and `_shadow_score_match`. Teams come from `_row_team()` (the row's `team`, else its slot), as the wins ladder derives them.
+- The trim reads `personal.enemy_structure_dealt_late`, anchored on the end of the recording (`STRUCTURE_LATE_SEC` = 180). The deciding tick is missing for 209 of 292 rated matches.
+- The lift goes because it reacts to the other two. With the reference fixed and the lift on, the thug gap's likelihood gain over the commander gap fell from 4.87 to 3.37 and today's win formula got worse by 0.009 log-loss; with the lift off, 5.15 and +0.0002. The lift is about 120 points at a factor of 0.6, larger than its 60-point taper, so it lifted players past the ones above them.
+
+**The rule (five gates, all passed).** Team-gap slope +0.040 → −0.001; team-result share 23.2% → 13.7%; split-half reliability 0.957 → 0.983; same-game tier ordering 70.7% → 73.4%; today's win formula on 292 recorded duels +0.0002 ± 0.0040 log-loss. Winner AUC is reported and is not a gate (0.610 → 0.609 on the 57 matches since 2026-10-25). The rule was written after these numbers were seen; the memo says so and registers a forward check after 40 more decided matches.
+
+**Measured drift (2026-11-26, same corpus, 390 cached).** 24 players with 25+ rated matches: mean |Δ| 44, max 110, 7 half-band changes (Snake, Cloaket and Muffin up; Darkvale, The Wanderer, Monkey and DraconisMarch down). Six players with 5 to 24 matches also change band; Totokomo, The_Bylarge and Maverick had been raised by the lift. VSR-C: 23 commanders with 15+ duels, mean |Δ| 3.8, max 9.0, top eight unchanged. Validator: pre-match rating against match score 0.433 → 0.496, self-consistency 0.837 → 0.896.
+
+**Output shape.** `elo_current.json` gains `expected_reference_pool` and `trim_late_structure_damage`. No `PIPELINE_VERSION` or `match.schema_version` change.
+
+**Frontend.** `js/vtsr-explainers.js` (the match-score and expected-bar captions, both worked examples re-read from the v22 histories; gate `_investigation/check_explainer_examples.mjs`). `js/elo.js` `renderFairnessTab()`: the "Stranded at base?" card retires; "Your teammates don't set your bar" and "Knocking down a beaten base doesn't count" are added.
+
+**Undo.** Set the three constants back and bump both schema versions. At the old values `elo_history.json` is byte-identical to the v21 file.
 
 ### 13.8 Tier ladder
 
@@ -3025,6 +3066,50 @@ Both thug ratings are published side by side by operator decision; the memo's pi
 - **Tools Balonce**: `Team | 2v2` format pills (`#vt-tools-balonce-format`). In 2v2 the meter uses 2v2C + 2v2T (win/loss) with the 2v2 file's own λ / scale; the performance rating shows on thug rows as context. It needs exactly 4 playing players in a 2-2 layout. The lobby API cannot tell a spectator from a player, so the user ignores spectators by right-click; hidden lobby members are auto-ignored while 2v2 is on, can be restored, and come back when leaving 2v2. A Team-mode hint offers 2v2 when 4 are counted. The empty-seat rule is off in 2v2. Suggest keeps commanders that are set. The footer quotes the validator's 2v2 call rate over recorded games and the review threshold. `?from=` seeding only works for VSR-T-rated lobbies, so 2v2 numbers are always today's.
 - **Match picker**: a **Format** facet (`1v1 · 2v2 · 3+v3+ · Other` chips with counts) from `manifest[].match_format`, state `pickerState.formats`, URL `?fmt=`, an optional key under `vt.picker.filters.v2` (no storage-key bump). A missing stamp reads as `other`.
 - **Players hub → Trends** (`js/players-tab.js`, formerly All Matches → Experimental): recorded games count only when `match_format === 'team'`; the F9 ledger stays size-based (3v3+). The old `3+ a side / All rated` Schedule toggle was retired, since with the 3-per-side rule both settings gave the same list.
+
+### 13.17 Joint commanding-and-fighting model (forensic) and its switch test
+
+Memo: `critique/decisions/joint-skill-model.md` (signed 2026-11-26 UTC). Study: `python scripts/study_joint_skill.py` (writes `_validation/joint_skill.{md,json}`).
+
+**What it is.** One model over every rated team game and every F9bomber ledger duel. Each player has a commanding skill `C` and a fighting skill `F`, in logit units, for every calendar quarter. It is **forensic**: it writes its own two files and feeds no published rating until the registered test passes.
+
+```
+logit P(team 1 wins) = C[c1,q] - C[c2,q] + mean F[team 1 fighters,q] - mean F[team 2 fighters,q]
+
+damage rows (recorded matches of 240 s or more; rows with enemy damage; teams with 2+ such thugs):
+  v = ln(enemy_dealt + 100) - mean over the team's thugs
+  thug       v ~ Normal(0.12 * (F - mean F of the team's thugs), noise)
+  commander  v ~ Normal(0.12 * (F - mean F of the team's thugs) + offset[player] + mu, noise_c)
+
+first quarter played   C ~ Normal(0, 0.75)          F ~ Normal(0, 2.0)
+each later quarter     C ~ Normal(C before, 0.055)  F ~ Normal(F before, 0.40)
+```
+
+- A side's fighters are its rated thugs plus its commander.
+- Damage is scored inside the player's own team, so no team-level quantity can enter: not the result, the faction or the commander's supply. A team's `k` thug rows are scored together with the per-thug noise before centring.
+- Noise is Gaussian, by thugs on the team and match length band. Matches under four minutes, rows with no enemy damage and a benched player (`match.bench`) give no damage row.
+- Skill steps by quarter (Whole-History Rating on quarterly blocks). Old games count at full weight for the quarter they were played in.
+- Fit: Newton steps with step-halving, tolerance 1e-9. The objective is strictly convex.
+
+**Module:** `scripts/elo_joint.py` (numpy; pure, no I/O). `compute_joint(all_match_data, elo_history, cmdr_history, external_duels, previous_history) -> (current, history)`. `elo_history` and `cmdr_history` supply membership only (which rows are rated, the order of the duels); no rating is read. `DEFAULT_CONFIG` is the frozen configuration and `config_hash()` its 16-character hash (`6b38185d5538c351`).
+
+**Pipeline.** A soft-fail block in `scripts/process_stats.py` after VSR-2v2 writes `data/processed/elo_joint_current.json` and `elo_joint_history.json` (both in the `load_cache_index()` skip set). History is walk-forward: a duel's `expected` comes from the fit on all earlier games. Rows carry a chain digest of their inputs and are reused from the previous history file, so a normal run refits only new duels; `--force` or a settings change rebuilds everything (about 50 seconds for 800 games). numpy is in `scripts/requirements.txt`; without it the block warns and the rest of the pipeline runs. No `PIPELINE_VERSION` or `match.schema_version` interaction.
+
+**The switch test** (`scripts/joint_test.py`, stdlib).
+
+- `FREEZE_DATE` = `2026-11-26`. Recorded duels dated after it count.
+- `append_ledger()` logs each such duel once in `data/joint_test_ledger.json` (committed, append-only): the joint model's, the frozen baseline's and the live formula's win chance for team 1, as first computed. Reprocessing cannot change a logged entry.
+- `frozen_baseline_expected()` replays today's VSR-C expected score on the VSR-T rules that were live at signing (`BASELINE_RULES`: lobby reference, no trim, lift on), in memory. The v22 revision therefore cannot move the yardstick. Fingerprint: `critique/decisions/joint-skill-model.baseline.json`.
+- `score_ledger()`: per duel, baseline log-loss minus joint log-loss. Looks at 200, 300 and 400 duels. A look passes when the mean is at least 2.0 standard errors above zero, the joint model's calibration slope is not more than 2.0 standard errors below 1, and the joint model is ahead of the live formula. No pass by 400 ends the test. Behind by 2.0 standard errors at a look withdraws the preview.
+- Status (`not_started` / `running` / `passed` / `withdrawn` / `ended`) is stamped on `elo_joint_current.json` `test` and reported by `scripts/validate_elo.py` §24 `metric_joint_model` (`report.json` schema 15; `validation_summary.json` `latest_detail.joint_model`).
+
+**Back-test (not part of the test).** 252 recorded duels after the first 40: log-loss 0.5886 against 0.6280 for today's formula, 67.9% of winners against 62.7%.
+
+**Preview (display only).** `js/balonce-meter.js`: `ensureJointLoaded()`, `jointWinProb()`, `jointMatchProb()`, `jointLobbyProb()`, `jointPreviewHtml()`. One line labelled "New model (in testing)" under the gauge on the Outcome card, in the per-match Elo tab's commander strip (`js/match-elo.js`) and on Tools (`js/tools/team-balonce.js`, from current skills). It changes no rating, band or Suggest result. It shows only while the test is `running` or `passed`, and is hidden when the files are missing, the sides are uneven, a commander is not set, or Tools is on as-played ratings. The ELO page's Does-it-work tab has a "New model in testing" section (`renderAccuracyTab()` in `js/elo.js`).
+
+**Forbidden consumers:** `scripts/elo.py`, `scripts/elo_commander.py`, `scripts/elo_1v1.py`, `scripts/elo_2v2.py`, `js/all-matches-aggregator.js`.
+
+**Gates** (`_investigation/`): `check_joint_separation.py`, `golden_joint_inert.py` (VSR-T and VSR-C byte-identical with the joint model run; its inputs unmutated), `check_joint_parity.mjs` (JS win chance equals the stored `expected`), `check_joint_config.py` (settings hash, freeze date and fingerprint match the memo), `check_balonce_parity.mjs` (today's meter against `elo_commander_history.json`).
 
 ## 14. Player Profile Pages (`player/`)
 

@@ -1,3 +1,6 @@
 protobuf>=4.25.0
 psutil>=5.9.0
 Pillow>=10.0.0
+# scripts/elo_joint.py only (the forensic joint model). The pipeline
+# warns and skips that one step when numpy is missing.
+numpy>=1.26

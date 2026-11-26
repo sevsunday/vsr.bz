@@ -8429,6 +8429,40 @@ html.vt-cursor-active * {
 }
 .vt-balonce-part .vt-mono { color: var(--kb-text-primary); }
 
+/* New-model preview: one labelled line under the gauge. Display only; the
+   dashed rule marks it as a second reading, not part of the meter. */
+.vt-balonce-joint {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.6rem;
+    margin-top: 0.6rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--kb-border-subtle);
+    font-size: 0.78rem;
+    color: var(--kb-text-secondary);
+}
+.vt-balonce-joint-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.05rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--kb-text-muted);
+    border: 1px dashed var(--kb-border-subtle);
+    cursor: help;
+}
+.vt-balonce-joint-read .vt-mono { color: var(--kb-text-primary); }
+.vt-balonce-joint-link {
+    margin-left: auto;
+    font-size: 0.72rem;
+    color: var(--kb-text-muted);
+}
+.vt-balonce-joint-link:hover { color: var(--kb-primary); }
+
 /* ---- Dashboard section zones ---- */
 
 .vt-balonce-zone + .vt-balonce-zone {

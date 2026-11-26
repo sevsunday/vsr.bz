@@ -292,3 +292,45 @@ is now +0.5pp on 200, still inside the +3pp bar.
   `report.json` `cmdr_t_term`, schema 4 → 5)
 - `js/balonce-meter.js` (`computeWinProb` — the V0 formula under test)
 - This memo
+
+## Rescore (2026-11-25) — `cmdr_in_mean` is promote-eligible; carried by the joint model
+
+`python scripts/validate_elo.py`, report §14. Scoreable telemetry duels:
+**292** of 800.
+
+| variant | accuracy | Δ accuracy | log-loss | Δ log-loss | n | verdict |
+|---|---|---|---|---|---|---|
+| `canonical` (V0) | 62.3% | — | 0.631 | — | 292 | baseline |
+| `cmdr_in_mean` | 65.8% | +3.4pp | 0.611 | −0.0196 | 292 | **eligible** |
+| `three_term:lambda2=0.25` | 65.4% | +3.1pp | 0.616 | −0.0147 | 292 | **eligible** |
+| `three_term:lambda2=0.5` | 65.8% | +3.4pp | 0.614 | −0.0169 | 292 | **eligible** |
+| `three_term:lambda2=1.0` | 65.1% | +2.7pp | 0.644 | +0.0125 | 292 | hold |
+| `cmdr_conditional` | 62.0% | −0.3pp | 0.632 | +0.0013 | 292 | hold |
+| `softmax` (τ 100 / 200 / 400), `hard_max` | 59.6–61.0% | −1.4 to −2.7pp | 0.680–0.765 | worse | 292 | hold |
+
+Rule by rule for `cmdr_in_mean` (the function's own verdict): accuracy
++3.4pp against a +3pp bar, log-loss strictly better, 292 scored rows
+against 100, and the gain is not confined to one band. **All four
+conditions pass.** The October HOLD (+0.5pp on 200 rows) no longer
+describes the corpus.
+
+**What is done with it (decided 2026-11-20, recorded here).** Promotion
+authorizes changing `_team_thug_means` and re-rating VSR-C. That work is
+not taken up as a standalone change:
+
+- Replaying the ladder with the commander's own VSR-T in the team mean
+  moves established commanders by 13 points on average and 66 at most,
+  and the move tracks their own VSR-T at −0.77. Strong fighters drop
+  and weak ones rise. VSR-C would stop meaning "wins as a commander"
+  and start meaning "commanding beyond one's own fighting".
+- Three quarters of the log-loss gain sits in the 38% of duels where a
+  commander has fewer than 20 prior duels. Among established pairs the
+  gain cannot be told from zero.
+- The same information is carried, without that side effect, by the
+  commanding-and-fighting model registered in
+  `critique/decisions/joint-skill-model.md`, where the commander is one
+  of the team's fighters and commanding skill is a separate number.
+
+So `scripts/elo_commander.py` and `js/balonce-meter.js::computeWinProb`
+stay on V0. This section closes the question for the ladder; it reopens
+only if the joint model's own test ends without a switch.
