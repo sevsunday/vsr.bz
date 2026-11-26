@@ -254,14 +254,16 @@
       <section class="vt-home-card is-empty" id="vt-home-live" aria-labelledby="vt-home-live-title">
         <div class="vt-home-card-head">
           <h2 id="vt-home-live-title"><i class="bi bi-broadcast-pin"></i>Online now</h2>
-          <a href="gw/">Game Watch</a>
+          <div class="vt-home-live-actions">
+            <a id="vt-home-live-host" class="btn btn-primary btn-sm" href="steam://rungame/624970/76561198955218468/-hostname%20%22bz2vsr%22%20-nomovies" title="Host a lobby via Steam">Host</a>
+            <a href="gw/">Game Watch</a>
+          </div>
         </div>
         <div class="vt-home-live-body">
           <p id="vt-home-live-status" class="vt-home-status">Checking lobbies…</p>
           <div id="vt-home-live-grid"></div>
           <div id="vt-home-live-empty" hidden>
             <p class="vt-home-status">No lobbies up right now.</p>
-            <a id="vt-home-live-host" class="btn btn-primary btn-sm" href="steam://rungame/624970/76561198955218468/-hostname%20%22bz2vsr%22%20-nomovies" title="Host a lobby via Steam">Host</a>
           </div>
           <p id="vt-home-live-more" hidden></p>
         </div>

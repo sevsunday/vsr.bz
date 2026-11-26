@@ -2668,11 +2668,11 @@ body::before {
   color: var(--kb-text-secondary);
 }
 
-/* Map win-rate card shares a row with Faction Matchups. At lg and up
-   the matchup card sets the row height. The map card is taken out of
-   flow so its table cannot stretch the row, then stretched to the
-   same height and scrolled. Below lg the cards stack and the map
-   table is not clipped. */
+/* Map win-rate card shares a row with the stacked matchup and win-rate
+   cards. At lg and up those two cards set the row height. The map card
+   is taken out of flow so its table cannot stretch the row, then
+   stretched to the same height and scrolled. Below lg the cards stack
+   and the map table is not clipped. */
 @media (min-width: 992px) {
   .vt-meta-maps-col {
     position: relative;
@@ -4587,11 +4587,8 @@ td.vt-col-split {
     line-height: 1;
 }
 
-.vt-match-picker-card-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.5rem;
+.vt-match-picker-card.is-active .vt-match-picker-card-title {
+    padding-right: 1.35rem;
 }
 
 /* Thumbnail on the left of each match-picker card. Top-down map image
@@ -4618,8 +4615,8 @@ td.vt-col-split {
     font-size: 1.5rem;
 }
 
-/* Wrapper around the text side of the card. flex-column so the existing
- * head/meta/submeta/leaders rows still stack vertically inside. */
+/* Wrapper around the text side of the card. flex-column so the name,
+ * facts and leaders rows still stack vertically inside. */
 .vt-match-picker-card-body {
     display: flex;
     flex-direction: column;
@@ -4642,20 +4639,14 @@ td.vt-col-split {
 }
 
 .vt-match-picker-card-title {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
     min-width: 0;
-    flex: 1 1 auto;
+    line-height: 1.3;
 }
 
 .vt-match-picker-card-name {
     font-weight: 600;
     font-size: 0.95rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .vt-void-banner {
@@ -4685,52 +4676,36 @@ td.vt-col-split {
     vertical-align: middle;
 }
 
-.vt-match-picker-vod {
-    color: var(--vt-youtube);
+.vt-match-picker-vod,
+.vt-match-picker-you {
+    display: inline-block;
+    margin-left: 0.3rem;
     font-size: 0.72rem;
-    flex: 0 0 auto;
     vertical-align: 0.05em;
 }
 
-.vt-match-picker-card-meta {
-    font-size: 0.75rem;
-    color: var(--kb-text-muted);
-    font-family: 'Geist Mono', ui-monospace, Menlo, Consolas, monospace;
-    font-variant-numeric: tabular-nums;
-    flex: 0 0 auto;
-    white-space: nowrap;
+.vt-match-picker-vod {
+    color: var(--vt-youtube);
 }
 
-.vt-match-picker-card-rawmap {
-    font-size: 0.72rem;
-    color: var(--kb-text-muted);
-    opacity: 0.8;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.vt-match-picker-you {
+    color: var(--kb-primary);
 }
 
-.vt-match-picker-card-submeta {
+.vt-match-picker-card-facts {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    font-size: 0.75rem;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.15rem 0.65rem;
+    min-width: 0;
     color: var(--kb-text-muted);
-}
-
-.vt-match-picker-card-submitter {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-}
-
-.vt-match-picker-card-date {
     font-family: 'Geist Mono', ui-monospace, Menlo, Consolas, monospace;
     font-variant-numeric: tabular-nums;
+    font-size: 0.75rem;
+}
+
+.vt-match-picker-card-facts > span {
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .vt-match-picker-card-leaders {
@@ -9239,26 +9214,6 @@ html.vt-cursor-active * {
     font-size: 0.72rem;
 }
 
-.vt-match-picker-you {
-    flex: 0 0 auto;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    height: 1.55em;
-    margin: 0;
-    padding: 0 0.35em;
-    border-radius: 999px;
-    border: 1px solid color-mix(in oklab, var(--kb-primary) 32%, var(--kb-border-subtle));
-    background: color-mix(in oklab, var(--kb-primary) 10%, transparent);
-    color: color-mix(in oklab, var(--kb-primary) 62%, var(--kb-text-secondary));
-    font-size: 0.52rem;
-    font-weight: 650;
-    letter-spacing: 0;
-    line-height: 1;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
 
 .vt-you-head {
     display: flex;

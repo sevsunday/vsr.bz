@@ -109,14 +109,21 @@ body.vt-home-body {
   gap: 0.5rem;
 }
 
-.vt-home-card-head a {
+.vt-home-live-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 0 0 auto;
+}
+
+.vt-home-card-head a:not(.btn) {
   color: var(--kb-primary);
   font-size: 0.75rem;
   text-decoration: none;
   white-space: nowrap;
 }
 
-.vt-home-card-head a:hover { text-decoration: underline; }
+.vt-home-card-head a:not(.btn):hover { text-decoration: underline; }
 
 .vt-home-who-toggle {
   display: inline-flex;

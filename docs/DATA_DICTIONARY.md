@@ -3580,13 +3580,16 @@ Faction codes are lowercase (`i`/`e`/`f` = ISDF/Hadean/Scion), matching the pipe
                        "factions": { "i": { "wins": 2, "games": 3 },
                                      "e": { "wins": 1, "games": 3 },
                                      "f": { "wins": 0, "games": 0 } } }, ...],
-  "duration_bands": { "under5": 6, "5to10": 9, "10to15": 17, "15plus": 32 },
+  "duration_bands": { "under5": 6, "5to10": 9, "10to15": 17, "15to20": 11,
+                      "20to30": 8, "30to45": 7, "45to60": 4, "60plus": 2 },
   "player_counts":  { "10": 45, "8": 8, "6": 3, ... },
   "submitters":     [{ "submitter": "VTrider", "count": 64 }, ...],
   "matches_over_time": [{ "week_iso": "2026-W16", "count": 8 }, ...],
   "start_times":    ["2026-04-16T01:27:48.447651+00:00", ...]
 }
 ```
+
+`duration_bands` counts every non-void match. The upper edge of each band is exclusive, so a match of exactly 15 minutes is `15to20` and a match of exactly 60 minutes is `60plus`. The Meta Playtime pill draws one bar per key.
 
 `maps[]` is sorted by `count` descending. `count` is every non-void game on that map. `factions[code]` is `{wins, games}` for that faction's record on the map against a different known faction: a game counts only when `winner.team` is 1 or 2 (draws, cancellations, and unclear games stay out; a contested game with a team winner counts) and the two faction codes differ. Mirror games and a game with one unknown faction stay out, so the three rates need not sum to 100% and `wins + losses` across factions is not `count`. The Meta page shows the top 15 and hides a percent under 5 determined games. It builds this from every contribution (void matches stay out inside the aggregator); the dashboard picker does not scope it. Not a rating input. The per-map page's own faction win-rate card also counts F9 community games and mirror games, so the two numbers can differ. ISO week ids follow `strftime("%G-W%V")` (the year is the ISO week-numbering year, not the calendar year).
 

@@ -1444,6 +1444,7 @@ function renderMetaFactionWinrate(canvasId, winCounts) {
   applyThemeDefaults();
   const canvas = document.getElementById(canvasId);
   if (!canvas) return null;
+  destroyChartOnCanvas(canvasId);
   const ctx = canvas.getContext('2d');
   const wc = winCounts || { i: { wins: 0, determined: 0 }, e: { wins: 0, determined: 0 }, f: { wins: 0, determined: 0 } };
   const labels = ['ISDF', 'Hadean', 'Scion'];
@@ -1499,10 +1500,12 @@ function renderMetaDurationHistogram(canvasId, bands) {
   applyThemeDefaults();
   const canvas = document.getElementById(canvasId);
   if (!canvas) return null;
+  destroyChartOnCanvas(canvasId);
   const ctx = canvas.getContext('2d');
-  const b = bands || { under5: 0, '5to10': 0, '10to15': 0, '15plus': 0 };
-  const labels = ['<5m', '5–10m', '10–15m', '15m+'];
-  const values = [b.under5 || 0, b['5to10'] || 0, b['10to15'] || 0, b['15plus'] || 0];
+  const b = bands || {};
+  const labels = ['<5m', '5–10m', '10–15m', '15–20m', '20–30m', '30–45m', '45–60m', '60m+'];
+  const keys = ['under5', '5to10', '10to15', '15to20', '20to30', '30to45', '45to60', '60plus'];
+  const values = keys.map(k => b[k] || 0);
   const primary = getCSSVar('--kb-primary') || '#4d7cff';
   const chart = new Chart(ctx, {
     type: 'bar',
@@ -1514,7 +1517,10 @@ function renderMetaDurationHistogram(canvasId, bands) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { ...glassTooltipConfig } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      scales: {
+        x: { ticks: { maxRotation: 0, autoSkip: false, font: { size: 11 } } },
+        y: { beginAtZero: true, ticks: { precision: 0 } },
+      },
     },
   });
   activeCharts.push(chart);
@@ -1525,6 +1531,7 @@ function renderMetaPlayerCount(canvasId, playerCounts) {
   applyThemeDefaults();
   const canvas = document.getElementById(canvasId);
   if (!canvas) return null;
+  destroyChartOnCanvas(canvasId);
   const ctx = canvas.getContext('2d');
   const entries = Object.entries(playerCounts || {})
     .map(([k, v]) => [Number(k), v])

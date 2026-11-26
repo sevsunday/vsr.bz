@@ -4,28 +4,28 @@ overview: "Four browser-only UI changes: split the Meta page into Faction / Play
 todos:
   - id: meta-pills
     content: "Meta: Faction / Playtime / F9 stats pills with ?tab= routing; Playtime charts draw on first show"
-    status: pending
+    status: completed
   - id: meta-faction-layout
     content: "Meta: map table left, Faction Matchups stacked over Faction Win Rate right; map table fills the column"
-    status: pending
+    status: completed
   - id: meta-duration-bands
     content: "Meta: split 15m+ into 15-20, 20-30, 30-45, 45-60, 60+ in the aggregator and the duration chart"
-    status: pending
+    status: completed
   - id: home-host
     content: "Home: move the Host button into the Online now header, left of Game Watch, shown at all times"
-    status: pending
+    status: completed
   - id: gw-host
     content: "Game Watch: primary Host button beside the Game Watch title"
-    status: pending
+    status: completed
   - id: gallery-cards
     content: "Matches gallery: wrap names instead of clipping, drop the .bzn and submitter lines, icon-only You marks with tooltips"
-    status: pending
+    status: completed
   - id: docs
     content: "Docs: duration_bands example and filter-contract note; Meta pills in project-overview.mdc"
-    status: pending
+    status: completed
   - id: verify
-    content: "Browser check of all four pages"
-    status: pending
+    content: Browser check of all four pages
+    status: completed
 isProject: false
 ---
 

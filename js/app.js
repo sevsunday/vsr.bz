@@ -829,26 +829,70 @@
     return !!(entry && window.VTVideoLinks && VTVideoLinks.videosFor(entry.id).length);
   }
 
+  function disposePickerTip(el) {
+    if (!el || !window.bootstrap || !window.bootstrap.Tooltip) return;
+    const tip = bootstrap.Tooltip.getInstance(el);
+    if (tip) tip.dispose();
+  }
+
+  function setPickerTip(el, text) {
+    if (!el) return;
+    disposePickerTip(el);
+    el.setAttribute('data-bs-toggle', 'tooltip');
+    el.setAttribute('data-bs-title', text);
+    el.setAttribute('aria-label', text);
+    el.removeAttribute('title');
+  }
+
+  // One listener for the whole grid. A tooltip is built on the first
+  // hover so a few hundred cards do not each construct one at boot.
+  function wirePickerMarkTips() {
+    if (!$pickerGrid || $pickerGrid.dataset.tipsWired === '1') return;
+    $pickerGrid.dataset.tipsWired = '1';
+    function arm(el, showNow) {
+      if (!el || !window.bootstrap || !window.bootstrap.Tooltip) return;
+      if (!bootstrap.Tooltip.getInstance(el)) {
+        const tip = bootstrap.Tooltip.getOrCreateInstance(el);
+        if (showNow) tip.show();
+      }
+    }
+    $pickerGrid.addEventListener('mouseover', (e) => {
+      const el = e.target.closest('[data-bs-toggle="tooltip"]');
+      if (!el || !$pickerGrid.contains(el)) return;
+      arm(el, true);
+    });
+    $pickerGrid.addEventListener('focusin', (e) => {
+      const el = e.target.closest('[data-bs-toggle="tooltip"]');
+      if (!el || !$pickerGrid.contains(el)) return;
+      arm(el, false);
+    });
+  }
+
   function stampPickerYouMark(cardEl, entry) {
     const titleEl = cardEl.querySelector('.vt-match-picker-card-title');
     if (!titleEl) return;
+    const nameEl = titleEl.querySelector('.vt-match-picker-card-name');
     let mark = titleEl.querySelector('.vt-match-picker-you');
     const who = window.VTWho;
-    let text = '';
+    let kind = '';
     if (who && who.status() === 'set') {
-      if (who.commanded(entry)) text = 'You commanded';
-      else if (who.played(entry)) text = 'You played';
+      if (who.commanded(entry)) kind = 'commanded';
+      else if (who.played(entry)) kind = 'played';
     }
-    if (text) {
-      if (!mark) {
-        mark = document.createElement('span');
-        mark.className = 'vt-match-picker-you';
-        titleEl.appendChild(mark);
-      }
-      mark.textContent = text;
-    } else if (mark) {
-      mark.remove();
+    if (!kind) {
+      disposePickerTip(mark);
+      if (mark) mark.remove();
+      return;
     }
+    const icon = kind === 'commanded' ? 'bi-shield-fill' : 'bi-person-fill';
+    const tip = kind === 'commanded' ? 'You commanded this match' : 'You played this match';
+    if (!mark) {
+      mark = document.createElement('i');
+      if (nameEl && nameEl.nextSibling) titleEl.insertBefore(mark, nameEl.nextSibling);
+      else titleEl.appendChild(mark);
+    }
+    mark.className = 'bi ' + icon + ' vt-match-picker-you';
+    setPickerTip(mark, tip);
   }
 
   function stampPickerVodMark(cardEl, entry) {
@@ -859,11 +903,15 @@
       if (!mark) {
         mark = document.createElement('i');
         mark.className = 'bi bi-youtube vt-match-picker-vod';
-        mark.setAttribute('title', 'YouTube VOD');
-        mark.setAttribute('aria-hidden', 'true');
-        titleEl.appendChild(mark);
+        const nameEl = titleEl.querySelector('.vt-match-picker-card-name');
+        const you = titleEl.querySelector('.vt-match-picker-you');
+        const after = you || nameEl;
+        if (after && after.nextSibling) titleEl.insertBefore(mark, after.nextSibling);
+        else titleEl.appendChild(mark);
       }
+      setPickerTip(mark, 'YouTube VOD');
     } else if (mark) {
+      disposePickerTip(mark);
       mark.remove();
     }
   }
@@ -900,10 +948,6 @@
           ${leaderSpan(l2, 2)}
         </div>`;
     }
-    const mapRaw = entry.map && entry.map !== entry.name
-      ? `<div class="vt-match-picker-card-rawmap vt-mono">${esc(entry.map)}</div>`
-      : '';
-
     // Thumbnail from the map registry. Lookup by normalized mapFile key.
     // When the map isn't in the registry (or hasn't been fetched), render
     // a neutral placeholder so card sizing stays stable.
@@ -919,22 +963,19 @@
       : `<div class="vt-match-picker-card-thumb vt-match-picker-card-thumb--placeholder" aria-hidden="true"><i class="bi bi-map"></i></div>`;
 
     const vodMark = matchHasVod(entry)
-      ? '<i class="bi bi-youtube vt-match-picker-vod" title="YouTube VOD" aria-hidden="true"></i>'
+      ? '<i class="bi bi-youtube vt-match-picker-vod" data-bs-toggle="tooltip" data-bs-title="YouTube VOD" aria-label="YouTube VOD"></i>'
       : '';
+    const voidChip = entry.void ? '<span class="vt-void-chip">Void</span>' : '';
 
     const href = 'matches/?match=' + encodeURIComponent(entry.id || '');
     return `
       <a class="vt-match-picker-card" href="${esc(href)}" data-target="${esc(entry.file)}" role="listitem">
         ${thumbHtml}
         <div class="vt-match-picker-card-body">
-          <div class="vt-match-picker-card-head">
-            <span class="vt-match-picker-card-title"><span class="vt-match-picker-card-name">${esc(entry.name || entry.id)}</span>${entry.void ? '<span class="vt-void-chip">Void</span>' : ''}${vodMark}</span>
-            <span class="vt-match-picker-card-meta">${esc(fmtDurationShort(entry.duration_sec))} &middot; ${pickerPlayerCount(entry)}p</span>
-          </div>
-          ${mapRaw}
-          <div class="vt-match-picker-card-submeta">
-            <span class="vt-match-picker-card-submitter"><i class="bi bi-person-circle"></i> ${esc(submitterCreditText(entry.submitter, entry.also_recorded_by))}</span>
+          <div class="vt-match-picker-card-title"><span class="vt-match-picker-card-name">${esc(entry.name || entry.id)}</span>${vodMark}${voidChip}</div>
+          <div class="vt-match-picker-card-facts">
             <span class="vt-match-picker-card-date">${esc(fmtDateFull(entry.date))}</span>
+            <span class="vt-match-picker-card-meta">${esc(fmtDurationShort(entry.duration_sec))} \u00b7 ${pickerPlayerCount(entry)}p</span>
           </div>
           ${leadersHtml}
         </div>
@@ -945,6 +986,7 @@
     if (!$pickerGrid) return;
     // Newest-first: `manifest` has already been sorted desc-by-date above.
     $pickerGrid.innerHTML = manifest.map(buildMatchPickerCardHtml).join('');
+    wirePickerMarkTips();
 
     // Stash a lowercased search blob on each card element. Searched on
     // every keystroke; cheaper than re-querying DOM.

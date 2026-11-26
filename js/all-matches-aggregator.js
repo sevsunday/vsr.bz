@@ -253,15 +253,19 @@
     return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
   }
 
-  // Bucket a duration in seconds into one of four canonical bands. Mirrors
-  // the duration histogram on the Meta tab; also mirrors the picker
-  // facet's existing bands so the labels stay consistent.
+  // Bucket a duration in seconds for the Meta Playtime histogram.
+  // Upper edge is exclusive, so 15:00 is 15–20 and 60:00 is 60+.
+  // The match picker's short / medium / long filter is a separate set.
   function durationBand(durationSec) {
     const m = (durationSec || 0) / 60;
     if (m < 5)  return 'under5';
     if (m < 10) return '5to10';
     if (m < 15) return '10to15';
-    return '15plus';
+    if (m < 20) return '15to20';
+    if (m < 30) return '20to30';
+    if (m < 45) return '30to45';
+    if (m < 60) return '45to60';
+    return '60plus';
   }
 
   // Stable, deterministic key for a commander head-to-head pair (sorted
@@ -434,7 +438,10 @@
     // mapRows factions are cross-faction determined games only (same rule
     // as matchup off-diagonal cells). count is every non-void game.
     const mapRows = new Map();
-    const durationBands = { under5: 0, '5to10': 0, '10to15': 0, '15plus': 0 };
+    const durationBands = {
+      under5: 0, '5to10': 0, '10to15': 0, '15to20': 0,
+      '20to30': 0, '30to45': 0, '45to60': 0, '60plus': 0,
+    };
     const playerCounts  = Object.create(null);
     const submitterCounts = new Map(); // submitter -> count
     const overTimeWeeks  = new Map();  // 'YYYY-Www' -> count

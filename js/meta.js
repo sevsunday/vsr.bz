@@ -7,8 +7,10 @@
  * The dashboard match picker does not scope this page.
  *
  * Chart functions stay in js/charts.js. This file owns the tables, the
- * timezone select, the weeks/months toggle, the F9bomber card, and
- * fullscreen expand.
+ * timezone select, the weeks/months toggle, the F9bomber card, the
+ * Faction / Playtime / F9 stats pills (?tab=), and fullscreen expand.
+ * Playtime charts draw on first show: a canvas in a hidden pane measures
+ * zero. Faction is the default and writes no ?tab=.
  */
 (function () {
   'use strict';
@@ -52,6 +54,12 @@
   let factionStats = {};
   let whenPlayedBucket = null;
   let whenPlayedOverTimeMode = 'weeks';
+  const tabDrawn = { faction: false, playtime: false };
+  const META_TAB_TARGETS = {
+    faction: '#meta-tab-faction',
+    playtime: '#meta-tab-playtime',
+    f9: '#meta-tab-f9',
+  };
 
   const chartRenderers = {};
 
@@ -352,10 +360,13 @@
     const body = document.getElementById('f9-community-body');
     if (!card || !body) return;
     const comm = f9Community;
+    const empty = document.getElementById('meta-f9-empty');
     if (!comm || !(comm.duel_count > 0)) {
       card.classList.add('d-none');
+      if (empty) empty.classList.remove('d-none');
       return;
     }
+    if (empty) empty.classList.add('d-none');
     const fs = comm.faction_stats || {};
     const FAC = [['i', 'ISDF'], ['e', 'Hadean'], ['f', 'Scion']];
     const rows = FAC.map(([code, label]) => {
@@ -434,12 +445,17 @@
     card.classList.remove('d-none');
   }
 
-  function renderAll() {
-    renderFactionMaps(metaCharts.maps);
-    renderFactionMatchups(factionStats.matchups);
+  function drawFaction() {
+    if (tabDrawn.faction) return;
+    tabDrawn.faction = true;
     if (typeof renderMetaFactionWinrate === 'function') {
       renderMetaFactionWinrate('meta-faction-winrate-canvas', factionStats.win_counts);
     }
+  }
+
+  function drawPlaytime() {
+    if (tabDrawn.playtime) return;
+    tabDrawn.playtime = true;
     if (typeof renderMetaDurationHistogram === 'function') {
       renderMetaDurationHistogram('meta-duration-canvas', metaCharts.duration_bands);
     }
@@ -447,8 +463,83 @@
       renderMetaPlayerCount('meta-playercount-canvas', metaCharts.player_counts);
     }
     paintWhenPlayed();
+  }
+
+  function renderStatic() {
+    renderFactionMaps(metaCharts.maps);
+    renderFactionMatchups(factionStats.matchups);
     renderF9Card();
     ensureTooltips(document.getElementById('meta-body'));
+  }
+
+  function slugForTarget(target) {
+    const keys = Object.keys(META_TAB_TARGETS);
+    for (let i = 0; i < keys.length; i++) {
+      if (META_TAB_TARGETS[keys[i]] === target) return keys[i];
+    }
+    return 'faction';
+  }
+
+  function syncTabUrl(target) {
+    const url = new URL(window.location.href);
+    const slug = slugForTarget(target);
+    if (slug === 'faction') url.searchParams.delete('tab');
+    else url.searchParams.set('tab', slug);
+    const next = url.pathname + url.search + url.hash;
+    const cur = window.location.pathname + window.location.search + window.location.hash;
+    if (next !== cur) history.replaceState(null, '', next);
+  }
+
+  function drawTarget(target) {
+    if (target === '#meta-tab-faction') drawFaction();
+    else if (target === '#meta-tab-playtime') drawPlaytime();
+  }
+
+  function wireTabs() {
+    const tabs = document.getElementById('meta-tabs');
+    if (!tabs || tabs.dataset.wired === '1') return;
+    tabs.dataset.wired = '1';
+    tabs.addEventListener('shown.bs.tab', (e) => {
+      const target = e.target.getAttribute('data-bs-target');
+      if (!target) return;
+      syncTabUrl(target);
+      drawTarget(target);
+    });
+  }
+
+  function activateTabFromUrl() {
+    const slug = new URLSearchParams(window.location.search).get('tab');
+    const target = META_TAB_TARGETS[slug] || null;
+    if (!target || target === '#meta-tab-faction') {
+      if (slug) syncTabUrl('#meta-tab-faction');
+      drawFaction();
+      return;
+    }
+    const btn = document.querySelector('#meta-tabs [data-bs-target="' + target + '"]');
+    if (!btn || !window.bootstrap || !window.bootstrap.Tab) {
+      drawFaction();
+      return;
+    }
+    bootstrap.Tab.getOrCreateInstance(btn).show();
+  }
+
+  function watchTheme() {
+    if (typeof MutationObserver === 'undefined') return;
+    const obs = new MutationObserver(() => {
+      const pane = document.querySelector('#meta-body .tab-pane.active');
+      if (!pane) return;
+      if (pane.id === 'meta-tab-faction' && tabDrawn.faction) {
+        tabDrawn.faction = false;
+        drawFaction();
+      } else if (pane.id === 'meta-tab-playtime' && tabDrawn.playtime) {
+        tabDrawn.playtime = false;
+        drawPlaytime();
+      }
+    });
+    obs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'data-mode'],
+    });
   }
 
   function registerChartRenderer(sectionId, renderFn) {
@@ -542,6 +633,8 @@
     const status = document.getElementById('meta-status');
     const body = document.getElementById('meta-body');
     wireFullscreen();
+    wireTabs();
+    watchTheme();
     try {
       const contributions = await loadJson('../data/processed/match_contributions.json');
       if (!contributions || typeof VTAggregate === 'undefined' || typeof VTAggregate.build !== 'function') {
@@ -558,7 +651,8 @@
       const data = VTAggregate.build(contributions, Object.keys(contributions));
       metaCharts = data.meta_charts || {};
       factionStats = data.faction_stats || {};
-      renderAll();
+      renderStatic();
+      activateTabFromUrl();
       if (status) status.classList.add('d-none');
       if (body) body.classList.remove('d-none');
     } catch (e) {
