@@ -7,8 +7,9 @@
  * segmented, open to the right. Hull on the top half (HULLGAUGE green /
  * yellow / red by state) and ammo on the bottom half (AMMOGAUGE blue),
  * both anchored at the open ends (12 and 6 o'clock) and draining from
- * 9 o'clock where they meet, with the numbers just right of the open ends. Right of it: WeaponPanel (128 x 70),
- * four 16 px pill rows of icon badge, name and shots left. Colours come
+ * 9 o'clock where they meet, with the numbers just right of the open ends. Right of it: WeaponPanel (128 wide),
+ * pill rows of icon badge, name and shots left that span the gauge arc's
+ * height (css/game-hud.css; the game's are 16 px). Colours come
  * from the harvested bzgame_init_color palette as scoped custom properties;
  * CSS falls back to theme tokens.
  */
@@ -216,6 +217,7 @@ export function createHud(root, reticles, hudArt) {
     const player = state.player;
     const groups = state.groups || [];
     weapons.replaceChildren();
+    weapons.style.setProperty('--vt-xp-wpn-rows', String(Math.max(1, Math.min(5, groups.length))));
     const ammo = state.sim ? state.sim.ammo : 0;
     groups.slice(0, 5).forEach((g, i) => {
       const empty = !g.weaponOdf;

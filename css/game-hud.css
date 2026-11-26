@@ -1,7 +1,8 @@
 /* In-game HUD pieces shared by the Game Explorer (css/explorer.css) and the
  * Weapons Lab shooting range (css/weapons.css): the game palette, the
- * StatusPanel hull / ammo "C" gauge and the WeaponPanel pill rows. Where each
- * piece sits stays with the page. Markup and geometry: js/explorer/hud.js. */
+ * StatusPanel hull / ammo "C" gauge and the WeaponPanel pill rows, sized to
+ * span the gauge's arc. Where each piece sits stays with the page. Markup
+ * and geometry: js/explorer/hud.js. */
 
 .vt-xp-hud {
   /* Game palette, overwritten from data/ui/explorer/palette.json. */
@@ -74,26 +75,48 @@
 .vt-xp-hull-text { top: calc(50% - 13px * var(--vt-xp-scale)); }
 .vt-xp-ammo-text { top: calc(50% + 2px * var(--vt-xp-scale)); }
 
+/* The rows span the gauge arc's height. Lengths are in gauge units (one
+ * scaled px). The arc's outer edges are GAUGE_CY ± (GAUGE_RY + half the
+ * 13-unit stroke) = -1.5 .. 91.5, 1.5 past the 90-unit box at each end. The
+ * page sets --vt-xp-wpn-rows to its row count; one or two rows keep the
+ * 3-row height and centre on the gauge. */
 .vt-xp-weapons {
-  width: calc(128px * var(--vt-xp-scale));
+  --vt-xp-gauge-span: 93;
+  --vt-xp-wpn-gap: 3;
+  --vt-xp-wpn-rows: 4;
+  --vt-xp-wpn-min: 12;
+  --vt-xp-wpn-u: clamp(
+    var(--vt-xp-wpn-min),
+    (var(--vt-xp-gauge-span) - (var(--vt-xp-wpn-rows) - 1) * var(--vt-xp-wpn-gap)) / var(--vt-xp-wpn-rows),
+    (var(--vt-xp-gauge-span) - 2 * var(--vt-xp-wpn-gap)) / 3
+  );
+  /* 9 at the game's 16-unit row, growing more slowly than the row. */
+  --vt-xp-wpn-font: min(12, 9 + (var(--vt-xp-wpn-u) - 16) / 4);
+  /* The game's 128 widened by the cap font's 12 / 9, so a name keeps the
+   * room it has at 9. css/explorer.css places the gauge beside this width. */
+  width: calc(128px * 12 / 9 * var(--vt-xp-scale));
+  min-height: calc(var(--vt-xp-gauge-span) * 1px * var(--vt-xp-scale));
   display: flex;
   flex-direction: column;
-  gap: calc(3px * var(--vt-xp-scale));
+  justify-content: center;
+  gap: calc(var(--vt-xp-wpn-gap) * 1px * var(--vt-xp-scale));
 }
 
-/* Pill rows: a circular icon badge overlapping the left edge, name, shots. */
+/* Pill rows: a circular icon badge overlapping the left edge, name, shots.
+ * At u = 16 every length here is the game's WeaponPanel row. */
 .vt-xp-wpn {
   position: relative;
   display: flex;
+  flex: none;
   align-items: center;
   gap: calc(3px * var(--vt-xp-scale));
-  height: calc(16px * var(--vt-xp-scale));
-  margin-left: calc(8px * var(--vt-xp-scale));
-  padding: 0 calc(5px * var(--vt-xp-scale)) 0 calc(12px * var(--vt-xp-scale));
-  border-radius: calc(8px * var(--vt-xp-scale));
+  height: calc(var(--vt-xp-wpn-u) * 1px * var(--vt-xp-scale));
+  margin-left: calc(var(--vt-xp-wpn-u) / 2 * 1px * var(--vt-xp-scale));
+  padding: 0 calc(5px * var(--vt-xp-scale)) 0 calc((var(--vt-xp-wpn-u) / 2 + 4) * 1px * var(--vt-xp-scale));
+  border-radius: calc(var(--vt-xp-wpn-u) / 2 * 1px * var(--vt-xp-scale));
   background: color-mix(in srgb, var(--kb-bg-body) 62%, transparent);
   color: var(--vt-xp-hud-text);
-  font-size: calc(9px * var(--vt-xp-scale));
+  font-size: calc(var(--vt-xp-wpn-font) * 1px * var(--vt-xp-scale));
   line-height: 1;
   opacity: 0.92;
 }
@@ -115,13 +138,14 @@
 
 .vt-xp-wpn-badge {
   position: absolute;
-  left: calc(-8px * var(--vt-xp-scale));
-  top: calc(-1px * var(--vt-xp-scale));
+  left: calc(var(--vt-xp-wpn-u) / -2 * 1px * var(--vt-xp-scale));
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(18px * var(--vt-xp-scale));
-  height: calc(18px * var(--vt-xp-scale));
+  width: calc((var(--vt-xp-wpn-u) + 2) * 1px * var(--vt-xp-scale));
+  height: calc((var(--vt-xp-wpn-u) + 2) * 1px * var(--vt-xp-scale));
   border-radius: 50%;
   background: color-mix(in srgb, var(--kb-bg-body) 85%, transparent);
   border: 1px solid color-mix(in srgb, var(--vt-xp-hud-text) 45%, transparent);
@@ -132,8 +156,8 @@
 }
 
 .vt-xp-wpn-badge img {
-  width: calc(13px * var(--vt-xp-scale));
-  height: calc(13px * var(--vt-xp-scale));
+  width: calc((var(--vt-xp-wpn-u) - 3) * 1px * var(--vt-xp-scale));
+  height: calc((var(--vt-xp-wpn-u) - 3) * 1px * var(--vt-xp-scale));
   object-fit: contain;
 }
 
@@ -145,12 +169,12 @@
 }
 
 .vt-xp-wpn-shots {
-  min-width: calc(26px * var(--vt-xp-scale));
+  min-width: calc(var(--vt-xp-wpn-font) * 26 / 9 * 1px * var(--vt-xp-scale));
   text-align: right;
   font-family: var(--vt-font-mono, ui-monospace, monospace);
   font-variant-numeric: tabular-nums;
 }
 
 .vt-xp-wpn.is-empty .vt-xp-wpn-shots {
-  font-size: calc(11px * var(--vt-xp-scale));
+  font-size: calc((var(--vt-xp-wpn-font) + 2) * 1px * var(--vt-xp-scale));
 }

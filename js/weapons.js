@@ -1348,12 +1348,14 @@
             value = 'never<div class="vt-wpn-stat-sub">' + esc(lock.signature) + ' 0 never locks</div>';
         } else {
             value = esc(num(lock.seconds, 2, 's'));
-            if (lock.signature) {
-                value += '<div class="vt-wpn-stat-sub">' + esc(fmt(lock.base) + ' s / ' + lock.signature + ' '
-                    + fmt(lock.signatureValue) + (tg ? '' : ' (no target)') + ' = ' + fmt(lock.seconds) + ' s') + '</div>';
-            }
+            const turns = lock.turns + ' game turns';
+            value += '<div class="vt-wpn-stat-sub">' + esc(lock.signature
+                ? fmt(lock.base) + ' s / ' + lock.signature + ' ' + fmt(lock.signatureValue) + (tg ? '' : ' (no target)')
+                    + ' = ' + fmt(lock.continuous) + ' s; ' + turns
+                : turns) + '</div>';
         }
-        rows.push(statRow('Lock-on', value, (v.name || 'This launcher') + ' needs this long inside its cone and range before a release is guided', { lead: true }));
+        rows.push(statRow('Lock-on', value, (v.name || 'This launcher') + ' needs this long from the press to its first guided shot.'
+            + ' The game locks in 20 Hz turns: the first only picks the target, a stage needs strictly more than its share of lockDelay, and the missile leaves on the turn after the lock.', { lead: true }));
         if (lock.coneAngle != null) {
             rows.push(statRow('Lock cone', fmt(lock.coneAngle, 3) + ' rad (' + fmt(lock.coneAngle * 180 / Math.PI, 1) + '\u00b0)',
                 'LauncherClass coneAngle: the target has to stay inside it while the lock builds'));
@@ -1411,7 +1413,9 @@
                 ? esc(ttkText) + ' <span class="badge rounded-pill text-bg-warning-muted vt-wpn-est">est.</span>'
                 : ttkText, ex.ttk, {
                 lead: true,
-                labelTip: r.ttk.lockSec != null ? 'Includes one lock before the first shot and between shots.' : null,
+                labelTip: r.ttk.lockSec != null
+                    ? 'Includes one lock, and ' + fmt(r.ttk.releaseSec) + ' s to let go once it turns red, before the first shot and between shots.'
+                    : null,
             }));
             if (r.ttk.shotsToKill != null) {
                 damageRows.push(statRow('Shots to kill', num(r.ttk.shotsToKill, 0), ex.shotsToKill, {

@@ -646,6 +646,60 @@ function lockSignatureOf(chain, id) {
     return null;
 }
 
+/* LauncherClass lock, one 20 Hz game turn at a time, in float32 like the
+ * engine. The first held turn on a new candidate only picks it (0x0061E26E).
+ * Each later turn adds f32(signature x dt) (ImageLauncher 0x0061CB4A; the
+ * base class adds dt, 0x0061E173), and a stage completes while the total is
+ * strictly above lockDelay / targetCount (0x0061E2B5), the rest carrying
+ * over, so one turn can finish several. The lock holds after
+ * targetCount - 1 stages (0x0061E31A). A targetCount of 0 or 1 reads as one
+ * stage of lockDelay (the engine's own handling of it is unread). */
+const LOCK_TURNS_PER_SEC = 20;
+const LOCK_TURN_SEC = 1 / LOCK_TURNS_PER_SEC;
+const LOCK_TURNS_SIM = 4096;     // longer locks use the closed form; float32 only moves a boundary turn
+
+function lockSpec(lockDelay, targetCount) {
+    const tc = Math.round(Number(targetCount) || 0);
+    const delay = Math.max(0, Number(lockDelay) || 0);
+    return tc > 1
+        ? { interval: Math.fround(delay / tc), need: tc - 1 }
+        : { interval: Math.fround(delay), need: 1 };
+}
+
+/* One held turn. state = { acquired, acc, stage }; true once locked. */
+function lockTurnStep(state, spec, signature) {
+    if (!state.acquired) {
+        state.acquired = true;
+        state.acc = 0;
+        state.stage = 0;
+        return false;
+    }
+    const add = Math.fround(Math.fround(signature) * Math.fround(LOCK_TURN_SEC));
+    state.acc = Math.fround(state.acc + add);
+    while (state.stage < spec.need && state.acc > spec.interval) {
+        state.acc = Math.fround(state.acc - spec.interval);
+        state.stage += 1;
+    }
+    return state.stage >= spec.need;
+}
+
+/* Held turns until the lock completes. The missile leaves on the next turn,
+ * a trigger-up one, so `seconds` (turns x dt) is press to earliest shot.
+ * Signature 0 never locks. */
+function lockTurns(lockDelay, targetCount, signature) {
+    const sig = Number(signature);
+    if (!(sig > 0)) return { turns: Infinity, seconds: Infinity, never: true };
+    const spec = lockSpec(lockDelay, targetCount);
+    const steps = spec.need * spec.interval / (sig * LOCK_TURN_SEC);
+    let turns = 2 + Math.floor(steps);
+    if (steps < LOCK_TURNS_SIM) {
+        const state = { acquired: false, acc: 0, stage: 0 };
+        turns = 1;
+        while (!lockTurnStep(state, spec, sig)) turns += 1;
+    }
+    return { turns, seconds: turns / LOCK_TURNS_PER_SEC, never: false };
+}
+
 /* TargetingGunClass.leaderName as { shotSpeed, lifeSpan, ammoCost, stickTime },
  * read from the Ordnance bucket so a caller without the whole db still gets
  * the leader's reach. */
@@ -936,4 +990,5 @@ export {
     classifyId, buildProfile, collectRefs, profileAssets, ordnanceOf, ordnanceEntry, explosionEntry,
     damageValues, shieldEffectFor, ordTerminalOf, mergeCrossRefs,
     WEAPON_DEFAULTS, WEAPON_PARENT, ORD_DEFAULTS, ORD_PARENT, ARC_HITS_PER_SEC,
+    LOCK_TURN_SEC, lockSpec, lockTurnStep, lockTurns,
 };

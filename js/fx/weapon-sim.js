@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { SIM_GRAVITY, tableRand } from './odf-fx.js';
 import {
     ordnanceOf, ordnanceEntry, explosionEntry, damageValues, num, stemOf, ordTerminalOf, buildProfile,
+    lockSpec, lockTurnStep,
 } from './weapon-profile.js';
 import { decide, pullCooldown, mdmDetonates, TURN_SEC, TAG_RETAG_AFTER } from '../weapons-weave.js';
 
@@ -339,7 +340,7 @@ export function createRangeSim(opts) {
     let profile = null;
     let simClock = 0;
     // Weapon-switch mode: { slots: [{ key, stem, profile, desc, cooldown, barrel }],
-    // switchSec, closing, current, freeAt, firingKey, next }, or null.
+    // switchSec, closing, current, freeAt, firingKey, next, locking, held }, or null.
     let weave = null;
     let reachGate = null;     // one weapon while Closing: Fire holds beyond this many metres
     let db = null;
@@ -353,7 +354,12 @@ export function createRangeSim(opts) {
     let salvoTimer = 0;
     let salvoExtra = null;
     let barrel = 0;
-    let lock = 0;
+    let lock = 0;             // lock progress 0..1 at the last game turn; 1 once locked
+    let lockPrev = 0;         // progress one turn earlier: the ring blends from it to `lock`
+    let lockState = null;     // lockTurnStep() accumulator of the lock being built, null before its first turn
+    let lockClock = 0;        // held seconds not yet counted as a game turn
+    let launchAt = 0;         // LauncherClass: sim time of the release turn after the lock completed
+    let pendingLaunch = false; // LauncherClass released locked before its reload ended: leaves when it does
     let locks = 0;
     let lockInCone = false;   // target was inside lockRange + coneAngle this step
     let lockMiss = '';        // why a held lock is not filling: 'range' | 'cone' | 'signature' | ''
@@ -449,6 +455,7 @@ export function createRangeSim(opts) {
         toggled = false;
         jetLeft = 0;
         cooldown = 0;
+        pendingLaunch = false;
         salvoLeft = 0;
         salvoTimer = 0;
         salvoExtra = null;
@@ -467,10 +474,19 @@ export function createRangeSim(opts) {
         tagMissed.clear();
         tagFreeAt.clear();
         if (weave) {
-            weave.slots.forEach((s) => { s.cooldown = 0; s.barrel = 0; });
+            weave.slots.forEach((s) => {
+                s.cooldown = 0;
+                s.barrel = 0;
+                s.lockArmed = false;
+                s.lockFrom = 0;
+                s.launchAt = 0;
+                s.releaseTurn = null;
+            });
             weave.current = -1;
             weave.freeAt = simClock;
             weave.next = -1;
+            weave.locking = -1;
+            weave.held = -1;
         }
     }
 
@@ -505,10 +521,11 @@ export function createRangeSim(opts) {
      * and the ammo tank, and decide() (js/weapons-weave.js) picks the group
      * for each pull. cfg = { slots: [{ key, stem, profile, desc }] in the
      * user's order, switchSec, closing: { speed, stop } | null }. Rounds in
-     * flight and the cooldown of every group that stays survive a change of
-     * the set. A remote detonator's armed shells burst when their group
-     * leaves it or mounts another weapon. Entering the mode bursts them too,
-     * then clears the engagement like a weapon swap. */
+     * flight, the cooldown of every group that stays and a launcher's armed
+     * or held-locked shot survive a change of the set; a lock still being
+     * built does not. A remote detonator's armed shells burst when their
+     * group leaves it or mounts another weapon. Entering the mode bursts them
+     * too, then clears the engagement like a weapon swap. */
     function setWeave(cfg, database, ammoState, keepAmmo) {
         db = database || db;
         reachGate = null;
@@ -516,12 +533,22 @@ export function createRangeSim(opts) {
         if (!prev) {
             detonateArmed();
             clearTrigger();
+        } else {
+            dropWeaveLock();
+            releaseHeld();
         }
         const kept = new Set();
         const slots = ((cfg && cfg.slots) || []).filter((c) => c && c.profile && c.desc).map((c) => {
             const old = prev && prev.slots.find((s) => s.key === c.key && s.stem === c.stem);
             if (old) kept.add(c.key);
-            return { key: c.key, stem: c.stem, profile: c.profile, desc: c.desc, cooldown: old ? old.cooldown : 0, barrel: old ? old.barrel : 0 };
+            return {
+                key: c.key, stem: c.stem, profile: c.profile, desc: c.desc,
+                cooldown: old ? old.cooldown : 0,
+                barrel: old ? old.barrel : 0,
+                lockArmed: old ? !!old.lockArmed : false,
+                lockFrom: old ? old.lockFrom || 0 : 0,
+                launchAt: old ? old.launchAt || 0 : 0,
+            };
         });
         if (prev) detonateArmed((shot) => !kept.has(shot.slotKey));
         const currentKey = prev && prev.current >= 0 && prev.slots[prev.current] ? prev.slots[prev.current].key : null;
@@ -533,6 +560,8 @@ export function createRangeSim(opts) {
             freeAt: prev ? prev.freeAt : simClock,
             firingKey: prev && slots.some((s) => s.key === prev.firingKey) ? prev.firingKey : null,
             next: -1,
+            locking: -1,
+            held: -1,
         };
         // A salvo from a group that left the set stops.
         if (salvoLeft > 0 && !weave.firingKey) {
@@ -859,7 +888,7 @@ export function createRangeSim(opts) {
         if (profile.looping) holdFireLoop(sound, list.length);
         else {
             // Another weapon took the trigger: a machine gun's loop ends here.
-            stopFireLoop();
+            if (!(extra && extra.keepLoop)) stopFireLoop();
             playReport(sound, firstMuzzle.position, profile, !!profile.replaceFireSound);
         }
         // One wash per volley, not per barrel. CannonClass.raveFlash only.
@@ -1266,6 +1295,13 @@ export function createRangeSim(opts) {
         }
         if (id === 'shield') return;
         holding = true;
+        if (id === 'launcher' && pendingLaunch) {
+            // Holding again stops the armed shot; trigger-up keeps a completed
+            // lock (0x0061E5E2), so the next release fires it.
+            pendingLaunch = false;
+            lock = 1;
+            return;
+        }
         if (id === 'launcher' || id === 'multilock') {
             lockSound = audio.play(profile.lockingSound, { loop: true, channel: 'lock' });
             return;
@@ -1440,12 +1476,29 @@ export function createRangeSim(opts) {
     }
 
     /* Weapon-switch trigger: the next pull per decide(), fired only once its
-     * time has come. The player is busy until a salvo's last round. */
+     * time has come. The player is busy until a salvo's last round, or until
+     * a launcher's lock is let go. A completed lock stays held (red ring) until
+     * it launches, or until another pull is due, which lets the trigger up
+     * and leaves the shot armed. */
     function weaveStep() {
-        if (!weave || !holding || salvoLeft > 0 || !weave.slots.length) return;
+        if (!weave || !holding || salvoLeft > 0 || !weave.slots.length || weave.locking >= 0) return;
         const now = simClock;
+        const dec = weaveDecide(now);
+        weave.next = dec ? dec.index : -1;
+        if (!dec || dec.at > now + 1e-6) return;
+        releaseHeld();
+        if (weave.slots[dec.index].desc.lock) {
+            startLock(dec.index, now);
+            return;
+        }
+        fireSlot(dec.index, now);
+        const after = weaveDecide(now);
+        weave.next = after ? after.index : -1;
+    }
+
+    function weaveDecide(now) {
         const dist = getDistance ? getDistance() : targetDistance();
-        const dec = decide({
+        return decide({
             now,
             freeAt: weave.freeAt,
             current: weave.current,
@@ -1459,15 +1512,103 @@ export function createRangeSim(opts) {
                 speed: weave.closing ? weave.closing.speed : 0,
                 stop: weave.closing ? weave.closing.stop : 0,
             },
-            weapons: weave.slots.map((s) => ({
+            weapons: weave.slots.map((s, i) => ({
                 desc: s.desc,
                 // A TAG slot is ready when one of its hardpoints can tag again.
                 readyAt: now + Math.max(0, s.cooldown, s.desc.tag ? tagWait(s) : 0),
                 armed: s.desc.cap ? armedFor(s.key) : 0,
+                // A launcher's next lock starts a turn after its pending shot.
+                lockFrom: s.lockArmed || weave.held === i
+                    ? Math.max(now + Math.max(0, s.cooldown), s.launchAt || 0) + TURN_SEC
+                    : s.lockFrom,
             })),
         });
-        weave.next = dec ? dec.index : -1;
-        if (dec && dec.at <= now + 1e-6) fireSlot(dec.index, now);
+    }
+
+    /* A launcher slot takes the trigger and holds it to lock; update() builds
+     * the lock and holdLocked() keeps it until the pilot lets go. */
+    function startLock(i, now) {
+        const s = weave.slots[i];
+        const left = weave.current >= 0 && weave.current !== i ? weave.slots[weave.current] : null;
+        if (left) detonateArmed((shot) => shot.slotKey === left.key);
+        stopFireLoop();
+        profile = s.profile;
+        weave.firingKey = s.key;
+        weave.current = i;
+        weave.locking = i;
+        resetLock();
+        if (lockSound) lockSound.stop();
+        lockSound = audio.play(profile.lockingSound, { loop: true, channel: 'lock' });
+        onEvent('weave-lock', { key: s.key, stem: s.stem, t: now });
+    }
+
+    /* The lock completed: the trigger stays down on it, red, for the pilot's
+     * release (desc.lock.release) past the engine's release turn, and until
+     * the reload; update() fires it then. The player is free once it is let
+     * go. `releaseTurn` is the engine's turn, for a Fire released sooner. */
+    function holdLocked() {
+        const s = weave.slots[weave.locking];
+        s.releaseTurn = launchAt;
+        s.launchAt = launchAt + (s.desc.lock && s.desc.lock.release > 0 ? s.desc.lock.release : 0);
+        weave.held = weave.locking;
+        weave.locking = -1;
+        weave.freeAt = s.launchAt;
+    }
+
+    /* The held lock lets the trigger up before its shot (another pull is due,
+     * Fire released, or the set changed): the slot is armed and leaves on
+     * its own once reloaded, whichever weapon is selected (fireArmed). */
+    function releaseHeld() {
+        if (!weave || weave.held < 0) return;
+        weave.slots[weave.held].lockArmed = true;
+        weave.held = -1;
+        resetLock();
+    }
+
+    /* A lock being held stops: Fire released, the target out of lock range
+     * or unseen by the seeker, or the set changed. */
+    function dropWeaveLock() {
+        if (!weave || weave.locking < 0) return;
+        weave.locking = -1;
+        weave.freeAt = simClock;
+        resetLock();
+        if (lockSound) lockSound.stop();
+        lockSound = null;
+    }
+
+    /* An armed or held launcher slot fires on the first trigger-up turn after
+     * its reload and its lock's release turn, whichever weapon is selected
+     * (0x0061EB23), through its own profile, muzzles and barrel; the selected
+     * weapon is left as it was. */
+    function fireArmed(i) {
+        const s = weave.slots[i];
+        if (weave.held === i) {
+            weave.held = -1;
+            s.lockArmed = true;
+            resetLock();
+        }
+        const target = getTarget();
+        if (!target || !target.alive) {
+            s.lockArmed = false;
+            return;
+        }
+        const keep = { profile, key: weave.firingKey, barrel, cooldown };
+        profile = s.profile;
+        weave.firingKey = s.key;
+        barrel = s.barrel;
+        cooldown = 0;
+        const fired = fireLocked(true);
+        s.barrel = barrel;
+        if (fired) {
+            s.cooldown = cooldown;
+            s.lockArmed = false;
+            s.lockFrom = simClock + TURN_SEC;
+        }
+        profile = keep.profile;
+        weave.firingKey = keep.key;
+        barrel = keep.barrel;
+        cooldown = keep.cooldown;
+        if (fired) onEvent('weave-fire', { key: s.key, stem: s.stem, t: simClock });
     }
 
     function fireSlot(i, now) {
@@ -1495,10 +1636,76 @@ export function createRangeSim(opts) {
         return Math.hypot(t.position.x - m.x, t.position.z - m.z);
     }
 
-    /* LauncherClass release: one volley from the grouped hardpoints. */
-    function fireLocked() {
+    /* LauncherClass shot: one volley from the grouped hardpoints, then the
+     * reload (fire timer -= shotDelay, 0x0061EB09). `auto`: an armed weave
+     * slot firing while another weapon holds the trigger, whose loop plays on. */
+    function fireLocked(auto) {
         const ordv = profile.ord;
-        fireMuzzles(ordv, { homing: true, homingDelay: ordv.delayTime || 0, omega: ordv.omegaTurn });
+        const hardpoints = muzzles().length;
+        const extra = { homing: true, homingDelay: ordv.delayTime || 0, omega: ordv.omegaTurn, keepLoop: !!auto };
+        if (!fireMuzzles(ordv, extra)) return false;
+        cooldown = pullCooldown(profile.shotDelay, profile.shotAlternate, hardpoints);
+        return true;
+    }
+
+    /* One held frame of a lock inside the cone, counted in whole 20 Hz game
+     * turns by lockTurnStep() (js/fx/weapon-profile.js). The first turn only
+     * picks the target; `pickNow` (LauncherClass) makes the press frame that
+     * turn, so a lock of n turns completes on turn n − 1 after the press and
+     * `launchAt` is the release turn after it: the engine's earliest shot.
+     * True on the frame it completes. */
+    function advanceLock(dt, sig, pickNow) {
+        if (!(profile.lockDelay > 0)) {
+            lock = 1;
+            lockPrev = 1;
+            launchAt = simClock;
+            return true;
+        }
+        const spec = lockSpec(profile.lockDelay, profile.lockStages);
+        if (!lockState) {
+            lockState = { acquired: false, acc: 0, stage: 0 };
+            lockClock = 0;
+            lock = 0;
+            lockPrev = 0;
+            if (pickNow) lockTurnStep(lockState, spec, sig);
+        }
+        lockClock += dt;
+        while (lockClock >= TURN_SEC - 1e-9) {
+            lockClock -= TURN_SEC;
+            lockPrev = lockProgress(spec);
+            if (lockTurnStep(lockState, spec, sig)) {
+                launchAt = simClock - Math.max(0, lockClock) + TURN_SEC;
+                lockState = null;
+                lockClock = 0;
+                lock = 1;
+                lockPrev = 1;
+                return true;
+            }
+        }
+        lock = lockProgress(spec);
+        return false;
+    }
+
+    // HUD progress of the lock being built (0061E2B5): whole stages plus the
+    // carry, over the stages a lock needs.
+    function lockProgress(spec) {
+        if (!lockState || !lockState.acquired) return 0;
+        return Math.min(0.999, (lockState.stage + Math.min(1, lockState.acc / spec.interval)) / spec.need);
+    }
+
+    // The ring between turns, as the renderer blends the last two queued
+    // values by the sub-turn fraction (005C43AA).
+    function lockShown() {
+        if (!lockState) return lock;
+        const f = Math.max(0, Math.min(1, lockClock / TURN_SEC));
+        return lockPrev + (lock - lockPrev) * f;
+    }
+
+    function resetLock() {
+        lock = 0;
+        lockPrev = 0;
+        lockState = null;
+        lockClock = 0;
     }
 
     /* MultiLauncherClass release: one missile per lock, each its own launcher
@@ -1517,12 +1724,28 @@ export function createRangeSim(opts) {
 
     function pointerUp() {
         if (weave) {
+            // A lock being built is lost; a completed one is armed and still
+            // fires once reloaded, a released trigger being trigger-up for
+            // every weapon. Let go during the pilot's release, it leaves on
+            // the engine's turn.
+            dropWeaveLock();
+            if (weave.held >= 0) {
+                const s = weave.slots[weave.held];
+                if (s.releaseTurn != null) s.launchAt = Math.min(s.launchAt, Math.max(s.releaseTurn, simClock));
+            }
+            releaseHeld();
             releaseHold();
             return;
         }
         if (!profile) return;
         const id = profile.id;
-        if (id === 'launcher' && holding && lock >= 1) fireLocked();
+        if (id === 'launcher' && holding && lock >= 1) {
+            // Released before the reload ends, or on the turn the lock
+            // completed, the shot stays armed and leaves on the first
+            // trigger-up turn after both (0x0061EB23).
+            if (cooldown > 0 || simClock + 1e-6 < launchAt) pendingLaunch = true;
+            else fireLocked();
+        }
         if (id === 'multilock' && holding && locks > 0) releaseLocked(locks);
         if (id === 'charge' && holding) {
             // Release fires the highest stage whose shotDelayN the hold has
@@ -1551,7 +1774,7 @@ export function createRangeSim(opts) {
 
     function releaseHold() {
         holding = false;
-        lock = 0;
+        resetLock();
         locks = 0;
         lockInCone = false;
         lockMiss = '';
@@ -1966,7 +2189,8 @@ export function createRangeSim(opts) {
         const id = profile.id;
         lockInCone = false;
         lockMiss = '';
-        if (holding && (id === 'launcher' || id === 'multilock')) {
+        // In the weapon switch only the slot holding its lock builds one.
+        if (holding && (id === 'launcher' || id === 'multilock') && (!weave || weave.locking >= 0)) {
             const muzzle = muzzles()[0];
             const target = getTarget();
             let inCone = false;
@@ -1975,46 +2199,63 @@ export function createRangeSim(opts) {
                 const dist = to.length();
                 to.normalize();
                 const ang = Math.acos(Math.max(-1, Math.min(1, to.dot(muzzle.forward.clone().normalize()))));
-                inCone = dist <= profile.lockRange && ang <= profile.coneAngle;
-                if (!inCone) lockMiss = dist > profile.lockRange ? 'range' : 'cone';
+                // The switch tests lock range on decide()'s distance and reach,
+                // so a lock it starts is never dropped for a range it allowed.
+                const weaveReach = weave && weave.locking >= 0 && getDistance ? weave.slots[weave.locking].desc.reach : null;
+                const inRange = weaveReach != null ? getDistance() <= weaveReach + 1e-6 : dist <= profile.lockRange;
+                inCone = inRange && ang <= profile.coneAngle;
+                if (!inCone) lockMiss = inRange ? 'cone' : 'range';
             }
             lockInCone = inCone;
             if (inCone) {
-                // Launcher ctor: stageTime = lockDelay / targetCount, and the
-                // lock completes after (targetCount - 1) stages (0061E6CD).
-                // Image / radar / thermal launchers scale each step by the
-                // target's signature (vtable +0x16C); 0 never completes.
-                const stages = profile.lockStages > 1 ? profile.lockStages : 0;
-                const acquire = profile.lockDelay > 0
-                    ? (stages > 1 ? profile.lockDelay * (stages - 1) / stages : profile.lockDelay)
-                    : 0;
+                // Stages of lockDelay / targetCount, locked after
+                // targetCount - 1 of them (0x0061E2B5, 0x0061E31A); image /
+                // radar / thermal seekers add signature x dt per turn (vtable
+                // +0x16C), and signature 0 never completes. A Multi-Lock
+                // builds each of its locks the same way, from a fresh pick.
                 const sig = lockSignatureScale(profile, target);
-                const wasLocked = lock >= 1;
-                if (sig > 0) lock = acquire > 0 ? lock + (stepDt * sig) / acquire : 1;
-                else lockMiss = 'signature';
-                if (lock >= 1) {
-                    if (id === 'multilock' && locks < profile.lockCount) {
+                if (!(sig > 0)) {
+                    lockMiss = 'signature';
+                    resetLock();
+                } else if (id === 'multilock') {
+                    if (locks < profile.lockCount && advanceLock(stepDt, sig, false)) {
                         locks += 1;
                         lock = 0;
+                        lockPrev = 0;
                         playLockTone(profile.lockedSound);
                         if (locks >= profile.lockCount && lockSound) { lockSound.stop(); lockSound = null; }
-                    } else if (id === 'launcher') {
-                        if (!wasLocked) playLockTone(profile.lockedSound);
-                        lock = 1;
-                        if (lockSound) { lockSound.stop(); lockSound = null; }
-                    } else lock = 1;
+                    }
+                } else if (lock < 1 && advanceLock(stepDt, sig, true)) {
+                    playLockTone(profile.lockedSound);
+                    if (lockSound) { lockSound.stop(); lockSound = null; }
+                    if (weave) holdLocked();
                 }
             } else if (id === 'multilock' && locks && target) {
                 const to = target.position.clone().sub(muzzle.position).normalize();
                 const ang = Math.acos(Math.max(-1, Math.min(1, to.dot(muzzle.forward.clone().normalize()))));
-                if (ang > profile.loseAngle) { locks = 0; lock = 0; }
+                resetLock();
+                if (ang > profile.loseAngle) locks = 0;
             } else {
                 // Outside the cone or lockRange the per-frame pick (vtable
                 // +0x168, 0x0061E1DE) finds no target. That differs from the
                 // held one, so the launcher zeroes its accumulator and stage
                 // (0x0061E26E): the lock restarts, it does not drain.
-                lock = 0;
+                resetLock();
             }
+            // The switch gives up a lock it cannot finish and moves on;
+            // decide() keeps the launcher out until the target is back in range.
+            if (weave && (lockMiss === 'range' || lockMiss === 'signature')) dropWeaveLock();
+        }
+        if (weave) {
+            weave.slots.forEach((s, i) => {
+                const pending = s.lockArmed || weave.held === i;
+                if (pending && s.cooldown <= 0 && simClock + 1e-6 >= (s.launchAt || 0)) fireArmed(i);
+            });
+        }
+        if (pendingLaunch && !holding && id === 'launcher' && cooldown <= 0 && simClock + 1e-6 >= launchAt) {
+            pendingLaunch = false;
+            const target = getTarget();
+            if (target && target.alive) fireLocked();
         }
 
         if (holding && id === 'charge' && salvoLeft <= 0) {
@@ -2188,33 +2429,83 @@ export function createRangeSim(opts) {
         return profile.reticle;
     }
 
-    /* Screen-space lock circles. 0061E41B draws one on the current target,
-     * radius 128 - 112*progress while locking and 16 once locked; the flush
-     * (005C42C4) projects the target and strokes a 32-segment circle.
-     * MultiLauncher (006214F4) adds one circle per completed lock, radius
-     * 16 + 3*k with k the 1-based count of locks on that same target.
-     * Colours are the D3DCOLOR globals those draws pass: 0xFFFFFF00 yellow
-     * while locking, 0xFFFF0000 red once locked. */
+    /* Screen-space lock circles, drawn only while the trigger is held.
+     * 0061E41B draws one on the current target: radius 128 - 112*progress
+     * and alpha = progress while locking, 16 px opaque once locked. The flush
+     * (005C42C4) projects the target, blends the last two turns' radius and
+     * colour by the sub-turn fraction (lockShown) and strokes a 32-segment
+     * circle. MultiLauncher (006214F4) adds one circle per completed lock,
+     * radius 16 + 3*k with k the 1-based count of locks on that same target.
+     * Colours are the D3DCOLOR globals those draws pass: yellow while
+     * locking, 0xFFFF0000 red once locked. */
     function lockMarkers() {
         const id = profile.id;
         if (id !== 'launcher' && id !== 'multilock') return [];
         const out = [];
         if (id === 'multilock') {
             for (let k = 1; k <= locks; k++) {
-                out.push({ radius: lockStackRadius(k), color: LOCK_COLOR_LOCKED, locked: true });
+                out.push({ radius: lockStackRadius(k), color: LOCK_COLOR_LOCKED, alpha: 1, locked: true });
             }
         }
-        const live = holding && (lockInCone || lock > 0);
-        if (live && !(id === 'multilock' && locks >= profile.lockCount)) {
-            const locked = id !== 'multilock' && lock >= 1;
-            const p = Math.max(0, Math.min(1, lock));
-            out.push({
-                radius: lockCircleRadius(p, locked),
-                color: locked ? LOCK_COLOR_LOCKED : LOCK_COLOR_LOCKING,
-                locked,
-            });
+        if (!holding) return out;
+        if (id === 'launcher' && lock >= 1) {
+            out.push({ radius: lockCircleRadius(1, true), color: LOCK_COLOR_LOCKED, alpha: 1, locked: true });
+            return out;
+        }
+        const building = id === 'multilock'
+            ? (lockInCone || lockState) && locks < profile.lockCount
+            : lockState && lockState.acquired;
+        if (building) {
+            const p = Math.max(0, Math.min(1, lockShown()));
+            out.push({ radius: lockCircleRadius(p, false), color: LOCK_COLOR_LOCKING, alpha: p, locked: false });
         }
         return out;
+    }
+
+    // Seconds until a completed lock's shot can leave: its reload and the
+    // release turn after the lock.
+    function launchWait(reload, at) {
+        return Math.max(0, reload || 0, (at || 0) - simClock);
+    }
+
+    // A countdown in tenths, rounded up so it never reads 0.0 before the shot.
+    function waitText(wait) {
+        return (Math.ceil(wait * 10 - 1e-6) / 10).toFixed(1) + ' s';
+    }
+
+    function lockBarText(wait) {
+        return wait > 0.005 ? 'Locked · ' + waitText(wait) : 'Locked';
+    }
+
+    /* Lock bar on the target card: the lock being built, then full and red
+     * from the turn it completes until its shot leaves. Null hides it. */
+    function lockBar() {
+        const id = profile.id;
+        if (id === 'multilock') {
+            if (!holding) return null;
+            const count = Math.max(1, profile.lockCount || 1);
+            const frac = locks >= count ? 1 : (locks + Math.min(1, lockShown())) / count;
+            return { frac, locked: locks > 0, text: locks + ' / ' + count };
+        }
+        if (id !== 'launcher') return null;
+        if (holding) {
+            if (lock >= 1) return { frac: 1, locked: true, text: lockBarText(launchWait(cooldown, launchAt)) };
+            const p = lockShown();
+            return { frac: p, locked: false, text: Math.round(p * 100) + '%' };
+        }
+        if (pendingLaunch) return { frac: 1, locked: true, text: lockBarText(launchWait(cooldown, launchAt)) };
+        return null;
+    }
+
+    function weaveLockBar(locking, held, loaded) {
+        if (locking && holding) {
+            const p = lockShown();
+            return { frac: p, locked: false, text: Math.round(p * 100) + '%' };
+        }
+        if (held) return { frac: 1, locked: true, text: lockBarText(launchWait(held.cooldown, held.launchAt)) };
+        if (!loaded.length) return null;
+        const wait = Math.min(...loaded.map((s) => launchWait(s.cooldown, s.launchAt)));
+        return { frac: 1, locked: true, text: lockBarText(wait) };
     }
 
     function readHud() {
@@ -2231,8 +2522,12 @@ export function createRangeSim(opts) {
                 hint = 'Locks ' + locks + ' / ' + profile.lockCount
                     + (miss && locks < profile.lockCount ? ' · ' + miss : ' — release to fire');
             } else {
-                hint = lock >= 1 ? 'Locked — release to fire' : (miss || 'Locking ' + Math.round(lock * 100) + '%');
+                hint = lock >= 1 ? 'Locked — release to fire' : (miss || 'Locking ' + Math.round(lockShown() * 100) + '%');
             }
+        } else if (id === 'launcher' && pendingLaunch) {
+            const frames = profile.stageFrames || [];
+            frame = frames.length > 1 ? frames[frames.length - 1] : profile.reticle;
+            hint = 'Locked — launches when reloaded (' + waitText(launchWait(cooldown, launchAt)) + ')';
         } else if (id === 'charge' && holding) {
             const levels = profile.charge;
             const n = levels.length || 1;
@@ -2280,14 +2575,42 @@ export function createRangeSim(opts) {
         else if (AUTOFIRE.has(id)) hint = 'Hold to fire';
         if (!weave && holding && outOfReach()) hint = 'Closing · fires inside ' + Math.round(reachGate) + ' m';
         let weaveHud = null;
+        let bar = lockBar();
         if (weave) {
             const next = weave.next >= 0 ? weave.slots[weave.next] : null;
             const current = weave.current >= 0 ? weave.slots[weave.current] : null;
-            weaveHud = { current: current ? current.key : null, next: next ? next.key : null };
-            hint = holding
-                ? 'Switching' + (next ? ' · next ' + next.profile.name : '')
-                : 'Hold Fire to switch between ' + weave.slots.map((s) => s.profile.name).join(' + ');
+            const locking = weave.locking >= 0 ? weave.slots[weave.locking] : null;
+            const held = weave.held >= 0 ? weave.slots[weave.held] : null;
+            const loaded = weave.slots.filter((s) => s.lockArmed);
+            weaveHud = {
+                current: current ? current.key : null,
+                next: next ? next.key : null,
+                locking: locking ? locking.key : null,
+                held: held ? held.key : null,
+                lockArmed: loaded.map((s) => s.key),
+            };
+            if (locking && holding) {
+                const miss = lockMiss === 'cone' ? 'outside the lock cone (' + Number((Number(profile.coneAngle) || 0).toFixed(3)) + ' rad)' : '';
+                hint = 'Locking ' + locking.profile.name + ' ' + (miss || Math.round(lockShown() * 100) + '%');
+            } else if (held && holding) {
+                const wait = launchWait(held.cooldown, held.launchAt);
+                hint = held.profile.name + ' locked · releases ' + (wait > 0.005 ? 'in ' + waitText(wait) : 'now');
+            } else {
+                hint = !holding
+                    ? 'Hold Fire to switch between ' + weave.slots.map((s) => s.profile.name).join(' + ')
+                    : next && next === current ? 'Reloading ' + next.profile.name
+                        : 'Switching' + (next ? ' · next ' + next.profile.name : '');
+                if (current && current.lockArmed && current.profile === profile) {
+                    const frames = profile.stageFrames || [];
+                    if (frames.length > 1) frame = frames[frames.length - 1];
+                }
+            }
+            loaded.forEach((s) => {
+                const wait = launchWait(s.cooldown, s.launchAt);
+                hint += ' · ' + s.profile.name + ' locked, launches ' + (wait > 0.005 ? 'in ' + waitText(wait) : 'now');
+            });
             if (armed.length) hint += ' · ' + armed.length + ' MDM armed';
+            bar = weaveLockBar(locking, held, loaded);
         }
         return {
             archetype: id,
@@ -2299,6 +2622,8 @@ export function createRangeSim(opts) {
             ammo,
             maxAmmo,
             lock,
+            lockShown: lockShown(),
+            lockBar: bar,
             locks,
             lockCount: profile.lockCount || 0,
             markers: lockMarkers(),

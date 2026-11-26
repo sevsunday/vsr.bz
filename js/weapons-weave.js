@@ -40,11 +40,10 @@ const PLAN_MAX_STEPS = 60000;
 const PLAN_MAX_PULLS = 4000;
 const PREVIEW_SEC = 8;
 
-export const WEAVE_ARCHETYPES = new Set(['projectile', 'beam', 'mortar', 'missile', 'detonator', 'targeting']);
+export const WEAVE_ARCHETYPES = new Set(['projectile', 'beam', 'mortar', 'missile', 'detonator', 'targeting', 'launcher']);
 const LOBBED = new Set(['mortar', 'detonator']);
 const UTILITY = new Set(['shield', 'blink', 'phantom', 'damper', 'site', 'magnet', 'jetpack']);
 const EXCLUDED = {
-    launcher: 'Lock-on: it holds the trigger through its lockDelay and fires on release.',
     multilock: 'Multi-lock: it holds the trigger to gather locks and fires on release.',
     charge: 'Charge gun: it holds the trigger to charge and fires on release.',
     arc: 'Arc stream: it fires only while the trigger is held.',
@@ -208,6 +207,79 @@ function tagWeapon(out, calc, profile) {
     });
 }
 
+/* LauncherClass, one lock per shot: a pull starts the lock. The trigger is
+ * held for `hold`: the press-to-shot lock in whole game turns, then the
+ * pilot's release after the red ring (VTWeaponsCalc.lockTime). The lock
+ * builds while the launcher reloads. The
+ * missile leaves once the lock is done and the reload has run, even after
+ * the player has switched away: a locked launcher that is not held fires on
+ * its first trigger-up turn with the fire timer above 0 (0x0061EB23). The
+ * shot clears the lock (0x0061EAF4) and the next lock starts a turn later,
+ * so the cycle is max(cooldown, hold + one turn). It ranks by its reload
+ * alone: the lock is player time, which a leader's gaps are for, and a
+ * long lock ranked by the full cycle would lead and shut every filler out
+ * (a Shadower on a signature-0.5 Bomber holds 2.05 s of every 2.1 s). */
+function launcherWeapon(out, calc, profile) {
+    const lock = calc.lock || null;
+    if (lock && lock.never) {
+        out.excluded = 'Its seeker reads ' + lock.signature + 'Signature, which this target has at 0: it never locks.';
+        return out;
+    }
+    const reach = profile.lockRange > 0 ? profile.lockRange : null;
+    if (!(reach > 0)) {
+        out.excluded = 'The ODF gives it no lock range.';
+        return out;
+    }
+    const f = calc.fire;
+    const g = Math.max(1, calc.g || 1);
+    const p = calc.projectile || {};
+    const alternating = !!calc.alternating;
+    const lockSec = lock && lock.seconds > 0 ? lock.seconds : 0;
+    const release = lock && lock.release > 0 ? lock.release : 0;
+    const hold = lockSec + release;
+    const cooldown = pullCooldown(f.shotDelay, f.shotAlternate, g);
+    return Object.assign(out, {
+        perHit: calc.perHit,
+        letter: calc.letter,
+        g,
+        alternating,
+        barrels: alternating ? 1 : g,
+        shotDelay: f.shotDelay,
+        shotVariance: f.shotVariance || 0,
+        salvoCount: 1,
+        salvoDelay: 0,
+        cooldown,
+        busy: hold,
+        cycle: Math.max(cooldown, hold + TURN_SEC),
+        rank: cooldown,
+        calcInterval: calc.shotInterval,
+        ammoPerRound: calc.ammoPerShot > 0 ? calc.ammoPerShot : 0,
+        reach,
+        reachSource: 'lockRange',
+        aiRange: p.aiRange != null ? p.aiRange : null,
+        shotSpeed: p.shotSpeed,
+        hitscan: false,
+        lob: false,
+        shotPitch: 0,
+        gravity: 0,
+        homing: true,
+        pulse: false,
+        cap: 0,
+        burst: null,
+        tier: 'estimated',
+        warnings: (calc.warnings || []).slice(),
+        lock: {
+            hold,
+            seconds: lockSec,
+            release,
+            turns: lock ? lock.turns : 0,
+            signature: lock ? lock.signature : null,
+            signatureValue: lock ? lock.signatureValue : 1,
+            continuous: lock ? lock.continuous : 0,
+        },
+    });
+}
+
 /* One weapon of the switch: o = { key, profile, calc, gravity }. calc is
  * VTWeaponsCalc.weaveInput(); profile is buildProfile() of the same stem. */
 export function weaveWeapon(o) {
@@ -224,6 +296,7 @@ export function weaveWeapon(o) {
     out.excluded = exclusionReason(archetype, calc);
     if (out.excluded) return out;
     if (archetype === 'targeting') return tagWeapon(out, calc, profile);
+    if (archetype === 'launcher') return launcherWeapon(out, calc, profile);
     const f = calc.fire;
     const g = Math.max(1, calc.g || 1);
     const lob = LOBBED.has(archetype);
@@ -331,11 +404,12 @@ export function burstDamage(w, gap, target) {
     return gap <= reach + EPS ? b.value : 0;
 }
 
-/* Indices of `weapons` (user order), longest cycle first, the user's order
- * on a tie. */
+/* Indices of `weapons` (user order), longest cycle first (a launcher's
+ * reload: its `rank`), the user's order on a tie. */
 export function priorityOrder(weapons) {
+    const key = (w) => (w.rank != null ? w.rank : w.cycle);
     return weapons.map((w, i) => i).sort((a, b) => {
-        const d = weapons[b].cycle - weapons[a].cycle;
+        const d = key(weapons[b]) - key(weapons[a]);
         return Math.abs(d) > EPS ? d : a - b;
     });
 }
@@ -356,12 +430,16 @@ function ammoAt(s, st, t) {
     return Math.min(s.maxAmmo, st.ammo + Math.max(0, s.regen || 0) * Math.max(0, t - st.now));
 }
 
+/* Earliest pull of weapon i. A launcher's pull starts its lock, which builds
+ * during the reload, so it waits for lockFrom (a turn after its last shot)
+ * rather than readyAt. */
 function earliestFire(s, st, i) {
     const slot = s.weapons[i];
     const w = slot.desc;
     if (w.cap && (slot.armed || 0) >= w.cap) return Infinity;
     const sw = st.current >= 0 && st.current !== i ? s.switchSec : 0;
-    let t = Math.max(st.now, slot.readyAt || 0, st.freeAt + sw, s.notBefore || 0);
+    const gate = w.lock ? (slot.lockFrom || 0) : (slot.readyAt || 0);
+    let t = Math.max(st.now, gate, st.freeAt + sw, s.notBefore || 0);
     // A TAG pull spends only the leader (each missile pays as it launches),
     // but waits until the first missile volley is affordable too.
     const need = w.tag ? w.tag.pullAmmo : w.ammoPerRound;
@@ -375,14 +453,25 @@ function earliestFire(s, st, i) {
     return rangeEntry(s.motion, t, w.reach);
 }
 
-/* Next pull: { index, at } or null when nothing can fire again.
+/* When a pull of weapon i started at `t` puts rounds out: at once, or for a
+ * launcher once its lock is held and its reload has run. */
+export function shotTime(slot, t) {
+    const w = slot.desc;
+    return w.lock ? Math.max(t + w.lock.hold, slot.readyAt || 0) : t;
+}
+
+/* Next pull: { index, at, shot } or null when nothing can fire again.
  *
  * s = { now, freeAt, current, ammo, maxAmmo, regen, switchSec, notBefore,
- *       motion: { t0, d0, speed, stop }, weapons: [{ desc, readyAt, armed }] }
+ *       motion: { t0, d0, speed, stop }, weapons: [{ desc, readyAt, armed, lockFrom }] }
  * with weapons in the user's order. A weapon fires at its earliest time unless
  * its salvo or the switch back pushes back a higher-priority weapon that would
- * fire then; a pull occupies the player for its salvo, and changing weapon
- * costs switchSec. Ammo only gates a weapon's own pull: a dry tank does not
+ * fire then; a pull occupies the player for its salvo (a launcher's: its
+ * lock and release), and changing weapon costs switchSec. A higher-priority launcher is
+ * pushed back only when its shot is, not its lock's start. A launcher whose
+ * lock would span the next other pull waits for it instead when its shot
+ * time does not move, so a lock is not built and then let go across another
+ * weapon's pull. Ammo only gates a weapon's own pull: a dry tank does not
  * hold a faster weapon back to save rounds for a slower one. */
 export function decide(s) {
     const n = s.weapons.length;
@@ -400,12 +489,40 @@ export function decide(s) {
         let ok = true;
         for (let q = 0; q < r && ok; q++) {
             const k = order[q];
-            if (valid[k] && earliestFire(s, after, k) > at[k] + EPS) ok = false;
+            const slot = s.weapons[k];
+            if (valid[k] && shotTime(slot, earliestFire(s, after, k)) > shotTime(slot, at[k]) + EPS) ok = false;
         }
         valid[j] = ok;
         if (ok && (best < 0 || at[j] < at[best] - EPS)) best = j;
     }
-    return best < 0 ? null : { index: best, at: at[best] };
+    if (best < 0) return null;
+    const lockShot = shotTime(s.weapons[best], at[best]);
+    if (s.weapons[best].desc.lock) {
+        let k = -1;
+        for (let i = 0; i < n; i++) {
+            if (i !== best && valid[i] && (k < 0 || at[i] < at[k] - EPS)) k = i;
+        }
+        if (k >= 0 && at[k] < lockShot - EPS) {
+            const after = {
+                now: at[k],
+                freeAt: at[k] + s.weapons[k].desc.busy,
+                current: k,
+                ammo: Math.max(0, ammoAt(s, st, at[k]) - pullSpend(s.weapons[k].desc)),
+            };
+            if (shotTime(s.weapons[best], earliestFire(s, after, best)) <= lockShot + EPS) {
+                return { index: k, at: at[k], shot: shotTime(s.weapons[k], at[k]) };
+            }
+        }
+    }
+    return { index: best, at: at[best], shot: lockShot };
+}
+
+// Ammo one pull of `w` takes from the tank, regen during its salvo aside.
+function pullSpend(w) {
+    const round = w.ammoPerRound > 0 ? w.ammoPerRound : 0;
+    if (w.tag) return w.tag.leaderAmmo + w.salvoCount * w.barrels * round;
+    if (w.lock) return w.barrels * round;
+    return Math.max(1, w.salvoCount || 1) * w.barrels * round;
 }
 
 function roundDamage(w, target) {
@@ -419,11 +536,12 @@ function blockedReason(s, st) {
         if (w.cap && slot.armed >= w.cap) return 'capped';
         if (w.ammoPerRound > s.maxAmmo + EPS) return 'ammo';
         if (w.ammoPerRound > 0 && st.ammo + EPS < w.ammoPerRound && !(s.regen > 0)) return 'ammo';
-        if (rangeEntry(s.motion, st.now, w.reach) === Infinity) return 'range';
+        if (rangeEntry(s.motion, st.now, w.reach) === Infinity) return w.lock ? 'lock' : 'range';
         return 'other';
     });
     const kinds = Array.from(new Set(reasons));
-    return kinds.length === 1 ? kinds[0] : 'mixed';
+    if (kinds.length === 1) return kinds[0];
+    return kinds.every((k) => k === 'range' || k === 'lock') ? 'range' : 'mixed';
 }
 
 /* When every weapon of `weapons` is first in range (Infinity if one never is). */
@@ -474,7 +592,7 @@ export function planWeave(o) {
         switchSec: o.switchSec > 0 ? o.switchSec : 0,
         motion,
         notBefore: o.notBefore || 0,
-        weapons: weapons.map((w) => ({ desc: w, readyAt: 0, armed: 0 })),
+        weapons: weapons.map((w) => ({ desc: w, readyAt: 0, armed: 0, lockFrom: 0 })),
     };
     const st = { now: 0, freeAt: 0, current: -1, ammo: o.ammo && o.ammo.start != null ? o.ammo.start : maxAmmo };
     const pending = [];
@@ -590,6 +708,38 @@ export function planWeave(o) {
             st.now = tPull;
             continue;
         }
+        if (w.lock) {
+            // The player holds the lock from tPull; the volley leaves once it
+            // is done and the reload has run, whatever is selected by then.
+            // Planner choice, as for TAG: its ammo is set aside at the lock's
+            // start so a filler cannot spend it first.
+            const tShot = shotTime(slot, tPull);
+            const d = distanceAt(motion, tShot);
+            let ammo = ammoAt(s, st, tPull);
+            let volley = 0;
+            for (let b = 0; b < w.barrels; b++) {
+                if (w.ammoPerRound > 0) {
+                    if (ammo + EPS < w.ammoPerRound) break;
+                    ammo -= w.ammoPerRound;
+                    rec.ammo += w.ammoPerRound;
+                    out.ammoUsed += w.ammoPerRound;
+                }
+                volley += 1;
+                pending.push({ t: tShot + flightTime(w, d), i, dmg: deal[i], frees: false, t0: tShot, d0: d });
+            }
+            rec.pulls += 1;
+            rec.rounds += volley;
+            if (rec.firstAt == null || tShot < rec.firstAt) rec.firstAt = tShot;
+            if (out.firstShotAt == null || tShot < out.firstShotAt) out.firstShotAt = tShot;
+            if (out.pulls.length < PLAN_MAX_PULLS) out.pulls.push({ t: tShot, index: i, d, rounds: volley, lockFrom: tPull });
+            slot.readyAt = tShot + w.cooldown;
+            slot.lockFrom = tShot + TURN_SEC;
+            st.ammo = Math.min(maxAmmo, ammo + s.regen * w.busy);
+            st.freeAt = tPull + w.busy;
+            st.current = i;
+            st.now = tPull + w.busy;
+            continue;
+        }
         let ammo = ammoAt(s, st, tPull);
         let fired = 0;
         for (let k = 0; k < w.salvoCount; k++) {
@@ -625,5 +775,21 @@ export function planWeave(o) {
         st.ammo = ammo;
     }
     if (!out.reason) out.reason = 'timeout';
+    // A launcher's volley can leave after a later pull of another weapon,
+    // or never, when the kill lands while it waits on its lock or reload.
+    out.pulls.sort((a, b) => a.t - b.t);
+    if (out.reason === 'killed') {
+        out.pulls = out.pulls.filter((p) => {
+            if (p.t <= out.ttk + EPS) return true;
+            const rec = out.weapons[p.index];
+            const spent = p.rounds * (weapons[p.index].ammoPerRound || 0);
+            rec.pulls -= 1;
+            rec.rounds -= p.rounds;
+            rec.ammo -= spent;
+            out.ammoUsed -= spent;
+            if (rec.firstAt != null && rec.firstAt > out.ttk + EPS) rec.firstAt = null;
+            return false;
+        });
+    }
     return out;
 }

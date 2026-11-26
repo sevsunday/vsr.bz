@@ -262,17 +262,19 @@
   height: calc(140px * var(--vt-xp-scale));
 }
 
-/* Anchored at the same right edge as the game's 90-wide panel, the gauge
- * grows leftward and stays clear of the weapon pills. */
+/* Right of it: 5 units, the pill column's width (css/game-hud.css), 5 more.
+ * The gauge grows leftward and stays clear of the weapon pills. */
 .vt-xp-gaugepanel {
-  right: calc(138px * var(--vt-xp-scale));
+  right: calc((128 * 12 / 9 + 10) * 1px * var(--vt-xp-scale));
   bottom: calc(4px * var(--vt-xp-scale));
 }
 
+/* Bottom at the gauge box's 4 less the arc's 1.5-unit overhang, so the
+ * column spans the arc (css/game-hud.css). */
 .vt-xp-weapons {
   position: absolute;
   right: calc(5px * var(--vt-xp-scale));
-  bottom: calc(5px * var(--vt-xp-scale));
+  bottom: calc((4 - 1.5) * 1px * var(--vt-xp-scale));
 }
 
 .vt-xp-reticle {

@@ -388,12 +388,18 @@ function closingGapSpec() {
 function refreshWeave() {
     weaveDescs = slots.map((slot) => {
         if (!slot.weapon || !snapshot || !snapshot.weaveInput) return null;
-        return weaveWeapon({
+        const desc = weaveWeapon({
             key: slot.key,
             profile: profileFor(slot.weapon),
             calc: snapshot.weaveInput(slot.weapon, slot.key),
             gravity: SIM_GRAVITY,
         });
+        // lockRange is muzzle to the target's centre; the switch runs on the hull gap.
+        if (desc && desc.lock && !desc.excluded) {
+            desc.lockRange = desc.reach;
+            desc.reach = Math.max(0, desc.reach - (target ? targetNear : targetRadius));
+        }
+        return desc;
     });
     const keys = slots.map((s) => s.key);
     weaveOrder = weaveOrder.filter((k) => keys.includes(k)).concat(keys.filter((k) => !weaveOrder.includes(k)));
@@ -531,6 +537,7 @@ function renderPills() {
     slotStats = slots.map((s) => (s.weapon && snapshot && snapshot.statsFor ? snapshot.statsFor(s.weapon, s.key) : null));
     box.setAttribute('role', weaveOn ? 'group' : 'radiogroup');
     box.setAttribute('aria-label', weaveOn ? 'Weapons in the switch' : 'Firing weapon');
+    box.style.setProperty('--vt-xp-wpn-rows', String(Math.max(1, slots.length)));
     box.innerHTML = slots.length
         ? slots.map(pillHtml).join('')
         : '<p class="vt-wpn-range-pills-empty">Pick a ship to load out.</p>';
@@ -565,7 +572,7 @@ function paintGauge(state) {
 /* ---- readout (top left) ------------------------------------------------ */
 
 const NO_KILL_SHORT = {
-    notarget: 'no target', nodamage: 'no damage', range: 'out of reach', ammo: 'tank runs dry',
+    notarget: 'no target', nodamage: 'no damage', range: 'out of reach', lock: 'out of lock range', ammo: 'tank runs dry',
     capped: 'MDM shells armed', timeout: 'over ' + PLAN_HORIZON_MIN + ' min',
 };
 
@@ -610,7 +617,7 @@ function renderReadout() {
             if (st.ttk === Infinity) ttk = 'never';
             else if (st.ttk != null) ttk = esc(fmtSec(st.ttk)) + (st.ttkEstimated ? estTag('est.') : '');
             title = st.lock
-                ? 'Calculator time to kill: one lock before every release (estimated)'
+                ? 'Calculator time to kill: one lock, and the release after it, before every shot (estimated)'
                 : 'Calculator time to kill';
         }
         lines.push(readoutLine('TTK', ttk, { title }));
@@ -621,6 +628,7 @@ function renderReadout() {
             lines.push(readoutLine('LOCK', value, {
                 title: 'lockDelay ' + fmtNum(lock.lockDelay) + ' s' + (lock.stages > 1 ? ' x ' + (lock.stages - 1) + '/' + lock.stages : '')
                     + (lock.signature ? ' / ' + lock.signature + 'Signature ' + fmtNum(lock.signatureValue) : '')
+                    + (lock.turns ? ', counted in ' + lock.turns + ' game turns' : '')
                     + ' \u00b7 cone ' + fmtNum(lock.coneAngle, 3) + ' rad',
             }));
             if (lock.lockRange > 0) reach = { m: lock.lockRange, word: 'lock' };
@@ -698,8 +706,13 @@ function fmtSec(sec) {
     return sec == null || !Number.isFinite(sec) ? '\u2014' : fmtNum(sec, 2) + ' s';
 }
 
+/* The priority key: a launcher ranks by its reload, every other weapon by its cycle. */
+function rankOf(d) {
+    return d.rank != null ? d.rank : d.cycle;
+}
+
 function sameCycle(a, b) {
-    return Math.abs(a.cycle - b.cycle) <= 1e-6;
+    return Math.abs(rankOf(a) - rankOf(b)) <= 1e-6;
 }
 
 const WEAVE_TIER = {
@@ -734,6 +747,11 @@ function noKillText(plan, base, single) {
             ? single.name + ' reaches ' + fmtNum(single.reach, 0) + ' m, short of ' + fmtNum(base.distance, 0) + ' m.'
             : 'Nothing ticked reaches ' + fmtNum(base.distance, 0) + ' m.') + ' Turn on Closing or move the Distance slider.';
     }
+    if (plan.reason === 'lock') {
+        const lockers = single ? [single] : base.weapons.filter((d) => d.lock);
+        return lockers.map((d) => d.name + ' locks within ' + fmtNum(d.reach, 0) + ' m of the hull').join(', ')
+            + ', short of ' + fmtNum(base.distance, 0) + ' m. Turn on Closing or move the Distance slider.';
+    }
     if (plan.reason === 'ammo') return 'The tank runs dry before ' + tg + ' goes down.';
     if (plan.reason === 'capped') {
         return single
@@ -755,7 +773,9 @@ function orderHtml(entries) {
         const role = r === 0 ? 'Leads: fires whenever it is ready'
             : (tiePrev ? 'Same cycle: right after ' + prev.desc.name : 'Fills the gaps');
         const rounds = d.salvoCount * d.barrels;
-        const meta = 'every ' + fmtNum(d.cycle) + ' s · reach ' + fmtNum(d.reach, 0) + ' m · '
+        const meta = (d.lock
+            ? 'every ' + fmtNum(d.cycle) + ' s · lock ' + fmtNum(d.lock.seconds) + ' s (' + d.lock.turns + ' turns) + ' + fmtNum(d.lock.release) + ' s release · lock range ' + fmtNum(d.lockRange, 0) + ' m · '
+            : 'every ' + fmtNum(d.cycle) + ' s · reach ' + fmtNum(d.reach, 0) + ' m · ')
             + fmtNum(d.perHit) + ' per hit' + (rounds > 1 ? ' \u00d7 ' + rounds : '');
         const tie = tiePrev || tieNext;
         const move = (dir, enabled) => '<button type="button" class="btn btn-outline-secondary vt-wpn-range-weave-move" data-weave-move="' + dir + '"'
@@ -763,7 +783,7 @@ function orderHtml(entries) {
             + ' aria-label="' + (dir === 'up' ? 'Fire ' + esc(d.name) + ' earlier' : 'Fire ' + esc(d.name) + ' later') + '">'
             + '<i class="bi bi-arrow-' + dir + '" aria-hidden="true"></i></button>';
         return '<li class="list-group-item vt-wpn-range-weave-item is-c' + e.color + '" data-weave-key="' + esc(e.slot.key) + '"'
-            + (tie ? ' draggable="true" data-tie="' + d.cycle.toFixed(4) + '" title="Same cycle: drag to swap the order"' : '') + '>'
+            + (tie ? ' draggable="true" data-tie="' + rankOf(d).toFixed(4) + '" title="Same cycle: drag to swap the order"' : '') + '>'
             + '<span class="vt-wpn-range-weave-swatch" aria-hidden="true"></span>'
             + '<span class="vt-wpn-range-weave-name">' + esc(d.name)
             + (d.g > 1 ? ' <span class="vt-mono vt-wpn-range-slot-mult">&times;' + d.g + '</span>' : '') + '</span>'
@@ -849,8 +869,9 @@ function resultHtml(entries, plan, base, solos, wait, opts) {
         + '</div>';
 }
 
-/* `single`: the notes for one weapon with the switch off. */
-function weaveNotes(entries, plan, base, single) {
+/* `single`: the notes for one weapon with the switch off; `solos`: each
+ * ticked weapon planned alone, in entry order. */
+function weaveNotes(entries, plan, base, single, solos) {
     const notes = [];
     const warn = (text) => notes.push({ text, warn: true });
     const note = (text) => notes.push({ text, warn: false });
@@ -863,18 +884,50 @@ function weaveNotes(entries, plan, base, single) {
         (d.warnings || []).forEach(warn);
         if (plan.weapons[i] && plan.weapons[i].pulls === 0 && Number.isFinite(plan.ttk)) {
             if (d.reach + 1e-6 < nearest) warn(d.name + ' never fires: its reach is ' + fmtNum(d.reach, 0) + ' m and the target stays beyond it.');
-            else note(d.name + ' never fires: the kill comes before its turn.');
+            else if (d.lock && plan.weapons.some((w, j) => j !== i && w.pulls > 1)) {
+                warn(d.name + ' never fires: its ' + fmtSec(d.lock.hold) + ' lock and release never fit before a slower weapon is due again, so switching is no faster than firing those alone.');
+            } else note(d.name + ' never fires: the kill comes before its turn.');
         } else if (!single && plan.weapons[i] && plan.weapons[i].pulls === 0 && plan.reason === 'range') {
             warn(d.name + ' reaches ' + fmtNum(d.reach, 0) + ' m.');
         }
     });
+    const launchers = descs.filter((d) => d.lock);
     if (!single) {
-        note('Each pull goes to the longest-cycle weapon that is ready and in range. A faster one fires only when its shot leaves the slower ones on time; equal cycles follow your order (drag them, or use the arrows).');
+        note('Each pull goes to the longest-cycle weapon that is ready and in range. A faster one fires only when its shot leaves the slower ones on time; equal cycles follow your order (drag them, or use the arrows).'
+            + (launchers.length ? ' A lock-on launcher ranks by its shotDelay; its lock is time the switch spends holding Fire on it.' : ''));
         note('A weapon change takes ' + fmtNum(switchSec) + ' s. One game turn (BZCC runs 20 turns a second) is the shortest it can be; raise it to match your own switching. Fire stays held, and a switch waits for a salvo to finish.');
+        if (Number.isFinite(plan.ttk) && solos) {
+            let best = -1;
+            solos.forEach((s, i) => {
+                if (s && Number.isFinite(s.ttk) && s.ttk < plan.ttk - 1e-6 && (best < 0 || s.ttk < solos[best].ttk)) best = i;
+            });
+            if (best >= 0) {
+                warn(descs[best].name + ' alone kills ' + tg + ' in ' + fmtSec(solos[best].ttk) + ', sooner than switching (' + fmtSec(plan.ttk)
+                    + '): the pulls the switch gives the others cost it more than they deal here. Untick the others to fire it alone.');
+            }
+        }
     }
+    launchers.forEach((d) => {
+        const sig = d.lock.signature
+            ? tg + '\'s ' + d.lock.signature + 'Signature ' + fmtNum(d.lock.signatureValue)
+            : 'no signature term';
+        note(d.name + ': hold Fire ' + fmtNum(d.lock.seconds) + ' s to lock (' + d.lock.turns + ' game turns; the first only picks the target; ' + sig + '). '
+            + 'The plan lets go ' + fmtNum(d.lock.release) + ' s after the ring turns red, a reaction to it; the game launches on the next turn after the lock at the earliest. '
+            + 'The lock builds while it reloads. Each shot clears it and the next lock starts a turn later, so it fires every ' + fmtNum(d.cycle) + ' s at best. '
+            + (single
+                ? 'Release once locked: a release before the reload ends launches when it does, and pressing Fire again first holds the shot.'
+                : 'Once let go the switch moves on, and the missile leaves when the reload ends, even with another weapon selected.'));
+    });
     const lobbed = descs.filter((d) => d.lob);
-    note('Reach is shotSpeed \u00d7 lifeSpan from the ODF' + (lobbed.length ? ' (lobbed rounds use aiRange)' : '') + ': '
-        + descs.map((d) => d.name + ' ' + fmtNum(d.reach, 0) + ' m').join(', ') + '. Reach is measured to the hull; the Distance slider is centre to centre.');
+    const direct = descs.filter((d) => !d.lock);
+    if (direct.length) {
+        note('Reach is shotSpeed \u00d7 lifeSpan from the ODF' + (lobbed.length ? ' (lobbed rounds use aiRange)' : '') + ': '
+            + direct.map((d) => d.name + ' ' + fmtNum(d.reach, 0) + ' m').join(', ') + '. Reach is measured to the hull; the Distance slider is centre to centre.');
+    }
+    if (launchers.length) {
+        note('A launcher locks within its lockRange, measured from the muzzle to the target\'s centre: '
+            + launchers.map((d) => d.name + ' ' + fmtNum(d.lockRange, 0) + ' m (' + fmtNum(d.reach, 0) + ' m to the hull)').join(', ') + '.');
+    }
     if (descs.some((d) => !d.hitscan)) {
         const parts = ['travel time is distance / shotSpeed', 'beams land at once'];
         if (lobbed.length) parts.push('lobbed shells fly a ballistic arc at the range gravity of ' + fmtNum(SIM_GRAVITY, 1) + ' m/s\u00b2');
@@ -925,6 +978,7 @@ function weaveNotes(entries, plan, base, single) {
                 + 'It tags again ' + after + ', and after a miss at shotDelay ' + fmtNum(d.shotDelay, 2) + ' s.');
             return;
         }
+        if (d.lock) return;
         if (d.calcInterval != null && Math.abs(d.cycle - d.calcInterval) > 1e-6) {
             note(d.name + ': the next pull comes ' + fmtNum(d.cycle, 3) + ' s later (shotDelay, or the salvo\'s last round); the Numbers card counts ' + fmtNum(d.calcInterval, 3) + ' s.');
         }
@@ -1012,7 +1066,7 @@ function planWeavePanel(body) {
     body.innerHTML = orderHtml(entries)
         + ribbonHtml(entries, plan, base)
         + resultHtml(entries, plan, base, solos, wait)
-        + notesHtml(weaveNotes(entries, plan, base));
+        + notesHtml(weaveNotes(entries, plan, base, null, solos));
     paintLive();
 }
 
@@ -1413,7 +1467,7 @@ function floatDamage(amount, position) {
 
 /* One circle per lock, centred on the projected target. Radii are the
  * engine's screen pixels (128 shrinking to 16, plus 3 px per stacked
- * multi-lock). */
+ * multi-lock); a ring being built fades in with its progress. */
 function paintLockCircles(state) {
     const box = hudEls.locks;
     if (!box) return;
@@ -1450,6 +1504,7 @@ function paintLockCircles(state) {
         el.style.width = d + 'px';
         el.style.height = d + 'px';
         el.style.borderColor = m.color;
+        el.style.opacity = String(m.alpha == null ? 1 : m.alpha);
     });
 }
 
@@ -1484,30 +1539,28 @@ function paintHud(state) {
         hudEls.detonate.disabled = !(state.armed > 0);
     }
     const firing = state.weave ? state.weave.current : null;
-    if (firing !== lastWeaveKey) {
-        lastWeaveKey = firing;
+    const loaded = state.weave && state.weave.lockArmed ? state.weave.lockArmed : [];
+    const weaveKey = (firing || '') + '|' + loaded.join(',');
+    if (weaveKey !== lastWeaveKey) {
+        lastWeaveKey = weaveKey;
         rootEl.querySelectorAll('[data-slot-key], [data-weave-key]').forEach((el) => {
-            el.classList.toggle('is-firing', !!firing && (el.dataset.slotKey === firing || el.dataset.weaveKey === firing));
+            const key = el.dataset.slotKey || el.dataset.weaveKey;
+            el.classList.toggle('is-firing', !!firing && key === firing);
+            el.classList.toggle('is-lock-armed', loaded.includes(key) && key !== firing);
         });
     }
     paintLockCircles(state);
     if (hudEls.lock) {
-        const show = (state.archetype === 'launcher' || state.archetype === 'multilock') && state.active;
+        const bar = state.lockBar;
+        const show = !!bar;
         if (hudEls.lock.hidden === show) hudEls.lock.hidden = !show;
         if (show && hudEls.lockFill) {
-            const multi = state.archetype === 'multilock';
-            const frac = Math.max(0, Math.min(1, multi
-                ? (state.locks + Math.min(1, state.lock)) / Math.max(1, state.lockCount || 1)
-                : Math.min(1, state.lock)));
-            const locked = multi ? state.locks > 0 : state.lock >= 1;
-            hudEls.lockFill.style.width = (frac * 100).toFixed(0) + '%';
-            hudEls.lockFill.classList.toggle('is-locked', locked);
-            const text = multi
-                ? state.locks + ' / ' + Math.max(1, state.lockCount || 1)
-                : (locked ? 'Locked' : Math.round(frac * 100) + '%');
-            if (hudEls.lockText && text !== hudText.lock) {
-                hudText.lock = text;
-                hudEls.lockText.textContent = text;
+            const frac = Math.max(0, Math.min(1, bar.frac));
+            hudEls.lockFill.style.width = (frac * 100).toFixed(1) + '%';
+            hudEls.lockFill.classList.toggle('is-locked', bar.locked);
+            if (hudEls.lockText && bar.text !== hudText.lock) {
+                hudText.lock = bar.text;
+                hudEls.lockText.textContent = bar.text;
             }
         }
     }

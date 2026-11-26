@@ -1154,9 +1154,11 @@ a.vt-wpn-source-link {
     pointer-events: none;
 }
 
+/* Centred: the gauge box and the pill column are both centred on GAUGE_CY,
+ * so the column's 93-unit span meets the arc's top and bottom edges. */
 .vt-wpn-range-status-row {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     gap: calc(5px * var(--vt-xp-scale));
 }
 
@@ -1175,8 +1177,14 @@ a.vt-wpn-source-link {
     line-height: 1.2;
 }
 
+/* As wide as the longest name in the loadout needs: at least the shared
+ * column widened by the cap font's 12 / 9 (css/game-hud.css), at most what
+ * "Sprinkler Launcher", the longest armory name, needs at x2 beside the
+ * switch box, key, shots and swap. */
 .vt-wpn-range-pills {
-    width: calc(150px * var(--vt-xp-scale));
+    width: max-content;
+    min-width: calc(150px * 12 / 9 * var(--vt-xp-scale));
+    max-width: calc(245px * var(--vt-xp-scale));
     pointer-events: auto;
 }
 
@@ -1214,6 +1222,12 @@ a.vt-wpn-source-link {
     border-color: var(--vt-xp-hull-ok);
 }
 
+/* A launcher holding a finished lock while the switch fires something else. */
+.vt-wpn-range-pill.is-lock-armed {
+    opacity: 1;
+    box-shadow: inset 0 0 0 1px var(--vt-xp-hull-ok);
+}
+
 /* Lighter than the Explorer's empty row so the swap button stays readable. */
 .vt-wpn-range-pill.is-empty {
     opacity: 0.75;
@@ -1241,7 +1255,7 @@ a.vt-wpn-source-link {
     flex: none;
     min-width: 1.1em;
     text-align: center;
-    font-size: calc(8px * var(--vt-xp-scale));
+    font-size: calc((var(--vt-xp-wpn-font) - 1) * 1px * var(--vt-xp-scale));
     opacity: 0.75;
 }
 
@@ -1254,20 +1268,20 @@ a.vt-wpn-source-link {
 
 .vt-wpn-range-pill .vt-wpn-range-pill-pick {
     flex: none;
-    width: calc(10px * var(--vt-xp-scale));
-    height: calc(10px * var(--vt-xp-scale));
+    width: calc((var(--vt-xp-wpn-font) + 1) * 1px * var(--vt-xp-scale));
+    height: calc((var(--vt-xp-wpn-font) + 1) * 1px * var(--vt-xp-scale));
     margin: 0;
 }
 
 .vt-wpn-range-pill-mult {
     flex: none;
-    font-size: calc(8px * var(--vt-xp-scale));
+    font-size: calc((var(--vt-xp-wpn-font) - 1) * 1px * var(--vt-xp-scale));
     opacity: 0.85;
 }
 
 .vt-wpn-range-pill-tag {
     flex: none;
-    font-size: calc(7px * var(--vt-xp-scale));
+    font-size: calc((var(--vt-xp-wpn-font) - 2) * 1px * var(--vt-xp-scale));
     letter-spacing: 0.03em;
     text-transform: uppercase;
     color: var(--kb-warning);
@@ -1283,15 +1297,15 @@ a.vt-wpn-source-link {
     flex: none;
     align-items: center;
     justify-content: center;
-    width: calc(14px * var(--vt-xp-scale));
-    height: calc(14px * var(--vt-xp-scale));
+    width: calc(min(var(--vt-xp-wpn-u) - 2, 20) * 1px * var(--vt-xp-scale));
+    height: calc(min(var(--vt-xp-wpn-u) - 2, 20) * 1px * var(--vt-xp-scale));
     margin-right: calc(-3px * var(--vt-xp-scale));
     padding: 0;
     border: 0;
     border-radius: 50%;
     background: transparent;
     color: inherit;
-    font-size: calc(9px * var(--vt-xp-scale));
+    font-size: calc(var(--vt-xp-wpn-font) * 1px * var(--vt-xp-scale));
     line-height: 1;
     opacity: 0.8;
     cursor: pointer;
@@ -1312,6 +1326,25 @@ a.vt-wpn-source-link {
 @media (max-width: 991.98px) {
     .vt-wpn-range-hud {
         --vt-xp-scale: 1.1;
+    }
+}
+
+/* Under ~745 px the widest pill column meets a 14rem card: the column stays
+ * at its floor and long names truncate. */
+@media (max-width: 767.98px) {
+    .vt-wpn-range-pills {
+        max-width: calc(150px * 12 / 9 * var(--vt-xp-scale));
+    }
+}
+
+/* Under ~705 px the 1.1 row and a 14rem card no longer fit side by side. */
+@media (max-width: 720px) {
+    .vt-wpn-range-hud {
+        --vt-xp-scale: 1;
+    }
+
+    .vt-wpn-range-card {
+        min-width: 12rem;
     }
 }
 
@@ -1367,17 +1400,14 @@ a.vt-wpn-source-link {
         justify-content: flex-end;
     }
 
+    /* Tap targets: rows never drop under 28 px, so four or five may run past
+     * the gauge here; the column's min-height lets it grow. */
     .vt-wpn-range-pills {
+        --vt-xp-wpn-min: 28;
         flex: 1 1 auto;
         width: auto;
         min-width: 0;
         max-width: 13rem;
-    }
-
-    /* Tap targets: the pills grow past the game's 16 px rows. */
-    .vt-wpn-range-pill {
-        height: 1.75rem;
-        font-size: 0.75rem;
     }
 
     .vt-wpn-range-pill-swap {
@@ -1410,6 +1440,7 @@ a.vt-wpn-source-link {
     min-width: 3.4rem;
     text-align: right;
     font-size: 0.75rem;
+    white-space: nowrap;
 }
 
 .vt-wpn-range-bar-label {
@@ -1442,10 +1473,11 @@ a.vt-wpn-source-link {
     background: var(--kb-danger);
 }
 
+/* No width transition: the sim already blends the lock between game turns. */
 .vt-wpn-range-lock-fill {
     width: 0;
     background: var(--kb-warning);
-    transition: width calc(var(--vt-anim-duration, 0.4s) * 0.15) linear;
+    transition: none;
 }
 
 /* Locked: red, like the lock circle on the target. */

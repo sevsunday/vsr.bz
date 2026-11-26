@@ -20,6 +20,15 @@
     // Measured on Arc Stream bursts against single targets in match
     // telemetry: each hit is damageValue x salvoDelay, about 30 hits a second.
     const ARC_HITS_PER_SEC = 30;
+    // One game turn (BZCC runs 20 a second); launchers lock in whole turns.
+    const LOCK_TURNS_PER_SEC = 20;
+    const LOCK_TURN_SEC = 1 / LOCK_TURNS_PER_SEC;
+    const LOCK_TURNS_SIM = 4096;
+    // Turns a pilot keeps Fire down after the ring turns red before letting
+    // go: a reaction to the red ring. The engine launches on any trigger-up
+    // turn after the lock and no ODF sets this. Recorded Laser to Shadower
+    // gaps run 0.05 s (fastest) to 0.35 s (median) over the one-turn floor.
+    const LOCK_RELEASE_TURNS = 4;
     const TIERS = ['exact', 'estimated', 'components', 'none'];
 
     const WEAPON_DEFAULTS = {
@@ -1623,9 +1632,10 @@
                     const baseText = lock.stages > 1
                         ? 'lockDelay ' + fmt(f.lockDelay) + ' x (' + lock.stages + ' - 1) / ' + lock.stages + ' = ' + fmt(lock.base) + ' s'
                         : 'lockDelay ' + fmt(f.lockDelay) + ' s';
-                    if (!lock.signature) explain.lock = baseText + ' (a base launcher reads no signature)';
+                    const turnText = '; in 20 Hz game turns ' + lock.turns + ' (the first only picks the target) = ' + fmt(lock.seconds) + ' s';
+                    if (!lock.signature) explain.lock = baseText + ' (a base launcher reads no signature)' + turnText;
                     else if (lock.never) explain.lock = baseText + '; ' + lock.signature + 'Signature 0 never locks';
-                    else explain.lock = baseText + ' / ' + lock.signature + 'Signature ' + fmt(lock.signatureValue) + ' = ' + fmt(lock.seconds) + ' s';
+                    else explain.lock = baseText + ' / ' + lock.signature + 'Signature ' + fmt(lock.signatureValue) + ' = ' + fmt(lock.continuous) + ' s' + turnText;
                 }
             }
 
@@ -1639,6 +1649,7 @@
                 effectiveDps: null,
                 cannotOutdamage: false,
                 lockSec: null,
+                releaseSec: null,
                 estimated: false,
             };
             if (tg && dps != null) {
@@ -1661,14 +1672,20 @@
                         warnings.push(v.name + ' never locks ' + tg.name + ' (' + lock.signature + 'Signature 0), so it cannot finish the kill as a guided weapon.');
                         explain.ttk = lock.signature + 'Signature 0: the lock never completes.';
                     } else if (lock) {
-                        // Every release clears the lock, so each shot waits for
-                        // the slower of the fire cycle and a fresh lock.
-                        const gap = Math.max(interval || 0, lock.seconds);
+                        // Every shot clears the lock (0x0061EAF4) and leaves on
+                        // a trigger-up turn, so the next lock starts a turn
+                        // later; it builds during the reload, so each shot waits
+                        // for the slower of the fire cycle and that new lock.
+                        const toShot = lock.seconds + lock.release;
+                        const relock = initial + toShot + LOCK_TURN_SEC;
+                        const gap = Math.max(interval || 0, relock);
                         ttk.lockSec = lock.seconds;
+                        ttk.releaseSec = lock.release;
                         ttk.estimated = true;
-                        ttk.seconds = initial + lock.seconds + (ttk.shotsToKill - 1) * gap;
+                        ttk.seconds = initial + toShot + (ttk.shotsToKill - 1) * gap;
                         explain.ttk = (initial > 0 ? 'InitialShotDelay ' + fmt(initial) + ' s + ' : '')
-                            + 'lock ' + fmt(lock.seconds) + ' s + (shots ' + ttk.shotsToKill + ' - 1) x max(' + gapName + fmt(interval) + ' s, lock ' + fmt(lock.seconds) + ' s) = ' + fmt(ttk.seconds) + ' s (estimated)';
+                            + 'lock ' + fmt(lock.seconds) + ' s + release ' + fmt(lock.release) + ' s + (shots ' + ttk.shotsToKill + ' - 1) x max(' + gapName + fmt(interval) + ' s, '
+                            + (initial > 0 ? 'InitialShotDelay + ' : '') + 'lock + release + one turn ' + fmt(relock) + ' s) = ' + fmt(ttk.seconds) + ' s (estimated)';
                     } else {
                         ttk.seconds = initial + (ttk.shotsToKill - 1) * (interval || 0);
                         explain.ttk = (initial > 0 ? 'InitialShotDelay ' + fmt(initial) + ' s + ' : '')
@@ -1830,6 +1847,9 @@
                 // The round's ground explosion against this target, for an MDM
                 // shell set off by a weapon switch.
                 burst: blast ? { value: blast.values[r.letter] || 0, radius: blast.radius } : null,
+                // A launcher's press-to-shot lock on this target (null for
+                // anything without a lockDelay).
+                lock: lockTime(v, tg),
                 warnings: r.warnings.slice(),
             };
         }
@@ -1843,9 +1863,40 @@
             return null;
         }
 
-        // lockDelay x (targetCount - 1) / targetCount / signature (0x0061E6CD
-        // stage interval, vtable +0x16C accumulate). A base launcher has no
-        // signature term. Signature 0 never completes.
+        // Mirror of lockTurns() in js/fx/weapon-profile.js (this file cannot
+        // import it): held 20 Hz turns until the lock completes, in float32.
+        // The first turn picks the target (0x0061E26E); each later one adds
+        // f32(signature x dt) (vtable +0x16C) and a stage needs strictly more
+        // than lockDelay / targetCount (0x0061E2B5), the rest carrying over.
+        // The missile leaves on the next turn, so seconds = turns x dt.
+        function lockTurnCount(lockDelay, targetCount, sig) {
+            const f = Math.fround;
+            const tc = Math.round(Number(targetCount) || 0);
+            const delay = Math.max(0, Number(lockDelay) || 0);
+            const interval = tc > 1 ? f(delay / tc) : f(delay);
+            const need = tc > 1 ? tc - 1 : 1;
+            const steps = need * interval / (sig * LOCK_TURN_SEC);
+            if (steps >= LOCK_TURNS_SIM) return 2 + Math.floor(steps);
+            const add = f(f(sig) * f(LOCK_TURN_SEC));
+            let acc = 0;
+            let stage = 0;
+            let turns = 1;
+            while (stage < need) {
+                turns += 1;
+                acc = f(acc + add);
+                while (stage < need && acc > interval) {
+                    acc = f(acc - interval);
+                    stage += 1;
+                }
+            }
+            return turns;
+        }
+
+        // Press to the engine's earliest shot on this target (`seconds`), and
+        // the pilot's `release` after the red ring on top of it. `continuous`
+        // is the old lockDelay x (targetCount - 1) / targetCount / signature,
+        // for the formula line. A base launcher reads no signature (1).
+        // Signature 0 never completes.
         function lockTime(weapon, targetUnit) {
             const v = typeof weapon === 'string' ? variant(weapon) : weapon;
             const t = typeof targetUnit === 'string' ? target(targetUnit) : targetUnit;
@@ -1853,11 +1904,20 @@
             const stages = v.fire.targetCount > 1 ? v.fire.targetCount : 0;
             const base = stages > 1 ? v.fire.lockDelay * (stages - 1) / stages : v.fire.lockDelay;
             const signature = lockSignatureName(v.terminal);
-            if (!signature) return { seconds: base, never: false, signature: null, signatureValue: 1, base };
-            const raw = t ? t[signature + 'Signature'] : null;
-            const value = raw != null && Number.isFinite(Number(raw)) ? Number(raw) : 1;
-            if (!(value > 0)) return { seconds: null, never: true, signature, signatureValue: value, base };
-            return { seconds: base / value, never: false, signature, signatureValue: value, base };
+            const release = LOCK_RELEASE_TURNS / LOCK_TURNS_PER_SEC;
+            let value = 1;
+            if (signature) {
+                const raw = t ? t[signature + 'Signature'] : null;
+                value = raw != null && Number.isFinite(Number(raw)) ? Number(raw) : 1;
+            }
+            if (!(value > 0)) {
+                return { seconds: null, turns: null, release, continuous: null, never: true, signature, signatureValue: value, base };
+            }
+            const turns = lockTurnCount(v.fire.lockDelay, v.fire.targetCount, value);
+            return {
+                seconds: turns / LOCK_TURNS_PER_SEC, turns, release, continuous: base / value,
+                never: false, signature, signatureValue: value, base,
+            };
         }
 
         // Mirror of engagementReach() in js/weapons-weave.js, on the
