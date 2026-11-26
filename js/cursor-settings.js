@@ -538,18 +538,23 @@
     init();
   }
 
-  // who.js resolves its own data URLs from this script's directory, so a
-  // page at /map/<slug>/ does not request a relative js/who.js. async=false
-  // keeps it ordered; it does not block DOMContentLoaded.
-  if (!document.querySelector('script[data-vt-who]')) {
-    const who = document.createElement('script');
-    who.async = false;
-    who.setAttribute('data-vt-who', '1');
+  // who.js and presence.js resolve their own URLs from this script's
+  // directory, so a page at /map/<slug>/ does not request a relative js/
+  // path. async=false keeps them ordered (who.js first); neither blocks
+  // DOMContentLoaded.
+  function injectSibling(file, attr) {
+    if (document.querySelector('script[' + attr + ']')) return;
+    const el = document.createElement('script');
+    el.async = false;
+    el.setAttribute(attr, '1');
     try {
-      who.src = new URL('who.js', SCRIPT_URL || (document.currentScript && document.currentScript.src) || window.location.href).href;
+      el.src = new URL(file, SCRIPT_URL || (document.currentScript && document.currentScript.src) || window.location.href).href;
     } catch (_) {
-      who.src = 'js/who.js';
+      el.src = 'js/' + file;
     }
-    (document.head || document.documentElement).appendChild(who);
+    (document.head || document.documentElement).appendChild(el);
   }
+
+  injectSibling('who.js', 'data-vt-who');
+  if (!clickyFramed) injectSibling('presence.js', 'data-vt-presence');
 })();

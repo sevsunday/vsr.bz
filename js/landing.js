@@ -38,9 +38,11 @@
   let homeElo = null;
   let homeCmdr = null;
   let homeSlugs = null;
+  // The Online now poller fetches every session already; js/presence.js
+  // reads its snapshots instead of polling a second time.
+  window.__vtPresenceFed = true;
   // Registered during parse, before who.js can open the picker.
   document.addEventListener('vt-who-change', () => {
-    paintHomeAt();
     if (!homeElo && !homeCmdr && !homeSlugs) return;
     paintHomeLists();
     paintMatches();
@@ -372,6 +374,24 @@
     }).join('');
   }
 
+  function thugPills(hist) {
+    const display = window.VTSRDisplay;
+    return hist.map((v) => {
+      const verdict = display && display.deltaVerdict ? display.deltaVerdict(v) : null;
+      const key = verdict ? verdict.key : 'par';
+      return '<i class="vt-home-pill" data-verdict="' + key + '"></i>';
+    }).join('');
+  }
+
+  function histOf(row) {
+    return row && Array.isArray(row.win_history) ? row.win_history.map(Number) : [];
+  }
+
+  function steamAttr(steam64) {
+    const sid = String(steam64 || '');
+    return /^\d{17}$/.test(sid) ? ' data-steam64="' + sid + '"' : '';
+  }
+
   function pickRising(rows, daysKey, beatsOf) {
     const out = [];
     for (let i = 0; i < rows.length; i++) {
@@ -448,7 +468,7 @@
         else if (item.hist[k] < 0) losses++;
       }
       const gain = '+' + Math.round(item.net);
-      return '<a class="vt-home-rise" href="' + esc(playerHref(slugFile, r.steam64)) + '">'
+      return '<a class="vt-home-rise" href="' + esc(playerHref(slugFile, r.steam64)) + '"' + steamAttr(r.steam64) + '>'
         + '<span class="vt-home-rank">' + (i + 1) + '</span>'
         + '<span class="vt-home-rise-main">'
         + '<span class="vt-home-rise-top"><span class="vt-home-rise-name">' + esc(r.name || 'Unknown') + '</span>'
@@ -493,13 +513,9 @@
         climb = '<span class="vt-home-climb" title="Band at the start of these 10 games">from ' + esc(then.roman || '') + ' ' + caret + '</span>';
       }
       const counts = display && display.formCounts ? display.formCounts(item.hist) : { beat: item.beats, total: item.hist.length };
-      const pills = item.hist.map((v) => {
-        const verdict = display && display.deltaVerdict ? display.deltaVerdict(v) : null;
-        const key = verdict ? verdict.key : 'par';
-        return '<i class="vt-home-pill" data-verdict="' + key + '"></i>';
-      }).join('');
+      const pills = thugPills(item.hist);
       const line = counts.beat + ' of ' + (counts.total || WINDOW) + ' beat expectation';
-      return '<a class="vt-home-rise" href="' + esc(playerHref(slugFile, r.steam64)) + '">'
+      return '<a class="vt-home-rise" href="' + esc(playerHref(slugFile, r.steam64)) + '"' + steamAttr(r.steam64) + '>'
         + '<span class="vt-home-rank">' + (i + 1) + '</span>'
         + '<span class="vt-home-rise-main">'
         + '<span class="vt-home-rise-top"><span class="vt-home-rise-name">' + esc(r.name || 'Unknown') + '</span>'
@@ -1053,6 +1069,67 @@
       + esc(m.name || m.id || 'Match') + ' · ' + esc(ago(m.date)) + ' · ' + tag + '</a>';
   }
 
+  // The ranked rows directly above and below the followed player, in the
+  // order the ELO page ladder uses. Both null when the player is not ranked.
+  function ladderNeighbors(ratings, sid, compare) {
+    const none = { above: null, below: null };
+    if (typeof compare !== 'function') return none;
+    const ranked = (ratings || []).filter((r) => r && r.leaderboard_eligible === true).sort(compare);
+    for (let i = 0; i < ranked.length; i++) {
+      if (String(ranked[i].steam64 || '') === sid) {
+        return { above: ranked[i - 1] || null, below: ranked[i + 1] || null };
+      }
+    }
+    return none;
+  }
+
+  function commanderCompare(a, b) {
+    const va = Number(a.vtsr_c) || 0;
+    const vb = Number(b.vtsr_c) || 0;
+    if (va !== vb) return vb - va;
+    const na = String(a.name || '').toLowerCase();
+    const nb = String(b.name || '').toLowerCase();
+    return na < nb ? -1 : (na > nb ? 1 : 0);
+  }
+
+  function nearRow(r, side, pills, title, slugFile) {
+    const above = side === 'above';
+    return '<a class="vt-home-near" data-side="' + side + '" href="' + esc(playerHref(slugFile, r.steam64)) + '"'
+      + steamAttr(r.steam64) + ' title="' + esc(title) + '">'
+      + '<i class="bi ' + (above ? 'bi-caret-up-fill' : 'bi-caret-down-fill') + ' vt-home-near-dir" aria-hidden="true"></i>'
+      + '<span class="vt-home-near-name"><span class="visually-hidden">'
+      + (above ? 'Above on the ladder: ' : 'Below on the ladder: ') + '</span>'
+      + esc(r.name || 'Unknown') + '</span>'
+      + '<span class="vt-home-pills" aria-hidden="true">' + pills + '</span>'
+      + '</a>';
+  }
+
+  function thugNear(r, side, slugFile) {
+    if (!r) return '';
+    const display = window.VTSRDisplay;
+    const hist = histOf(r);
+    const band = display && display.bandFor ? display.bandFor(r) : null;
+    const counts = display && display.formCounts ? display.formCounts(hist) : null;
+    const bits = [r.name || 'Unknown'];
+    if (band && band.label) bits.push(band.label);
+    if (counts && counts.total) bits.push(counts.beat + ' of ' + counts.total + ' beat expectation');
+    return nearRow(r, side, thugPills(hist), bits.join(' · '), slugFile);
+  }
+
+  function commanderNear(r, side, slugFile) {
+    if (!r) return '';
+    const hist = histOf(r);
+    let wins = 0;
+    let losses = 0;
+    for (let k = 0; k < hist.length; k++) {
+      if (hist[k] > 0) wins++;
+      else if (hist[k] < 0) losses++;
+    }
+    const title = (r.name || 'Unknown') + ' · VSR-C ' + Math.round(Number(r.vtsr_c) || 0)
+      + ' · ' + wins + '–' + losses + ' last ' + hist.length;
+    return nearRow(r, side, signPills(hist), title, slugFile);
+  }
+
   function paintYouThug(elo, slugFile) {
     const list = document.getElementById('vt-home-thugs');
     if (!list || !window.VTWho) return;
@@ -1061,9 +1138,10 @@
     const row = findBySteam(elo && elo.ratings, sid);
     const name = (row && row.name) || (rec && rec.name) || 'You';
     const link = '<a class="vt-home-you-name" href="' + esc(playerHref(slugFile, sid)) + '">' + esc(name) + '</a>';
+    const open = '<div class="vt-home-you"' + steamAttr(sid) + '>';
     if (!row) {
       placeHeadNet('vt-home-thugs', '');
-      list.innerHTML = link + '<p class="vt-home-you-line">No thug rating yet</p>';
+      list.innerHTML = open + link + '<p class="vt-home-you-line">No thug rating yet</p></div>';
       return;
     }
     const display = window.VTSRDisplay;
@@ -1073,13 +1151,17 @@
       ? display.bandChipHtml(band, { compact: true, bsTooltip: false })
       : '';
     const prov = row.matches_provisional ? '<span class="vt-who-chip">Provisional</span>' : '';
-    const hist = Array.isArray(row.win_history) ? row.win_history.map(Number) : [];
+    const hist = histOf(row);
     const form = formChart(hist, 'thug');
+    const near = ladderNeighbors(elo && elo.ratings, sid, display && display.ladderCompare);
     placeHeadNet('vt-home-thugs', form && form.net);
-    list.innerHTML = link
+    list.innerHTML = thugNear(near.above, 'above', slugFile)
+      + open + link
       + '<span class="vt-home-you-line">' + chip + prov + statusChip(row.inactive_status) + '</span>'
       + (form ? form.chart : '')
-      + '<p class="vt-home-you-line">' + thugWhen(row) + '</p>';
+      + '<p class="vt-home-you-line">' + thugWhen(row) + '</p>'
+      + '</div>'
+      + thugNear(near.below, 'below', slugFile);
   }
 
   function thugWhen(row) {
@@ -1109,15 +1191,20 @@
     }
     const prov = row.provisional ? '<span class="vt-who-chip">Provisional</span>' : '';
     const record = (row.wins || 0) + '–' + (row.losses || 0) + '–' + (row.draws || 0);
-    const hist = Array.isArray(row.win_history) ? row.win_history.map(Number) : [];
+    const hist = histOf(row);
     const form = formChart(hist, 'commander');
+    const near = ladderNeighbors(data && data.ratings, sid, commanderCompare);
     placeHeadNet('vt-home-commanders', form && form.net);
     const href = playerHref(slugFile, sid);
-    list.innerHTML = '<a class="vt-home-you-name" href="' + esc(href) + '">' + esc(row.name || 'You') + '</a>'
+    list.innerHTML = commanderNear(near.above, 'above', slugFile)
+      + '<div class="vt-home-you"' + steamAttr(sid) + '>'
+      + '<a class="vt-home-you-name" href="' + esc(href) + '">' + esc(row.name || 'You') + '</a>'
       + '<span class="vt-home-you-line vt-mono">' + Math.round(row.vtsr_c || 0) + ' · ' + record + '</span> '
       + prov
       + (form ? form.chart : '')
-      + '<p class="vt-home-you-line">' + commandWhen(row) + '</p>';
+      + '<p class="vt-home-you-line">' + commandWhen(row) + '</p>'
+      + '</div>'
+      + commanderNear(near.below, 'below', slugFile);
   }
 
   function commandWhen(row) {
@@ -1129,22 +1216,6 @@
     const m = findManifest(id);
     const map = m && m.name ? ' · ' + esc(m.name) : '';
     return 'Last commanded ' + date + map;
-  }
-
-  function paintHomeAt() {
-    const el = document.getElementById('vt-home-at');
-    if (!el || !window.VTWho) return;
-    const rec = VTWho.get();
-    if (!rec || rec.status !== 'set' || !rec.name) {
-      el.hidden = true;
-      el.removeAttribute('href');
-      el.textContent = '';
-      return;
-    }
-    el.hidden = false;
-    el.href = playerHref(homeSlugs, rec.steam64);
-    el.textContent = '@' + rec.name;
-    el.title = rec.name;
   }
 
   function paintHomeLists() {
@@ -1171,7 +1242,6 @@
   }
 
   function boot() {
-    paintHomeAt();
     fitHeader();
     window.addEventListener('resize', () => {
       fitHeader();
@@ -1208,7 +1278,6 @@
       paintKpis(files[1]);
       paintHours();
       paintMatches();
-      paintHomeAt();
       paintHomeLists();
       paintMeta();
       requestAnimationFrame(fitRising);

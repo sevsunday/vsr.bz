@@ -42,6 +42,9 @@
   document.addEventListener('vt-who-change', () => {
     if (typeof syncYouChip === 'function') syncYouChip();
   });
+  document.addEventListener('vt-presence-change', () => {
+    if (typeof syncLiveChip === 'function') syncLiveChip();
+  });
 
   // ---- Constants --------------------------------------------------------
 
@@ -495,6 +498,11 @@
 
     if (slug) return `${prefix}${slug}/`;
     return `${prefix}./?p=${encodeURIComponent(steam64)}`;
+  }
+
+  function steamAttr(steam64) {
+    const sid = String(steam64 || '');
+    return /^\d{17}$/.test(sid) ? ` data-steam64="${sid}"` : '';
   }
 
   function formatNumber(n) {
@@ -1277,16 +1285,42 @@
 
   // ---- Phase 4: Overview tab renderer ----------------------------------
 
+  function shownSteam64() {
+    const boot = window.__vtPlayerBoot && window.__vtPlayerBoot.steam64
+      ? String(window.__vtPlayerBoot.steam64)
+      : '';
+    return boot || (state.currentRating && state.currentRating.steam64
+      ? String(state.currentRating.steam64)
+      : '');
+  }
+
+  // Live presence (js/presence.js): the shown player is in a VSR lobby.
+  function syncLiveChip() {
+    const chips = document.querySelector('#vt-player-single .vt-player-title-chips');
+    if (!chips) return;
+    const sid = shownSteam64();
+    const presence = window.VTPresence;
+    const live = sid && presence && typeof presence.state === 'function' ? presence.state(sid) : '';
+    let chip = chips.querySelector('.vt-live-title-chip');
+    if (!live) {
+      if (chip) chip.remove();
+      return;
+    }
+    if (!chip) {
+      chip = document.createElement('span');
+      chip.className = 'vt-player-card-pill vt-live-title-chip';
+      chips.appendChild(chip);
+    }
+    const inGame = live === 'InGame';
+    chip.textContent = inGame ? 'In game' : 'In lobby';
+    chip.title = inGame ? 'In a VSR game right now' : 'In a VSR lobby right now';
+  }
+
   function syncYouChip() {
     const chips = document.querySelector('#vt-player-single .vt-player-title-chips');
     if (!chips) return;
     let chip = chips.querySelector('.vt-you-title-chip');
-    const boot = window.__vtPlayerBoot && window.__vtPlayerBoot.steam64
-      ? String(window.__vtPlayerBoot.steam64)
-      : '';
-    const shown = boot || (state.currentRating && state.currentRating.steam64
-      ? String(state.currentRating.steam64)
-      : '');
+    const shown = shownSteam64();
     const me = window.VTWho && VTWho.steam64 ? VTWho.steam64() : '';
     const on = !!(shown && me && shown === me);
     if (on && !chip) {
@@ -1339,6 +1373,7 @@
     // re-run on activation without re-resolving from URL.
     state.currentRating = rating;
     syncYouChip();
+    syncLiveChip();
 
     // "Compare with..." button — stash this player in the localStorage
     // clipboard and bounce back to the directory with compare-mode on.
@@ -3460,7 +3495,7 @@
               const tag = withF9 && o.f9Faced
                 ? `<span class="vt-cmdr-riv-tag" title="${o.f9Faced} of ${o.faced} from F9bomber's community ledger">F9 \u00d7${o.f9Faced}</span>` : '';
               return `<tr>
-                <td><a href="${playerHref(o.steam64)}"><strong>${escapeHtml(o.name)}</strong></a>${tag}</td>
+                <td><a href="${playerHref(o.steam64)}"${steamAttr(o.steam64)}><strong>${escapeHtml(o.name)}</strong></a>${tag}</td>
                 <td class="text-end vt-matchlog-num">${o.faced}</td>
                 <td class="text-end vt-matchlog-num ${recCls}">${det ? `${o.wins}-${o.losses}-${o.draws}` : '\u2014'}</td>
                 <td class="text-end vt-matchlog-num">${tv != null ? tv : '\u2014'}</td>
@@ -3480,7 +3515,7 @@
       <i class="bi bi-crosshair vt-cmdr-riv-topopp-icon"></i>
       <div>
         <div class="vt-cmdr-riv-topopp-title">${title}:
-          <a href="${playerHref(top.steam64)}">${escapeHtml(top.name)}</a></div>
+          <a href="${playerHref(top.steam64)}"${steamAttr(top.steam64)}>${escapeHtml(top.name)}</a></div>
         <div class="vt-cmdr-riv-topopp-detail">
           Faced <strong>${top.faced}</strong> time${top.faced === 1 ? '' : 's'} as opposing commander
           &middot; head-to-head <strong>${top.wins}-${top.losses}-${top.draws}</strong>
@@ -3939,7 +3974,7 @@
                 ? ` <a href="${state.dataPrefix}matches/?match=${encodeURIComponent(p.match_id)}" title="Open match"><i class="bi bi-box-arrow-up-right"></i></a>`
                 : '';
               const opp = p.opponentSteam64
-                ? `<a href="${playerHref(p.opponentSteam64)}">${escapeHtml(p.opponent || 'unknown')}</a>`
+                ? `<a href="${playerHref(p.opponentSteam64)}"${steamAttr(p.opponentSteam64)}>${escapeHtml(p.opponent || 'unknown')}</a>`
                 : escapeHtml(p.opponent || 'unknown');
               return `<tr>
                 <td class="vt-matchlog-num">${cmdrDateLabel(p.date)}</td>
@@ -4007,7 +4042,7 @@
       .sort((a, b) => (b.w + b.l + b.d) - (a.w + a.l + a.d) || b.last.localeCompare(a.last))
       .map(e => {
         const opp = e.steam64
-          ? `<a href="${playerHref(e.steam64)}">${escapeHtml(e.name || 'unknown')}</a>`
+          ? `<a href="${playerHref(e.steam64)}"${steamAttr(e.steam64)}>${escapeHtml(e.name || 'unknown')}</a>`
           : escapeHtml(e.name || 'unknown');
         return `<tr>
           <td>${opp}</td>
@@ -4022,7 +4057,7 @@
       const dStr = Number.isFinite(p.delta) ? `${p.delta >= 0 ? '+' : ''}${p.delta.toFixed(1)}` : '\u2014';
       const dCls = Number.isFinite(p.delta) ? (p.delta >= 0 ? 'vt-vtsr-delta-positive' : 'vt-vtsr-delta-negative') : '';
       const opp = p.opponentSteam64
-        ? `<a href="${playerHref(p.opponentSteam64)}">${escapeHtml(p.opponent || 'unknown')}</a>`
+        ? `<a href="${playerHref(p.opponentSteam64)}"${steamAttr(p.opponentSteam64)}>${escapeHtml(p.opponent || 'unknown')}</a>`
         : escapeHtml(p.opponent || 'unknown');
       const dash = p.match_id
         ? ` <a href="${state.dataPrefix}matches/?match=${encodeURIComponent(p.match_id)}" title="Open match"><i class="bi bi-box-arrow-up-right"></i></a>`
@@ -4111,7 +4146,7 @@
 
   function v2NameLink(p) {
     const name = escapeHtml((p && p.name) || 'unknown');
-    return p && p.steam64 ? `<a href="${playerHref(p.steam64)}">${name}</a>` : name;
+    return p && p.steam64 ? `<a href="${playerHref(p.steam64)}"${steamAttr(p.steam64)}>${name}</a>` : name;
   }
 
   function v2Delta(d) {
@@ -4631,7 +4666,7 @@
     const top = rows.slice().sort((a, b) => (b.dealt + b.received) - (a.dealt + a.received)).slice(0, 5);
     const link = n => {
       const s64 = vtSteam64ForName(n);
-      return s64 ? `<a href="${playerHref(s64)}">${escapeHtml(n)}</a>` : escapeHtml(n);
+      return s64 ? `<a href="${playerHref(s64)}"${steamAttr(s64)}>${escapeHtml(n)}</a>` : escapeHtml(n);
     };
     const tile = (label, icon, r, value, sub) => `
       <div class="vt-rival-tile">

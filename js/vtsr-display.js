@@ -183,6 +183,24 @@
     return ((clamped - track[0]) / span) * 100;
   }
 
+  // Row order of the ELO page's default VSR-T ladder, flattened: sticky
+  // band top first (provisional last), then the white pin, then name A-Z.
+  function ladderCompare(a, b) {
+    const ba = bandFor(a);
+    const bb = bandFor(b);
+    const ia = ba ? ba.index : -1;
+    const ib = bb ? bb.index : -1;
+    if (ia !== ib) return ib - ia;
+    const pa = positionPinPct(a, ba);
+    const pb = positionPinPct(b, bb);
+    const va = pa == null ? -1 : pa;
+    const vb = pb == null ? -1 : pb;
+    if (va !== vb) return vb - va;
+    const na = String((a && a.name) || '').toLowerCase();
+    const nb = String((b && b.name) || '').toLowerCase();
+    return na < nb ? -1 : (na > nb ? 1 : 0);
+  }
+
   // Fuzzy marker inside the displayed tier's track. `row` needs vtsr;
   // `band` defaults to bandFor(row). No digits are rendered. The pin
   // is positionPinPct; the soft width is the shared noise band.
@@ -288,6 +306,7 @@
     rawBandFor,
     bandChipHtml,
     positionPinPct,
+    ladderCompare,
     positionBarHtml,
     deltaVerdict,
     verdictChipHtml,

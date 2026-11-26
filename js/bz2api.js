@@ -1056,6 +1056,18 @@ const BZ2API = (function() {
    * @param {Function} options.onStatus - Optional callback for status updates
    * @returns {Promise<Object>} Object containing sessions array and metadata
    */
+  // js/presence.js reads every page's snapshots from this event (and the
+  // last one from window.__vtLiveSnapshot when it loads late), so a page
+  // that already polls never needs a second request for the presence layer.
+  function announceSessions(sessions) {
+    if (typeof document === 'undefined' || typeof CustomEvent !== 'function') return;
+    const detail = { sessions, at: Date.now() };
+    try {
+      window.__vtLiveSnapshot = detail;
+      document.dispatchEvent(new CustomEvent('vt-live-sessions', { detail }));
+    } catch (_) { /* */ }
+  }
+
   async function fetchSessions(options = {}) {
     const { 
       enrichMaps = false, 
@@ -1107,6 +1119,7 @@ const BZ2API = (function() {
     const dataCache = buildDataCache(sessions);
     
     onStatus?.({ step: 'complete', status: 'success', message: `Loaded ${sessions.length} session${sessions.length !== 1 ? 's' : ''}` });
+    announceSessions(sessions);
     
     return {
       sessions,

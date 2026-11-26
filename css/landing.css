@@ -159,26 +159,6 @@ body.vt-home-body {
   margin-right: 0;
 }
 
-.vt-home-at {
-  align-self: center;
-  margin-left: 0.65rem;
-  min-width: 0;
-  max-width: 11rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--kb-text-secondary);
-  font-size: 0.85rem;
-  font-weight: 650;
-  line-height: 1;
-  text-decoration: none;
-}
-
-.vt-home-at:hover,
-.vt-home-at:focus-visible {
-  color: var(--kb-primary);
-}
-
 .vt-home-you-name {
   font-weight: 700;
   font-size: 0.95rem;
@@ -187,6 +167,52 @@ body.vt-home-body {
 .vt-home-you-line {
   font-size: 0.78rem;
   color: var(--kb-text-secondary);
+}
+
+/* The followed player's block on the Command / Thug form cards, between
+   the ladder neighbors. Padded so the live-presence wash has an edge. */
+.vt-home-you {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0.15rem 0.3rem;
+  border-radius: 0.35rem;
+}
+
+.vt-home-near {
+  display: grid;
+  grid-template-columns: 0.7rem minmax(0, 1fr) minmax(3.5rem, 42%);
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+  padding: 0.14rem 0.3rem;
+  border-radius: 0.35rem;
+  color: var(--kb-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.vt-home-near:hover,
+.vt-home-near:focus-visible {
+  background: color-mix(in oklab, var(--kb-bg-subtle) 75%, transparent);
+  color: var(--kb-text-primary);
+  outline: none;
+}
+
+.vt-home-near-dir {
+  color: var(--kb-text-muted);
+  font-size: 0.6rem;
+}
+
+.vt-home-near-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
 }
 
 .vt-home-you-mark {

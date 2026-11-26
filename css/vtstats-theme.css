@@ -9214,6 +9214,79 @@ html.vt-cursor-active * {
     font-size: 0.72rem;
 }
 
+/* Navbar identity pill (js/who.js), right after the brand on every shell. */
+.vt-who-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 11rem;
+    padding: 0.2rem 0.6rem 0.2rem 0.45rem;
+    border: 1px solid var(--kb-border-subtle);
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--kb-bg-subtle) 70%, transparent);
+    color: var(--kb-text-secondary);
+    font-size: 0.82rem;
+    font-weight: 650;
+    line-height: 1.2;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.vt-who-pill .bi {
+    flex: 0 0 auto;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.vt-who-pill-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vt-who-pill:hover,
+.vt-who-pill:focus-visible {
+    color: var(--kb-text-primary);
+    border-color: color-mix(in oklab, var(--kb-primary) 45%, var(--kb-border-subtle));
+    outline: none;
+}
+
+.vt-who-pill[data-vt-online] {
+    color: color-mix(in oklab, var(--kb-success) 75%, var(--kb-text-primary));
+    border-color: color-mix(in oklab, var(--kb-success) 65%, transparent);
+    background: color-mix(in oklab, var(--kb-success) 18%, transparent);
+}
+
+.vt-who-pill[data-vt-online]:hover,
+.vt-who-pill[data-vt-online]:focus-visible {
+    color: var(--kb-text-primary);
+    border-color: var(--kb-success);
+    background: color-mix(in oklab, var(--kb-success) 26%, transparent);
+}
+
+.vt-who-pill[data-vt-online] .bi {
+    color: var(--kb-success);
+}
+
+@media (max-width: 575.98px) {
+    .vt-who-pill {
+        max-width: 7.5rem;
+    }
+}
+
+@media (max-width: 399.98px) {
+    .vt-who-pill {
+        padding: 0.2rem 0.35rem;
+    }
+
+    .vt-who-pill-name {
+        display: none;
+    }
+}
+
 
 .vt-you-head {
     display: flex;

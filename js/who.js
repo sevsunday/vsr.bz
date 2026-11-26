@@ -104,7 +104,52 @@
     applyDataset(rec);
     paintStyle(rec && rec.status === 'set' ? String(rec.steam64) : '');
     paintGear();
+    paintPill();
     document.dispatchEvent(new CustomEvent('vt-who-change', { detail: detailOf(rec) }));
+  }
+
+  function profileHref(rec) {
+    const path = rec.slug
+      ? 'player/' + encodeURIComponent(rec.slug) + '/'
+      : 'player/index.html?p=' + encodeURIComponent(String(rec.steam64));
+    if (SRC) {
+      try { return new URL('../' + path, SRC).href; } catch (_) { /* */ }
+    }
+    return path;
+  }
+
+  // Navbar identity pill, right after the brand on every shell. Green while
+  // js/presence.js sees the followed player in a VSR lobby.
+  function paintPill() {
+    if (framed()) return;
+    const rec = read();
+    let pill = document.getElementById('vt-who-pill');
+    if (!rec || rec.status !== 'set') {
+      if (pill) pill.remove();
+      return;
+    }
+    if (!pill) {
+      const brand = document.querySelector('.navbar .navbar-brand');
+      if (!brand || !brand.parentNode) return;
+      pill = document.createElement('a');
+      pill.id = 'vt-who-pill';
+      pill.className = 'vt-who-pill';
+      pill.innerHTML = '<i class="bi bi-person-circle" aria-hidden="true"></i>'
+        + '<span class="vt-who-pill-name"></span>'
+        + '<span class="visually-hidden vt-who-pill-state"></span>';
+      brand.parentNode.insertBefore(pill, brand.nextSibling);
+    }
+    const name = rec.name || 'You';
+    const presence = window.VTPresence;
+    const state = presence && typeof presence.state === 'function' ? presence.state(String(rec.steam64)) : '';
+    const live = state === 'InGame' ? 'ingame' : (state ? 'lobby' : '');
+    const words = live === 'ingame' ? 'In a VSR game now' : (live === 'lobby' ? 'In a VSR lobby now' : '');
+    pill.href = profileHref(rec);
+    pill.querySelector('.vt-who-pill-name').textContent = name;
+    pill.querySelector('.vt-who-pill-state').textContent = words ? ' (' + words.toLowerCase() + ')' : '';
+    pill.title = words ? name + ' · ' + words : name + ' · this browser follows this player';
+    if (live) pill.setAttribute('data-vt-online', live);
+    else pill.removeAttribute('data-vt-online');
   }
 
   function unique(list) {
@@ -144,6 +189,7 @@
       root + ' .vt-highlight-tile:has(a[data-steam64="' + id + '"])',
       root + ' .gw-prow[data-steam64="' + id + '"]',
       root + ' .vt-active-game-modal-player-row[data-steam64="' + id + '"]',
+      root + ' .vt-home-rise[data-steam64="' + id + '"]',
     ].join(',\n');
     const pill = root + ' .vt-faction-player-chip:has(a[data-steam64="' + id + '"])';
     const chip = [
@@ -153,6 +199,8 @@
     const chipOff = [
       root + ' .vt-faction-player-chip a[data-steam64="' + id + '"]::after',
       root + ' .vt-player-card[data-steam64="' + id + '"]::after',
+      root + ' .vt-home-rise[data-steam64="' + id + '"]::after',
+      root + ' .vt-home-near[data-steam64="' + id + '"]::after',
     ].join(',\n');
     el.textContent = row + ' {\n'
       + '  background: color-mix(in oklab, var(--kb-primary) 12%, transparent);\n'
@@ -713,6 +761,7 @@
       }
       if (mounted) {
         paintGear();
+        paintPill();
         noteKnown();
         maybeAuto();
         return;
@@ -720,6 +769,7 @@
       mounted = true;
       ensureGear();
       ensureModal();
+      paintPill();
       noteKnown();
       maybeAuto();
     },
@@ -733,6 +783,7 @@
     if (ev.key !== KEY) return;
     dispatch(read());
   });
+  document.addEventListener('vt-presence-change', paintPill);
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', api.mount);
