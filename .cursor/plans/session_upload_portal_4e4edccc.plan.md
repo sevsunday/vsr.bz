@@ -15,7 +15,7 @@ todos:
     content: "GitHub-backed private state on the stats-portal state branch (submitters, password checks, audit log, upload records, block list, settings): access and safety changes written at once, routine log entries batched, compare-and-swap, no write for unapproved requests"
     status: pending
   - id: auth
-    content: "Steam OpenID login with the full set of response checks and a pinned base URL and host, host-only signed sessions re-checked on every request, submitter gate, one-time devtest password check with 90-day memory and lockouts, CSRF and security headers"
+    content: "Steam OpenID login with the full set of response checks and a pinned base URL and host, host-only signed sessions re-checked on every request, submitter gate, admin rights from the environment only, one-time devtest password check with 90-day memory and lockouts, CSRF and security headers"
     status: pending
   - id: validator
     content: "Layered streaming validator run in a memory- and time-limited worker process: gzip fingerprint, strict decode against era-matched descriptors read from main, header, stream, identity and ODF checks, limits kept per schema version; tests over all 390 sessions plus synthetic bad files"
@@ -33,7 +33,7 @@ todos:
     content: "Admin dashboard: health, submitters, approvals, sign-in and audit log, git and publish history, queue, outcome flags, and the recovery actions"
     status: pending
   - id: ci-integration
-    content: "Draft process-uploads.yml and ci_uploads.py in portal/integration (process, publish and report jobs, fresh shallow checkout, wait and consistency checks, two-pass run that applies outcomes, output path list, protected sessions, quarantine, serialized and paced publishes, hourly sweep, manual modes); install in vsr.bz on go-ahead with the merge rules, the keyed-JSON merge helper and the one-line folder sort key; run the no-push parity dry run"
+    content: "Draft process-uploads.yml and ci_uploads.py in portal/integration (process, publish and report jobs, fresh shallow checkout, wait and consistency checks, two-pass run that applies outcomes, output path list, protected sessions, owner-only remove and rebuild, quarantine, serialized and paced publishes, hourly sweep, manual modes); install in vsr.bz on go-ahead with the merge rules, the keyed-JSON merge helper and the one-line folder sort key; run the no-push parity dry run"
     status: pending
   - id: site-changes
     content: "On go-ahead and before go-live: quote escaping in the five escape helpers and the shared theme cookie in js/theme.js; check the match picker, the ELO page and theme switching in a browser"
@@ -96,7 +96,7 @@ portal/
 - **Carry-over**: browser storage is not shared between `vsr.bz` and `upload.vsr.bz`. `js/theme.js` therefore gets a small addition, on your go-ahead: it also writes the chosen theme and mode to a cookie on `vsr.bz` that both sites can read, and on load adopts the cookie when that is the newer choice. The portal reads the cookie on the server, so a page arrives already in that theme, and a change on either site carries to the other. One file reaches the whole site: 27 of 28 shells and both stub templates load it.
 - Someone who has not visited the main site since that change sees the default theme on the portal until they pick one.
 - **Navigation**: the VSR brand links back to `vsr.bz`. The bar holds the portal's own pages (Upload, My games, Admin), the palette menu and the account menu. The full site menu is not copied.
-- The theme cookie can be set by any script on `vsr.bz`, so the portal accepts only known theme ids from it.
+- The theme cookie can be set by any script on `vsr.bz`, so the portal accepts only known theme ids and modes from it.
 
 ## Processing always uses the latest pipeline
 
@@ -110,14 +110,15 @@ portal/
 
 - **Steam**: OpenID 2.0, verified server-side with Steam. Every login checks Steam's endpoint, our exact return URL, that the signed field list covers the claimed id, identity, return URL, nonce and association handle, the claimed-id pattern, nonce freshness and replay, and a short-lived login state cookie.
 - **One address**: the return URL and the origin check come from a configured base URL, never from request headers. Any other host, including the service's own `onrender.com` address, is redirected or refused. After sign-in the portal only redirects to its own pages.
-- **Submitter list**: Steam64 to sessions folder and role, edited in the admin dashboard, seeded with Sev (admin), Nomad, VTrider and Cyber. Any other account sees "not approved" with its Steam64 and never reaches the password form.
-- **Password**: an approved account is asked once to "Enter the password you use to access the BZCC devtest branch". The portal holds only an scrypt hash in a Render environment variable and compares in constant time. The check is remembered per Steam account for 90 days, across browsers. A password change is detected by a keyed fingerprint (the hash itself is never stored with the accounts) and everyone is asked again at once. Five wrong tries lock that account for 15 minutes.
-- **Sessions**: 30 days in a `Secure`, `HttpOnly`, `SameSite=Lax` signed cookie. Every request re-checks the submitter's current status, so disabling someone or resetting their password check takes effect at once. CSRF token and origin check on every POST, and a content security policy that allows scripts only from the portal itself.
-- **Same site as vsr.bz**: a browser treats `vsr.bz` and `upload.vsr.bz` as one site, so the portal does not rely on SameSite. Its cookies use the `__Host-` prefix, which the main site cannot set or overwrite, every change is a POST with a token and an exact origin check, and it sends no CORS headers.
+- **Submitter list**: Steam64 to sessions folder, edited in the admin dashboard, seeded with Sev, Nomad, VTrider and Cyber. Any other account sees "not approved" with its Steam64 and never reaches the password form.
+- **Admins**: admin rights come only from the Steam64 list in Render's environment (Sev to start), never from the stored submitter list, so nothing written to the state branch can make an admin.
+- **Password**: an approved account is asked once to "Enter the password you use to access the BZCC devtest branch". The portal holds only an scrypt hash in a Render environment variable and compares in constant time. The check is remembered per Steam account for 90 days, across browsers. A password change is detected by a keyed fingerprint (the hash itself is never stored with the accounts) and everyone is asked again at once. Five wrong tries lock that account for 15 minutes, and every wrong try is written to the state branch at once.
+- **Sessions**: 30 days in a `Secure`, `HttpOnly`, `SameSite=Lax` signed cookie. Every request re-checks the submitter's current status, so disabling someone or resetting their password check takes effect at once. CSRF token and origin check on every POST. The content security policy allows scripts only from the portal itself and no inline scripts or style blocks; it does allow inline style attributes, which the shared theme menu uses.
+- **Same site as vsr.bz**: a browser treats `vsr.bz` and `upload.vsr.bz` as one site, so the portal does not rely on SameSite. Its cookies use the `__Host-` prefix, which the main site cannot set or overwrite, and the CSRF token lives inside that session cookie. Every change is a POST with a token and an exact origin check, and it sends no CORS headers. In production the portal refuses to start without an https base URL.
 
 ## Upload checks
 
-- **Before sending**: the page skips files the site already has (same name and size in the recorder's folder) and files that are not gzip, so selecting the whole statsgate folder sends only new games. The server still checks everything.
+- **Before sending**: the page skips files the site already has or that are already queued or held (same name and size in the recorder's folder) and files that are not gzip, and lists what it skipped and why, so selecting the whole statsgate folder sends only new games. The server still checks everything.
 - **Request**: one file per request, 64 MB cap enforced while streaming (the largest so far is 26 MB; 64 MB covers three hours at 30 Hz), browser-supplied name and type ignored, 20 files or 300 MB per batch, 60 files per user per day.
 - **Limits per schema version**: the size cap and the per-tick ranges are admin settings kept per collector schema version, so a denser future format needs no code change. The cap can go up to GitHub's 100 MiB file limit.
 - **Isolation**: each file is checked in a short-lived worker process with a memory and a time limit, one at a time, so a hostile file cannot take the web process down or starve it. The memory limit is enforced by the portal watching the worker's real memory use, because an address-space limit can reject valid files.
@@ -127,14 +128,14 @@ portal/
 - **Stream**: tick order within a small tolerance, update-tick count against length, at most 10 players per tick, at least 2 valid Steam64s, at least 60 seconds, well-formed ODF names of which at least 90% exist in `data/odf.min.json`, bytes and events per tick inside the range for that schema version.
 - **Nicknames**: no control characters, at most 64 characters. Quotes and angle brackets stay allowed, because real names use them (`Raxion "Shadowthief"`, `Ashleyyyy<3`); the site's escaping is what has to handle them.
 - **Identity**: `author_steam64` is the signed-in account and that account appears in the game. Admins may upload for another approved recorder.
-- **Duplicates and removals**: blob SHA and path against `data/sessions/` on `main`, against queued uploads and within the batch; the pipeline's duplicate receipt (`data/duplicate_recordings.json`); and a block list. A recording an admin removed, or one that was published and later disappears from `main` (a manual revert), is blocked until you unblock it. The list starts with the five VTrider recordings reverted on Nov 21.
-- **Held for you**: an upload goes to `held/*` and waits for an admin to approve or delete it in three cases. Approval is switched on, globally or for that submitter (off by default). The recording contains both accounts of a silent alias, which the pipeline would stop on. Or it starts in the same second as another recorder's published match without being the same game, which would give two matches one id.
+- **Duplicates and removals**: blob SHA and path against `data/sessions/` on `main`, against queued, held and quarantined uploads, and within the batch; the pipeline's duplicate receipt (`data/duplicate_recordings.json`); and a block list. A recording an admin removed is blocked until you unblock it. So is one that was published and whose content is no longer anywhere under `data/sessions/` on `main` (a manual revert), unless the pipeline's receipt shows it was merged as a duplicate. The list starts with the five VTrider recordings reverted on Nov 21.
+- **Held for you**: an upload goes to `held/*` and waits for an admin to approve or delete it in three cases. Approval is switched on, globally or for that submitter (off by default). The recording contains both accounts of a silent alias, which the pipeline would stop on; the alias table is read from `scripts/identity_aliases.py` on `main` as data, never imported. Or it starts in the same second as another recorder's match, published or queued, without being the same game, which would give two matches one id. Approving is a branch rename, with no re-upload.
 - **Path**: the server builds `data/sessions/<Folder>/<start_time>.binpb.gz` itself. Folder names are ASCII letters, digits, `_` and `-`, unique ignoring case, never a reserved Windows name such as `CON` or `AUX`, and fixed once the recorder has an upload. The add-submitter form suggests one from `data/steamid_to_name.txt`.
 - Measured so far: all 390 files share one gzip header. On 15 files across all five schema eras the strict decode, the `last_tick` rule and the recorder-in-game rule all hold, and the largest file (26 MB) checks in about 2 seconds locally. The other thresholds are set from the full corpus during the build, and the test suite requires all 390 sessions to pass and synthetic bad files to fail.
 
 ## Upload handling on Render's free tier
 
-- Files are streamed to temporary disk, never held in memory. A checked file is stored once, inside the batch's scratch git repository, so a batch never takes more than its own size on disk.
+- Files are streamed to temporary disk, never held in memory. A checked file is moved into the batch's scratch git repository and its temporary copy deleted, so a batch never takes more than its own size on disk.
 - A batch is pushed with `git` itself (available in Render's Python runtime) as a commit with no parent, so nothing is base64-encoded or buffered. The access token reaches git through an askpass helper, never in a URL, an argument or a config file. The GitHub API route stays as a fallback.
 - Staged batches wait until the outcomes are submitted. The page pings the server while someone is active on it, and stops after 30 minutes without activity, so the service does not sleep mid-upload and an abandoned tab cannot keep it awake.
 - Staging has a global size cap, is deleted right after the push, and is cleared after 30 minutes otherwise. If a restart clears it sooner, the page says so, and re-sending the same files keeps the answers already chosen.
@@ -161,12 +162,13 @@ portal/
 
 ## The publishing workflow
 
-- **Triggers**: started by the portal, by a push to `main` that changes `data/processed/**` or `data/match_outcome_adjudications.json`, and by an hourly sweep that exits in seconds when nothing is queued. A start request names no batch: every run takes everything queued. It never runs from an inbox branch. Runs are serialized and never cancelled mid-run, and a run caused by the workflow's own publish commit exits at once.
-- **Pacing**: portal publishes are at least 20 minutes apart. A run that starts inside that gap waits it out before checking out `main`, then publishes everything queued by then as one commit, so a burst of uploads costs one Pages build and does not cancel the one before it. Pages has a soft limit of 10 builds an hour; your busiest hour in the last two weeks had 4.
-- **`process` job**: no secrets and a read-only token. It checks out `main`, copies in the queued files (regular files of the one allowed path shape only), runs the pipeline twice (the second pass applies the outcomes), starts over in place if `main` moved meanwhile, then packs the changed files, the deletions and a result record into an artifact. When only timestamps would change, nothing is published.
-- **`publish` job**: runs only when there is something to publish and is the only job with the push credential. It never parses a recording, runs no pipeline code, installs nothing, restores no cache and needs no working copy: the artifact is unpacked outside the repository and the commit is built directly on `main`'s tree. It refuses the artifact unless every path is on the output list, page stubs match their templates, rewrite counts are within bounds and `main` has not moved.
-- **Sessions are protected**: an existing session file can never be modified. It can be deleted only when the same commit carries the pipeline's duplicate receipt for it, or in the admin's remove mode for the named file.
-- **`report` job**: runs even when processing failed, with the workflow's built-in token. It moves failed batches to `quarantine/`, deletes inbox branches once their files are confirmed on `main`, sets the statuses, opens or updates the issue, and re-runs the workflow if `main` moved in the last moments before the push. It lists the queue itself, accepts only names of the expected form from the processing job, and puts error text into the issue truncated and inside a code block. A batch that fails three runs in a row is quarantined.
+- **Triggers**: started by the portal, by a push to `main` that changes `data/processed/**` or `data/match_outcome_adjudications.json`, and by an hourly sweep that exits in seconds when there is nothing to do. A start request names no batch: every run takes everything queued. A push of the adjudication file runs the pipeline even when nothing is queued. It never runs from an inbox branch. Runs are serialized and never cancelled mid-run. A run caused by the workflow's own publish commit exits at once; it is recognised by a marker in the commit message, whichever credential pushed it.
+- **Pacing**: portal publishes are at least 20 minutes apart. A run that starts inside that gap waits it out before checking out `main`, then publishes everything queued by then as one commit, so a burst of uploads costs one Pages build and does not cancel the one before it. Pages has a soft limit of 10 builds an hour; your busiest hour in the last two weeks had 4. Pacing applies to uploads only: runs you start yourself, dry runs and outcome edits go at once.
+- **`process` job**: no secrets and a read-only token. It checks out `main`, copies in the queued files (regular files of the one allowed path shape only), runs the pipeline twice (the second pass applies the outcomes), starts over in place if `main` moved meanwhile, then packs the changed files, the deletions and a result record into an artifact. Two different games that would get the same match id are caught here too, and the later batch is set aside. When only timestamps would change, nothing is published; a change in outcomes or ratings is published even without a new session.
+- **`publish` job**: runs only when there is something to publish and is the only job with the push credential. It never parses a recording, runs no pipeline code, installs nothing, restores no cache and needs no working copy: the artifact is unpacked outside the repository and the commit is built with git itself directly on `main`'s tree, with no API upload, so file size is not a concern. It refuses the artifact unless every path is on the output list, page stubs match their templates, rewrite counts are within bounds and `main` has not moved.
+- **Sessions are protected**: an existing session file can never be modified. It can be deleted only when the same commit carries the pipeline's duplicate receipt for it, or in remove mode for the named file.
+- **Owner-only modes**: remove and full rebuild run only when the repository owner starts them from GitHub. A run started by the portal cannot use them, so a leaked portal credential cannot delete published sessions.
+- **`report` job**: runs even when processing failed, with the workflow's built-in token. It moves failed batches to `quarantine/`, deletes inbox branches once their files are confirmed on `main`, sets the statuses, opens or updates the issue, and starts a new run if `main` moved in the last moments before the push (GitHub documents that a `workflow_dispatch` started with the built-in token does create a run). It lists the queue itself, accepts only names of the expected form from the processing job, and puts error text into the issue truncated and inside a code block whose fence is longer than any run of backticks in the text. A batch that fails three runs in a row is quarantined.
 - **Output list**: sessions, `data/processed/**`, the adjudication, duplicate and joint-test files, map registry and images, render extracts, and the player and map stubs, confirmed by the dry run. Code, workflows and curated inputs such as `data/odf.min.json` and `data/steamid_to_name.txt` can never be written.
 - **Hygiene**: untrusted values (branch names, file names, batch records) are never placed into workflow shell lines, and actions are pinned to commit SHAs.
 
@@ -183,24 +185,25 @@ The workflow publishes only as a fast-forward of the current `main`. It never me
 - **History rewritten on `main`**: each upload is a commit with no parent that is copied, never merged, so it still applies.
 - **A start was missed or a run failed for a passing reason** (Render restarted, Actions hiccup): the hourly sweep picks it up.
 - **Credential expired, workflow missing, Actions down**: uploads stay queued and the health panel says why.
-- **Admin actions**, all logged: retry, dry run without pushing, full rebuild, approve or delete a held upload, quarantine, release or delete an upload, remove a published session and block its re-upload, pause or resume uploads, pause or resume publishing.
+- **Admin actions from the portal**, all logged: retry, dry run without pushing, approve or delete a held upload, quarantine, release or delete an upload, pause or resume uploads, pause or resume publishing.
+- **Admin actions from GitHub, by you**: remove a published session (the portal then blocks its re-upload) and full rebuild. The admin page links to the run form and shows what to enter.
 
 ## Where things are stored
 
 - `sevsunday/stats-portal`, `main`: the portal code that Render deploys.
 - `sevsunday/stats-portal`, `state` branch: submitters, password checks, audit log, upload records, block list, settings. The repo is public today and has to be private for this.
-  - Changes that affect access or safety (submitter changes, password-check resets, lockouts, kill switches, the block list) and accepted uploads are written at once, and the page reports success only after the write is confirmed.
+  - Changes that affect access or safety (submitter changes, password-check resets, wrong password tries, lockouts, kill switches, the block list) and accepted uploads are written at once, and the page reports success only after the write is confirmed.
   - Routine log entries are batched into at most one commit every 30 seconds and flushed on shutdown. All writes use compare-and-swap with retry.
   - A request from an account that is not approved never causes a write. It is rate-limited, counted in memory, written to Render's log and summarized for the admin at most every 10 minutes.
   - IP addresses are stored only as a keyed hash whose key exists only in Render's environment.
 - vsr.bz, `inbox/*`, `held/*` and `quarantine/*`: queued uploads, each holding only the uploaded files and a small batch record, from which the portal's upload records can be rebuilt. Inbox branches are deleted when they publish.
 - vsr.bz, `main`: one publish commit per run whose message lists each batch, file, match id, result and outcome.
-- Render environment: base URL, session secret, password hash, IP hash key, admin Steam64, portal App key, `UPLOADS_ENABLED` kill switch.
+- Render environment: base URL, session secret, password hash, IP hash key, admin Steam64 list, portal App key, `UPLOADS_ENABLED` kill switch.
 
 ## GitHub credentials
 
 - **Portal**: a GitHub App with contents and actions permission and no workflow permission, installed on both repos. It does not expire. A personal token works in its place for local testing.
-- **Ruleset** on `main` in both repos: only repository admins and the publisher may update it, so a leaked portal credential can queue files but cannot change the site.
+- **Ruleset** on `main` in both repos: only repository admins and the publisher may update it. A leaked portal credential could queue files, delete queued files and start runs. It could not change `main`, remove published sessions or start a rebuild.
 - **Publisher**: a second GitHub App with contents permission on vsr.bz only, on the ruleset's bypass list, its key kept in an Actions environment limited to `main`. It needs no yearly renewal. Statuses, quarantine moves and the issue use the workflow's built-in token, which the ruleset keeps off `main`.
 - GitHub documents that a push made with the workflow's built-in token does not start a Pages build. Whether a push by an App does is checked in the early test. If it does not, a fine-grained token of yours takes the publisher's place and the health panel warns before it expires.
 
@@ -224,7 +227,9 @@ The workflow publishes only as a fast-forward of the current `main`. It never me
 - A new session goes from Queued to Live, with its outcome applied and its match link working once Pages has deployed.
 - Two runs started back to back: the second makes no commit.
 - A `PIPELINE_VERSION` bump pushed without its output makes an upload wait; pushing the output releases it.
-- A published session removed with the admin action is gone after the next deploy and cannot be uploaded again.
+- A published session removed from GitHub is gone after the next deploy and cannot be uploaded again. The same request started with the portal's credential is refused.
+- A held upload publishes after approval without being sent again.
+- An outcome edited directly on GitHub is applied by a run while nothing is queued.
 - An account that is not approved is refused, and so is a Steam login made for a different return address.
 - The portal opens in the theme chosen on the main site, and a change made on the portal shows on the main site.
 
