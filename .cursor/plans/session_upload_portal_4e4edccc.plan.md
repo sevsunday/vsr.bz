@@ -1,30 +1,36 @@
 ---
 name: Session upload portal
-overview: A stateless Python portal on Render's free tier that takes Steam-authenticated uploads from a curated list of recorders, validates each session file, and commits it to an inbox branch of vsr.bz through the GitHub API. A GitHub Actions workflow in vsr.bz then runs the existing pipeline unattended and pushes sessions plus processed JSON to main in one commit.
+overview: "A Python portal at upload.vsr.bz (Render free tier) where approved recorders sign in with Steam, pass a one-time password check, upload session files and confirm each game's outcome. Files pass layered validation and are queued on inbox branches of vsr.bz. A GitHub Actions workflow in vsr.bz then runs the current pipeline on a fresh checkout of main and publishes sessions, outcomes and processed JSON in one commit, or stops and reports to the admin dashboard when it cannot do that cleanly."
 todos:
   - id: scaffold
-    content: Create the /portal skeleton (FastAPI app, render.yaml, requirements, .gitignore, allowlist.json seeded with Sev, Nomad, VTrider, Cyber), git init inside it, and add /portal to the vsr.bz .gitignore
+    content: "Create /portal (FastAPI app, render.yaml, config, tests), git init with sevsunday/stats-portal as remote, and add /portal to the vsr.bz .gitignore"
     status: pending
-  - id: steam-login
-    content: Steam OpenID 2.0 login with server-side verification, signed session cookie, allowlist gate, and a not-approved page that shows the visitor's Steam64
+  - id: state-store
+    content: "GitHub-backed private state on the stats-portal state branch: submitters, password checks, sign-in and audit log, upload records, block list, settings"
+    status: pending
+  - id: auth
+    content: "Steam OpenID login, signed sessions, submitter gate, one-time devtest password check with 90-day memory and lockouts, CSRF and security headers"
     status: pending
   - id: validator
-    content: Streaming gzip and protobuf validator with the header, identity and content rules, a vendored statsgate_pb2.py, and tests that accept all 390 existing sessions and reject synthetic bad files
+    content: "Layered streaming validator: gzip fingerprint, strict decode against era-matched descriptors read from main, header, stream, identity and ODF checks; tests over all 390 sessions plus synthetic bad files"
     status: pending
-  - id: github-commit
-    content: "GitHub client: session tree lookup, blob-SHA and path duplicate checks, duplicate-receipt check, batch commit to an inbox/<id> branch, and a local dry-run mode"
+  - id: outcome-prompt
+    content: "Game preview (rosters, commanders, factions, host answer, kill-feed evidence) and the outcome form, with a parity test against every published match"
     status: pending
-  - id: ui-status
-    content: Upload page with multi-file select and already-published pre-check, per-file results, stateless status timeline and upload history, small admin view, rate limits and kill switch
+  - id: github-queue
+    content: "GitHub App client: duplicate and block-list checks, stand-alone inbox commits with the batch record, workflow start, status tracking; early test of the largest file through the GitHub API"
+    status: pending
+  - id: submitter-ui
+    content: "Upload page with per-file progress and results, and the read-only My games dashboard"
+    status: pending
+  - id: admin-ui
+    content: "Admin dashboard: health, submitters, sign-in and audit log, git and publish history, queue, outcome flags, and the recovery actions"
     status: pending
   - id: ci-integration
-    content: "Draft process-uploads.yml and ci_uploads.py in portal/integration (inbox trigger, wait-then-catch-up on a mid-reprocess main, rerun when matches.json changes on main, manual dry-run and full-rebuild inputs), install them in vsr.bz on go-ahead, and run the no-push parity dry-run"
-    status: pending
-  - id: merge-rule
-    content: "On go-ahead, add the .gitattributes merge rule for generated files in vsr.bz and put the one-time local git config line and the commit, pull, rerun, push routine in the runbook"
+    content: "Draft process-uploads.yml and ci_uploads.py in portal/integration (fresh checkout, wait and consistency checks, two-pass run that applies outcomes, guards, quarantine, publish, issue on failure, manual modes); install in vsr.bz on go-ahead together with the .gitattributes merge rule; run the no-push parity dry run"
     status: pending
   - id: deploy-runbook
-    content: Write the portal README runbook, deploy to Render, and take one real upload from sign-in to live on vsr.bz
+    content: "Runbook, Render deploy at upload.vsr.bz, GitHub App, ruleset and publish token set up with you, and one real upload from sign-in to live"
     status: pending
   - id: main-site-followup
     content: "After go-live: link the portal from record/index.html and update README.md, DEVELOPER_GUIDE.md and project-overview.mdc"
@@ -34,98 +40,133 @@ isProject: false
 
 # Session upload portal
 
+Everything here is built in `/portal` (which becomes `sevsunday/stats-portal`), except the items under "Changes in the vsr.bz repo" and "What you do yourself".
+
 ## How it works
 
 ```mermaid
 flowchart LR
-  Recorder[RecorderBrowser] -->|"Steam OpenID login"| Portal[PortalOnRender]
-  Portal -->|"validate, dedupe"| Portal
-  Portal -->|"GitHub API commit"| Inbox[InboxBranch]
-  Inbox -->|"push event"| Actions[GitHubActions]
-  Actions -->|"pipeline, one commit"| MainBranch[MainBranch]
+  Recorder[RecorderBrowser] -->|"Steam login, password, files, outcomes"| Portal[PortalOnRender]
+  Portal -->|"checked files and answers"| Inbox[InboxBranches]
+  Portal -->|"start a run"| Actions[GitHubActions]
+  Inbox --> Actions
+  Actions -->|"fresh checkout, pipeline, one commit"| MainBranch[MainBranch]
   MainBranch -->|"Pages deploy 12-17 min"| Site[VsrBz]
-  Portal -.->|"status checks"| Site
+  Actions -.->|"status per upload"| Portal
+  Portal -->|"users, sign-ins, upload log"| StateBranch[PrivateStateBranch]
 ```
 
-- The portal never clones vsr.bz (8.6 GB tracked). It writes through the GitHub Git Data API: blobs, one tree, one commit, one new ref `inbox/<utc>-<Folder>-<id>` per upload batch.
-- The workflow triggers on `inbox/**`, checks out `main` sparsely (about 4.5 GB: `scripts`, `data/sessions`, `data/processed`, `data/render`, `data/maps`, `data/external`, `player`, `map`), copies the uploaded files in, and runs `python scripts/process_stats.py --no-sync --no-prompt`.
-- It pushes sessions and processed output to `main` as one commit, then deletes the inbox branches it consumed. `main` therefore only ever receives sessions the full pipeline has already processed, a bad file cannot break your local runs, and each batch costs one Pages build instead of two.
-- The portal keeps no database. Login is a signed cookie; pending uploads are the inbox branches; history is the git log; "live" is the match id appearing in `https://vsr.bz/data/processed/matches.json`. That is what makes Render's free tier (no disk, sleeps when idle) workable.
-- Expected time from upload to live: about 20-25 minutes, most of it the Pages deploy.
+- The portal at `upload.vsr.bz` signs recorders in, checks files, asks for outcomes and queues uploads on `inbox/*` branches of vsr.bz. It never runs the pipeline and cannot write to `main`.
+- Processing runs in GitHub Actions inside vsr.bz and publishes raw sessions, outcomes and processed output as one commit. Upload to live takes about 25 minutes, most of it the Pages deploy.
+- Render's free tier has no disk, sleeps after 15 idle minutes (about a minute to wake), and its free Postgres expires after 30 days, so everything lasting is stored in GitHub.
+- Stack: FastAPI, Jinja templates, no CDN assets, a `render.yaml` blueprint.
 
-## Facts this rests on (checked in the repo)
+## Processing always uses the latest pipeline
 
-- All 390 files in `data/sessions/` have a filename equal to the header's `start_time` in UTC, the same value [scripts/process_stats.py](scripts/process_stats.py) turns into the match id. The portal names files itself and ignores the uploaded filename.
-- Each submitter folder maps to exactly one `author_steam64` (Sev, Nomad, VTrider, Cyber), so "logged-in account recorded this file" is enforceable.
-- Every file uses config mod `1325933293.cfg`, a `.bzn` map, and tick rate 20, 30 or 60.
-- Loading the whole processed cache takes 1.6 GB of RAM and 9 seconds locally, well inside a free Actions runner.
-- The pipeline already collapses two recordings of one game and credits both submitters (`collapse_duplicate_recordings`), so the portal only needs to block exact re-uploads.
+- Every run starts from a fresh checkout of the current `main` and runs [scripts/process_stats.py](scripts/process_stats.py) from it, so a change you push is used by the next upload. There is no server copy that can fall behind.
+- Before pushing it checks `main` again. If `main` moved, it discards its result and starts over from the new tip, up to three times.
+- The checkout is the whole repo except `data/models`, `data/lego` and `data/audio` (2.9 GB of viewer assets). None of the pipeline's 30 modules reference those three. They do read outside `scripts/` and `data/`: `_map-analysis/vsrmaplist` for new-map 3D extracts, `js/bz2api.js`, `critique/decisions`. A full checkout (8.6 GB of files plus git's own copy) is too tight for the runner's 14 GB disk.
+- The run stops if a pipeline module starts referencing an excluded folder. Python and protobuf are pinned to your local versions.
 
-## What I build in `/portal`
+## Sign-in and access
 
-- **App**: FastAPI + Jinja templates, `portal/app/`. `portal/render.yaml` deploys it as a free Render web service; `SESSION_SECRET` is generated by Render.
-- **Steam login** (`app/steam_openid.py`): OpenID 2.0 redirect, server-side `check_authentication` call to Steam, claimed-id and return-URL checks, nonce freshness. No Steam API key needed.
-- **Allowlist** (`portal/allowlist.json`): Steam64 to sessions folder, plus an `admin` flag. Seeded with the four recorders above. A signed-in account that is not listed sees its own Steam64 with a copy button, so adding someone is one line.
-- **Validator** (`app/validator.py`), streaming so the 109 MB raw worst case fits in 512 MB:
-  - size cap 64 MB (corpus max 26 MB), single gzip member, CRC intact, inflate cap, no trailing bytes
-  - header first, every event decodes; unknown event types warn but never block, so a stale descriptor copy cannot stop uploads
-  - `start_time` plausible; `author_steam64` valid, allowlisted, and equal to the signed-in account (admins may upload for another allowlisted recorder)
-  - VSR config mod, non-empty map, sane tick rate, at least one `update_tick`, at least 2 valid Steam64s, duration at least 60 s
-- **Duplicate checks** (`app/github_repo.py`): git blob SHA against every file under `data/sessions/` on `main` and in pending inbox branches; same path with different bytes; recordings the pipeline already removed per `data/duplicate_recordings.json`. A second recording of an existing game is accepted with a notice.
-- **Pages**: multi-file upload (select the whole statsgate folder; a name and size pre-check skips files already published), per-file result with map, start time, duration and player count, a status timeline (Queued, Waiting for rebuild, Processing, Deploying, Live with a match link), and a small admin view with a kill switch indicator.
-- **Limits**: 20 files per batch, 60 per user per day, `UPLOADS_ENABLED` kill switch, origin check on POST.
-- **Tests**: the validator must accept all 390 existing sessions and reject synthetic bad files (truncated, trailing bytes, wrong author, wrong mod, future date); OpenID and GitHub calls are tested against mocked HTTP. A dry-run mode writes would-be commits to a local folder.
-- **Runbook**: `portal/README.md` with deploy steps, environment variables, and how to handle a failed run.
+- **Steam**: OpenID 2.0, verified server-side with Steam, bound to `https://upload.vsr.bz`.
+- **Submitter list**: Steam64 to sessions folder and role, edited in the admin dashboard, seeded with Sev (admin), Nomad, VTrider and Cyber. Any other account sees "not approved" with its Steam64 and never reaches the password form.
+- **Password**: an approved account is asked once to "Enter the password you use to access the BZCC devtest branch". The portal holds only a salted hash in a Render environment variable. The check is remembered per Steam account for 90 days, across browsers, and is asked again at once if the password changes. Five wrong tries lock that account for 15 minutes.
+- **Sessions**: 30 days, signed HttpOnly cookie, CSRF token and origin check on every POST, strict content security policy.
+
+## Upload checks
+
+- **Request**: one file per request, 64 MB cap enforced while streaming, browser-supplied name and type ignored, 20 files per batch, 60 per user per day.
+- **Container**: the 10-byte gzip header must equal the one all 390 existing files share; single member, checksum and length verified, inflate cap, no trailing bytes.
+- **Wire format**: header first and exactly once, nothing else at top level but events. Decoded in 4 MB slices against the descriptor of its own schema era (v1 to v5); any unknown field or event type fails. Descriptors are read from the `statsgate*_pb2.py` files on `main` as data, never executed, so a schema change needs no portal redeploy.
+- **Header**: VSR config mod, `.bzn` map, allowed tick rate (20, 30 or 60 today), start time between the first corpus game and now, `last_tick` matching the stream, enums in range.
+- **Stream**: tick order within a small tolerance, update-tick count against length, at most 10 players per tick, at least 2 valid Steam64s, at least 60 seconds, well-formed ODF names of which at least 90% exist in `data/odf.min.json`, bytes and events per tick inside the corpus range.
+- **Identity**: `author_steam64` is the signed-in account and that account appears in the game. Admins may upload for another approved recorder.
+- **Duplicates and removals**: blob SHA against `data/sessions/` on `main` and queued uploads, the pipeline's duplicate receipt (`data/duplicate_recordings.json`), and a block list of anything an admin removed. The block list starts with the five VTrider recordings reverted on Nov 21.
+- **Path**: the server builds `data/sessions/<Folder>/<start_time>.binpb.gz` itself. A new folder name is accepted only if Windows and Linux sort the folder list the same way.
+- **In Actions**: only that path shape is accepted from an inbox branch, and the real pipeline must process the file before it reaches `main`. A batch that breaks the pipeline moves to `quarantine/` and the rest still publish.
+- Measured so far: all 390 files share one gzip header. On 15 files across all five schema eras the strict decode, the `last_tick` rule and the recorder-in-game rule all hold, and the largest file (26 MB) checks in about 2 seconds locally. The other thresholds are set from the full corpus during the build, and the test suite requires all 390 sessions to pass and synthetic bad files to fail.
+
+## Outcome confirmation
+
+- Each uploaded game shows what the console prompt in [scripts/adjudication.py](scripts/adjudication.py) shows: map, start, duration, both teams with commanders and factions, the host's in-game answer, the kill-feed evidence and the current resolution.
+- Choices: Team 1 win, Team 2 win, Draw, Game cancelled, or I don't know. The current resolution is preselected. Void and defer are not offered.
+- An answer is final. Actions writes it to `data/match_outcome_adjudications.json` with the pipeline's own `make_entry`, where it outranks the host's answer and the kill-feed evidence, and the console never asks about that game again. "I don't know" writes nothing: the game publishes on its interim result and the console prompt still reaches you.
+- The preview is a small port of the pipeline's roster and winner logic, tested against every published match. The answer is stored with the commander it referred to and applied only when the pipeline's own roster agrees.
+- A second recording of a game that already has a signed-off outcome is not asked. If two submitters answer differently, the published recording's answer stands and both are flagged.
+- An answer that contradicts the host or clean-win evidence is applied and listed in the admin dashboard. Corrections work as today: edit the JSON and rerun.
+
+## Dashboards
+
+- **Submitter, read-only**: every game from their folder, including ones from before the portal, with map, date, duration, players, commanders, outcome, a link to the match and a status (Queued, Waiting for rebuild, Processing, Deploying, Live, Merged into another recording, Needs attention). Rejected files show the reason. Uploading is the only action.
+- **Admin, for admin Steam accounts**:
+  - Health: credentials, password set, kill switches, `main` tip, pipeline code version against published data version, sessions against manifest, recent workflow runs and Pages builds.
+  - Submitters: add, disable, change folder, reset the password check; last sign-in and upload counts.
+  - Sign-ins and audit log: every sign-in (approved, not approved, locked), password attempt, upload, rejection and admin action. IP addresses are kept only as salted hashes.
+  - Git: recent commits on `main` marked portal or manual with what they touched, queue and quarantine branches, publish history.
+  - Outcome flags and conflicting answers.
+
+## It never pushes unless the result is clean
+
+The workflow publishes only as a fast-forward of the current `main`. It never merges generated files and never force-pushes. When it cannot publish it writes nothing, keeps the upload queued, sets a status the dashboards show, and opens or updates one GitHub issue so you get an email.
+
+- **`main` moved during the run**: start over from the new tip, three tries.
+- **Pipeline code newer than published data** (a `PIPELINE_VERSION` or rating schema bump without its output): wait. Pushing your output releases the queue; so does the full rebuild in Actions.
+- **Sessions on `main` missing from the manifest** (for example a pull and push without a rerun): repaired by the next run, which also starts whenever `matches.json` changes on `main`.
+- **Pipeline fails on an upload** (a crash, or the dual-presence stop in `scripts/identity_aliases.py`): that batch is quarantined.
+- **Unexpected result** (files changed outside `data/`, `player/`, `map/`; many existing matches rewritten; an uploaded session neither published nor receipted): stop.
+- **Same path already on `main` with other bytes, or an outcome already recorded there**: `main` wins and the upload is flagged.
+- **History rewritten on `main`**: each upload is a commit with no parent that is copied, never merged, so it still applies.
+- **Credential expired, workflow missing, Actions down**: uploads stay queued and the health panel says why.
+- **Admin actions**, all logged: retry, dry run without pushing, full rebuild, quarantine, release or delete an upload, remove a published session and block its re-upload, pause or resume uploads, pause or resume publishing.
+
+## Where things are stored
+
+- `sevsunday/stats-portal`, `main`: the portal code that Render deploys.
+- `sevsunday/stats-portal`, `state` branch: submitters, password checks, sign-in and audit log, upload records, block list, settings. The repo is public today and has to be private for this.
+- vsr.bz, `inbox/*` and `quarantine/*`: queued uploads, each holding only the uploaded files and a small batch record.
+- vsr.bz, `main`: one publish commit per batch whose message lists each file, match id, result and outcome.
+- Render environment: session secret, password hash, admin Steam64, GitHub App key, `UPLOADS_ENABLED` kill switch.
+
+## GitHub credentials
+
+- The portal uses a GitHub App with contents and actions permission and no workflow permission, installed on both repos. It does not expire. A personal token works in its place for local testing.
+- A ruleset on `main` in both repos lets only repository admins update it, so a leaked portal credential can queue files but cannot change the site.
+- The workflow runs only from `main` (started by the portal, or by a `matches.json` change), never from an inbox branch.
+- It pushes with a fine-grained token of yours kept in an Actions environment limited to `main`. GitHub's docs state that pushes made with the workflow's built-in token do not start a Pages build. The health panel warns before that token expires.
 
 ## Changes in the vsr.bz repo
 
-- Now: add `/portal` to [.gitignore](.gitignore), matching how `/statsgate` and `/f9bomber` are handled, so the portal is its own git repo and Pages never serves it.
-- At rollout, on your go-ahead: `.github/workflows/process-uploads.yml` and `scripts/ci_uploads.py`, drafted first in `portal/integration/`. The helper:
-  - takes only paths matching `data/sessions/<Folder>/<timestamp>.binpb.gz` from an inbox commit
-  - waits instead of failing when any published match JSON is stamped with a different pipeline version than the code (a `PIPELINE_VERSION` bump whose reprocessed output is not on `main` yet): it writes nothing to `main`, keeps the inbox branches, and marks their commits with a pending status that the portal shows as waiting for a rebuild
-  - after the pipeline, requires every uploaded session to be published or receipted as a duplicate, and only `data/`, `player/`, `map/` to have changed
-  - on a rejected push, rebases if `main` moved outside those paths, otherwise resets and reruns
-- Workflow triggers: a push to `inbox/**`; a push to `main` that changes `data/processed/matches.json` (your reprocessed output arriving), which publishes everything queued and repairs a manifest that is missing a session; and a manual run.
-- Manual inputs: a dry run that runs the pipeline on `main` without pushing and reports whether `elo_history.json`, `matches.json` and `match_contributions.json` come out byte-identical on Linux (this runs before anything is allowed to push), and a full rebuild that reprocesses the whole corpus in Actions when you would rather not do it locally (estimated 30-45 minutes, not measured).
-- At rollout, on your go-ahead: a `.gitattributes` rule that keeps your copy of generated files in a merge. It covers `data/processed/**` except `player_slugs.json`, plus the `player/*/index.html` and `map/*/index.html` stubs.
+- Now: add `/portal` to [.gitignore](.gitignore).
+- At rollout, on your go-ahead, drafted first in `portal/integration/`: `.github/workflows/process-uploads.yml`, `scripts/ci_uploads.py`, and a `.gitattributes` rule that keeps your copy of generated files in a merge (`data/processed/**` except `player_slugs.json`, plus the player and map stubs).
+- The workflow has manual modes: dry run, full rebuild, repair and remove. The dry run reports whether `elo_history.json`, `matches.json` and `match_contributions.json` come out byte-identical on Linux, and it runs before anything is allowed to push.
 - After go-live: link the portal from [record/index.html](record/index.html) and update [README.md](README.md), [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) and [.cursor/rules/project-overview.mdc](.cursor/rules/project-overview.mdc).
-
-## Reprocessing with new logic
-
-Generated files are never merged, only rebuilt.
-
-- An upload is one new file on its own branch, so it cannot conflict with anything on `main`.
-- The workflow always starts from the tip of `main` and runs the pipeline code it finds there. If `main` moves mid-run in `scripts/` or `data/`, it discards its result and reruns.
-- Two of the last three `PIPELINE_VERSION` bumps reached `main` before their reprocessed JSON (22 minutes and about 15 hours apart), so a mid-reprocess `main` is a normal state. The workflow waits through it and catches up when `matches.json` changes on `main`.
-- Pushing the version bump first is therefore a pause switch: nothing publishes until your output is up, and your output push cannot collide with the workflow.
-- If the workflow publishes while you are reprocessing locally with logic you have not pushed, your push is rejected. Commit, pull (the merge rule keeps your generated files and brings in the new raw sessions), rerun the pipeline (it only processes what arrived), push.
-- The full rebuild in Actions is manual only. No match in the current corpus trips the alias stop, so it would run unattended today.
 
 ## What you do yourself
 
-1. Create an empty GitHub repo for the portal and push `/portal` to it.
-2. Create a fine-grained personal access token limited to `sevsunday/vsr.bz`: Contents read and write, Actions read. Set an expiry and a reminder.
-3. In Render: New, Blueprint, pick the portal repo, set `GITHUB_TOKEN` and `PUBLIC_BASE_URL`, deploy.
-4. Optional: add a CNAME such as `upload.vsr.bz` pointing at the Render service. The `onrender.com` address works until then.
-5. Run the dry-run from the Actions tab once the workflow is in, and look at the summary with me.
-6. Run `git config merge.ours.driver true` once in your vsr.bz clone so the merge rule takes effect. Without it, git falls back to its normal merge and you resolve generated-file conflicts by hand as you would today.
-7. Confirm the four seeded recorders and add anyone else.
-8. Do the first real upload yourself and watch it go live.
-9. Ongoing: commit before you `git pull`, and rerun the pipeline after any pull that brought in sessions, since Actions now also writes `data/processed/`; run the pipeline interactively now and then to sign off outcomes; renew the token.
+1. Make `sevsunday/stats-portal` private. I push `/portal` to it when you say so.
+2. Create the GitHub App (the runbook lists the exact fields), install it on both repos and download its key.
+3. In Render: New, Blueprint, pick the repo, then paste the App key, your Steam64 as admin and the password hash (a helper command prints it).
+4. Add `upload.vsr.bz` as a custom domain in Render and point a CNAME at the service.
+5. In vsr.bz settings: add the ruleset on `main`, create the `publish` environment limited to `main`, and store the publish token in it.
+6. Run `git config merge.ours.driver true` once in your vsr.bz clone so the merge rule takes effect.
+7. Run the dry run with me, confirm the submitter list, and do the first real upload.
+8. Ongoing: commit before you `git pull`, and rerun the pipeline after a pull that brought in sessions.
 
 ## Defaults I chose (say if any is wrong)
 
-- Uploads from allowlisted recorders publish without an approval step.
-- Minimum match length of 60 seconds. Three of the 390 published matches are shorter, so set it to 0 if you want today's behaviour.
-- Legacy pre-v3 files are accepted from admins only.
+- Uploads from approved recorders publish without an approval step.
+- The password is asked again after 90 days; a sign-in lasts 30 days.
+- Minimum match length of 60 seconds. Three published matches are shorter.
+- Recordings from any schema era are accepted if they pass their own era's checks.
+- The five reverted VTrider recordings stay blocked until you unblock them.
 
 ## Known limits
 
-- The collector does not sign files. The portal proves which Steam account uploaded a file claiming to be its own recording, not that the contents are untouched. The curated list is the safeguard.
-- A match on a map with no existing 3D extract shows an empty Replay tab until you run the pipeline locally, because the extract needs the Steam install.
-- Outcome sign-off stays with you. Matches publish with the host's attested result; unclear ones stay unrated until you adjudicate.
-- Uploads that arrive while `main` is mid-reprocess wait until your output is pushed. On one recent bump that would have been about 15 hours.
-- `player_slugs.json`, `data/duplicate_recordings.json` and `data/match_outcome_adjudications.json` hold state that cannot be regenerated. If you and the workflow both add entries to one of them in the same window, that needs a hand merge. The validator's run history loses the workflow's rows for such a window.
-- The dual-presence alias stop exits non-zero under `--no-prompt`. The run fails, the inbox branch is kept, and GitHub emails you.
-- Whether a push made with the workflow's built-in token triggers the Pages build is unverified. If the first run does not deploy, the fix is to push with the access token instead.
-- Render's free tier takes 30-60 seconds to wake after 15 idle minutes.
+- The collector does not sign files and every session is public, so the checks prove a file is a well-formed statsgate recording uploaded by its recorder, not that the game happened as recorded. The curated list is the safeguard. The devtest password is a community check: anyone can copy it from [beta/index.html](beta/index.html).
+- A final answer from a submitter can overrule clean-win evidence. Those cases are listed for you, not blocked.
+- Uploads that arrive while `main` is mid-reprocess wait until your output is pushed (about 15 hours on one recent bump).
+- `player_slugs.json`, `data/duplicate_recordings.json` and `data/match_outcome_adjudications.json` hold state that cannot be regenerated. If you and the workflow both add entries in the same window, that needs a hand merge.
+- A recording from a newer collector schema is rejected until `scripts/statsgate.proto` on `main` knows it. An admin setting can relax that during a transition.
+- Not tested yet: output parity between Linux and your Windows runs, a 26 MB file through the GitHub API, and 3D extracts for new maps on Linux (the map sources are tracked, so they should build). The dry run and an early upload test cover all three.
