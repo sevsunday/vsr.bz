@@ -170,7 +170,8 @@ body.vt-home-body {
 }
 
 /* The followed player's block on the Command / Thug form cards, between
-   the ladder neighbors. Padded so the live-presence wash has an edge. */
+   the ladder neighbors. Padded to line up with those rows. It takes no
+   live-presence wash (js/presence.js); the neighbor rows do. */
 .vt-home-you {
   display: flex;
   flex-direction: column;

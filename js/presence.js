@@ -175,10 +175,11 @@
         root + ' .vt-compare-mini-card[data-steam64=' + q + ']',
         root + ' .vt-highlight-tile:has(a[data-steam64=' + q + '])'
       );
+      // The followed player's own block (.vt-home-you) stays unwashed: its
+      // last-10 bars are green and red already, and the navbar pill says live.
       home.push(
         root + ' .vt-home-rise[data-steam64=' + q + ']',
-        root + ' .vt-home-near[data-steam64=' + q + ']',
-        root + ' .vt-home-you[data-steam64=' + q + ']'
+        root + ' .vt-home-near[data-steam64=' + q + ']'
       );
       dots.push(
         root + ' a[data-steam64=' + q + ']:not(.vt-player-card):not(.vt-home-rise):not(.vt-home-near)::before'
