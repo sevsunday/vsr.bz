@@ -2,8 +2,11 @@
 name: Session upload portal
 overview: "A Python portal at upload.vsr.bz (Render free tier), built in /portal as its own repository and styled with the main site's themes, where approved recorders sign in with Steam, pass a one-time password check, upload session files and confirm each game's outcome. Files pass layered validation and are queued on inbox branches of vsr.bz. A GitHub Actions workflow in vsr.bz then runs the current pipeline on a fresh checkout of main in a job with no secrets, and a separate job that holds the push credential publishes sessions, outcomes and processed JSON in one commit, or stops and reports to the admin dashboard when it cannot do that cleanly."
 todos:
+  - id: site-escaping
+    content: "First step, approved Nov 27: add quote escaping to the six escape helpers in vsr.bz (js/app.js, js/elo.js, js/meta.js, js/vtsr-explainers.js, js/highlights-render.js, js/players-tab.js), update the two code comments and the data-schema rule note that describe the old behaviour, and check the match picker and the ELO page in a browser"
+    status: pending
   - id: scaffold
-    content: "Create /portal with the agreed layout (FastAPI app, render.yaml, config, tests), git init with sevsunday/stats-portal as remote, and add /portal to the vsr.bz .gitignore"
+    content: "Create /portal with the agreed layout (FastAPI app, render.yaml, config, tests), git init with sevsunday/stats-portal as remote, add /portal to the vsr.bz .gitignore, and write the first version of PRE-DEPLOY.md"
     status: pending
   - id: site-theme
     content: "Copy the site's theme into the portal (five stylesheets, Bootstrap, icons, Geist, theme.js) with a sync script and a drift check; build the base templates on the site's navbar and components; render the theme server-side from the shared cookie"
@@ -36,10 +39,10 @@ todos:
     content: "Draft process-uploads.yml and ci_uploads.py in portal/integration (process, publish and report jobs, fresh shallow checkout, wait and consistency checks, two-pass run that applies outcomes, output path list, protected sessions, owner-only remove and rebuild, quarantine, serialized and paced publishes, hourly sweep, manual modes); install in vsr.bz on go-ahead with the merge rules, the keyed-JSON merge helper and the one-line folder sort key; run the no-push parity dry run"
     status: pending
   - id: site-changes
-    content: "On go-ahead and before go-live: quote escaping in the five escape helpers and the shared theme cookie in js/theme.js; check the match picker, the ELO page and theme switching in a browser"
+    content: "On go-ahead and before go-live: the shared theme cookie in js/theme.js; check theme switching in a browser"
     status: pending
   - id: deploy-runbook
-    content: "Runbook, Render deploy at upload.vsr.bz, both GitHub Apps, ruleset and publish environment set up with you, the go-live checks, and one real upload from sign-in to live"
+    content: "Keep PRE-DEPLOY.md and the README runbook current; work through PRE-DEPLOY.md with you (Render deploy at upload.vsr.bz, both GitHub Apps, ruleset and publish environment), then the go-live checks and one real upload from sign-in to live"
     status: pending
   - id: main-site-followup
     content: "After go-live: link the portal from record/index.html and the Settings gear, and update README.md, DEVELOPER_GUIDE.md and project-overview.mdc"
@@ -85,6 +88,7 @@ portal/
   tools/         password hash helper, site theme sync
   tests/
   integration/   files for vsr.bz, installed only on your go-ahead
+  PRE-DEPLOY.md  your checklist: everything only you can do, in order
   render.yaml, requirements.txt, README.md
 ```
 
@@ -209,15 +213,14 @@ The workflow publishes only as a fast-forward of the current `main`. It never me
 
 ## Changes in the vsr.bz repo
 
-- Now: add `/portal` to [.gitignore](.gitignore).
+- First, approved on Nov 27: quote escaping in the escape helpers of [js/app.js](js/app.js), [js/elo.js](js/elo.js), `js/meta.js`, `js/vtsr-explainers.js`, `js/highlights-render.js` and `js/players-tab.js`. They leave quotes alone and feed more than 60 attribute values, among them player names in the match picker and the ELO table. One published game already has a nickname with double quotes in it. The two comments in `js/app.js` and the note in `.cursor/rules/data-schema.mdc` that describe the old behaviour are updated with it. You review, commit and push it.
+- Then: add `/portal` to [.gitignore](.gitignore).
 - At rollout, on your go-ahead, drafted first in `portal/integration/`:
   - `.github/workflows/process-uploads.yml` and `scripts/ci_uploads.py`.
   - A `.gitattributes` rule that keeps your copy of generated files in a merge (`data/processed/**` except `player_slugs.json`, plus the player and map stubs).
   - `scripts/merge_keyed_json.py`, a merge helper for the keyed state files (`data/match_outcome_adjudications.json`, `data/duplicate_recordings.json`, `data/processed/player_slugs.json`, `data/joint_test_ledger.json`). It unions them by key and stops only when both sides changed the same entry or allocated the same slug.
   - One line in `discover_sessions()`: an explicit case-insensitive sort key, the same order Windows gives today, so folder order cannot differ between your machine and Actions.
-- Before go-live, on your go-ahead:
-  - Quote escaping in the escape helpers of [js/app.js](js/app.js), [js/elo.js](js/elo.js), `js/meta.js`, `js/vtsr-explainers.js` and `js/highlights-render.js`. They leave quotes alone and feed more than 50 attribute values, among them player names in the match picker and the ELO table. One published game already has a nickname with double quotes in it.
-  - The theme cookie addition in [js/theme.js](js/theme.js) (see "Look and theme").
+- Before go-live, on your go-ahead: the theme cookie addition in [js/theme.js](js/theme.js) (see "Look and theme").
 - The workflow has manual modes: dry run, full rebuild, repair and remove. The dry run reports whether `elo_history.json`, `matches.json` and `match_contributions.json` come out byte-identical on Linux, and it runs before anything is allowed to push.
 - After go-live: link the portal from [record/index.html](record/index.html), add an "Upload sessions" row to the Settings gear in [js/cursor-settings.js](js/cursor-settings.js) (one file reaches every page), and update [README.md](README.md), [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) and [.cursor/rules/project-overview.mdc](.cursor/rules/project-overview.mdc).
 
@@ -235,15 +238,25 @@ The workflow publishes only as a fast-forward of the current `main`. It never me
 
 ## What you do yourself
 
-1. Make `sevsunday/stats-portal` private. I push `/portal` to it when you say so.
-2. Create the two GitHub Apps, portal and publisher (the runbook lists the exact fields), install them and download their keys.
+**Now, before I start**
+
+1. Done: you approved the escaping fix as my first step. You review, commit and push it.
+2. Make `sevsunday/stats-portal` private. It has to be private before the first push.
+
+**After I build: `portal/PRE-DEPLOY.md`**
+
+Everything only you can do goes into `portal/PRE-DEPLOY.md`. I write it at the start of the build and keep it current as pieces land. Each step has the exact values to enter, where to click and how to tell it worked, in the order the steps are needed: before the first push, before the Render test, before the dry run, before go-live, after go-live, and ongoing. In short:
+
+1. Tell me to push `/portal` to `sevsunday/stats-portal`.
+2. Create the two GitHub Apps, portal and publisher, install them and download their keys.
 3. In Render: New, Blueprint, pick the repo, then paste the portal App key, your Steam64 as admin and the password hash (a helper command prints it).
 4. Add `upload.vsr.bz` as a custom domain in Render and point a CNAME at the service.
-5. In vsr.bz settings: add the ruleset on `main` with the publisher on its bypass list, create the `publish` environment limited to `main`, and store the publisher key in it.
-6. Run the two `git config` lines from the runbook once in your vsr.bz clone so the merge rules take effect.
-7. Check that GitHub emails you about new issues on vsr.bz. That is how a stuck upload reaches you.
-8. Run the early Render test and the dry run with me, confirm the submitter list, and do the first real upload.
-9. Ongoing: commit before you `git pull`, and rerun the pipeline after a pull that brought in sessions.
+5. Review, commit and push each vsr.bz change after I install it on your go-ahead. I do not push to vsr.bz.
+6. In vsr.bz settings: add the ruleset on `main` with the publisher on its bypass list, create the `publish` environment limited to `main`, and store the publisher key in it.
+7. Run the two `git config` lines once in your vsr.bz clone so the merge rules take effect.
+8. Check that GitHub emails you about new issues on vsr.bz. That is how a stuck upload reaches you.
+9. Run the early Render test and the dry run with me, confirm the submitter list, and do the first real upload.
+10. Ongoing: commit before you `git pull`, and rerun the pipeline after a pull that brought in sessions.
 
 ## Defaults I chose (say if any is wrong)
 
@@ -274,7 +287,7 @@ Checked against `.cursor/plans/archive/pipeline/session_upload_automation_fa3089
 - The collector does not sign files and every session is public, so the checks prove a file is a well-formed statsgate recording uploaded by its recorder, not that the game happened as recorded. The curated list is the safeguard. The devtest password is a community check: anyone can copy it from [beta/index.html](beta/index.html).
 - A final answer from a submitter can overrule clean-win evidence. Those cases are listed for you, not blocked.
 - If the processing job were ever compromised by a crafted file, it could still put false or hostile content into the pipeline's output files. It could not reach the push credential, code, workflows or curated inputs.
-- I checked the site's escape helpers, not every place a name from a recording is rendered. A full audit of that is outside this plan.
+- I surveyed the escape helpers across the site's scripts. The six in the fix are the ones that leave quotes alone and feed attributes. `js/charts.js` and `js/odf-browser.js` have helpers of the same kind that only write text. Eight more escape double quotes but not apostrophes and are never used inside single-quoted attributes. I did not audit places that insert text from a recording without any helper.
 - Uploads that arrive while `main` is mid-reprocess wait until your output is pushed (about 15 hours on one recent bump).
 - The keyed state files still need a hand merge when you and the workflow changed the same entry in the same window.
 - A recording from a newer collector schema is rejected until `scripts/statsgate.proto` on `main` knows it. An admin setting can relax that during a transition; it switches itself off after 7 days and shows a banner while it is on.
