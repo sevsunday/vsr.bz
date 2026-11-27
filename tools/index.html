@@ -301,7 +301,10 @@
                   id="vt-tools-balonce-mode"><i class="bi bi-broadcast" aria-hidden="true"></i>Live</span>
           </h2>
           <div class="vt-tools-card-header-actions">
-            <div class="btn-group btn-group-sm vt-tools-pill-group" role="group"
+            <!-- 2v2 mode hidden 2026-11-26 with the VSR-2v2 ladders.
+                 js/tools/team-balonce.js shows this group again when
+                 VTSRDisplay.SMALL_FORMAT_RATINGS_VISIBLE is true. -->
+            <div class="btn-group btn-group-sm vt-tools-pill-group d-none" role="group"
                  id="vt-tools-balonce-format" aria-label="Game format">
               <button type="button" class="btn btn-outline-secondary active" data-vt-balonce-format="team"
                       aria-pressed="true" title="Main ladders: VSR-C for commanders, VSR-T for thugs">Team</button>

@@ -13,10 +13,19 @@
  * (a match's `before`, a match-log `after`, a peak) have no stored band and
  * use the raw lookup.
  *
- * Loaded on index.html, elo/index.html, player/ (+ template) and tools/.
+ * Loaded on index.html, matches/index.html, elo/index.html, player/
+ * (+ template) and tools/.
  */
 (function (global) {
   'use strict';
+
+  // VSR-1v1 and VSR-2v2 are hidden site-wide (2026-11-26). The pipeline
+  // still writes elo_1v1_*.json / elo_2v2_*.json; no page fetches or
+  // shows them while this is false. Flip to true to bring back the ELO
+  // pills, the player Trends format control, the per-match cards, the
+  // Outcome card's 2v2 branch and the Tools Balonce 2v2 mode. 1v1 / 2v2
+  // stay match formats (picker and hub filters) either way.
+  const SMALL_FORMAT_RATINGS_VISIBLE = false;
 
   const DEFAULT_CONFIG = {
     edges: [1150, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2100, 2200],
@@ -301,6 +310,7 @@
   }
 
   global.VTSRDisplay = {
+    SMALL_FORMAT_RATINGS_VISIBLE,
     setConfig,
     bandFor,
     rawBandFor,

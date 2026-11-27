@@ -524,8 +524,7 @@
     cards.push(card(jump('Result', '#tab-overview-btn'), resultHtml(data, row)));
     const ratingBody = thugRatingHtml(data, row)
       + commanderHtml(data, row)
-      + oneVOneHtml(match.id, sid)
-      + twoVTwoHtml(match.id, sid);
+      + (smallFormatRatings() ? oneVOneHtml(match.id, sid) + twoVTwoHtml(match.id, sid) : '');
     cards.push(card(jump('Rating', '#tab-elo-btn'), ratingBody));
     const combat = combatHtml(data, row);
     if (combat) cards.push(card(jump('Combat', '#tab-combat-btn'), combat));
@@ -556,10 +555,17 @@
       });
   }
 
+  // VSR-1v1 / VSR-2v2 are hidden while the js/vtsr-display.js switch is
+  // false: no rating line, and neither history is fetched.
+  function smallFormatRatings() {
+    return !!(window.VTSRDisplay && window.VTSRDisplay.SMALL_FORMAT_RATINGS_VISIBLE);
+  }
+
   function ensureHistories() {
     const cmdr = window.VTBalonce && VTBalonce.ensureCmdrHistoryLoaded
       ? VTBalonce.ensureCmdrHistoryLoaded()
       : Promise.resolve(window.__vtCmdrEloHistory || null);
+    if (!smallFormatRatings()) return Promise.all([cmdr]);
     const two = window.VTBalonce && VTBalonce.ensure2v2HistoryLoaded
       ? VTBalonce.ensure2v2HistoryLoaded()
       : Promise.resolve(window.__vtElo2v2History || null);

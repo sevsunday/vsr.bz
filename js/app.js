@@ -1172,8 +1172,8 @@
     if ($facetFormats) {
       const fc = pickerFacets.formatCounts || {};
       const titles = {
-        '1v1': 'One active player per side (VSR-1v1)',
-        '2v2': 'Two active players per side, a commander and a thug each (VSR-2v2)',
+        '1v1': 'One active player per side',
+        '2v2': 'Two active players per side, a commander and a thug each',
         team: 'Three or more active players per side (VSR-T / VSR-C)',
         other: 'Uneven or too small for any ladder (3v1, 2v1, solo)',
       };

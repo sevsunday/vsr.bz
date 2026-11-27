@@ -35,7 +35,10 @@
  * is a third, separate ladder: plain Elo over recorded head-to-head games.
  * The 2v2C and 2v2T pills (elo_2v2_current.json + elo_2v2_history.json)
  * are separate top-level pills. The thug pane switches between its two
- * ratings with &view=perf|wl|compare. The four explainer pills stay in
+ * ratings with &view=perf|wl|compare. ALL THREE ARE HIDDEN while
+ * VTSRDisplay.SMALL_FORMAT_RATINGS_VISIBLE is false: the pills stay
+ * d-none, ?tab=1v1|2v2|2v2c|2v2t lands on VSR-C and the files are not
+ * fetched. The four explainer pills stay in
  * the markup with d-none; their panes and ?tab= links still work.
  *
  * URL routing: ?tab=vsr-c|vsr-t|1v1|2v2c|2v2t|how|axes|fairness|accuracy (replaceState
@@ -50,6 +53,12 @@
   'use strict';
 
   const DATA = '../data/processed/';
+
+  // VSR-1v1 / VSR-2v2 are hidden site-wide while this is false (the
+  // switch lives in js/vtsr-display.js). Hidden: their pills stay
+  // d-none, their ?tab= slugs land on VSR-C, their How sections are
+  // left out and their JSON is never fetched.
+  const SMALL_FORMAT_RATINGS = !!(window.VTSRDisplay && window.VTSRDisplay.SMALL_FORMAT_RATINGS_VISIBLE);
 
   // ----------------------------------------------------------------------
   // Generic helpers (local copies of the small app.js utilities — the
@@ -1953,13 +1962,16 @@
   // `leaderboard` (pre-split) stay as permanent inbound aliases.
   const DEFAULT_TAB_TARGET = '#elo-tab-vtsr-c';
   const THUG_TAB_TARGET = '#elo-tab-leaderboard';
+  // While the 1v1 / 2v2 ladders are hidden, their slugs resolve to the
+  // commander ladder, so an old link lands there and loses its ?tab=.
+  const smallFormatTarget = (target) => (SMALL_FORMAT_RATINGS ? target : DEFAULT_TAB_TARGET);
   const TAB_SLUGS = {
     'vsr-c': DEFAULT_TAB_TARGET,
     'vsr-t': THUG_TAB_TARGET,
-    '1v1': '#elo-tab-1v1',
-    '2v2c': '#elo-tab-2v2c',
-    '2v2t': '#elo-tab-2v2t',
-    '2v2': '#elo-tab-2v2c',
+    '1v1': smallFormatTarget('#elo-tab-1v1'),
+    '2v2c': smallFormatTarget('#elo-tab-2v2c'),
+    '2v2t': smallFormatTarget('#elo-tab-2v2t'),
+    '2v2': smallFormatTarget('#elo-tab-2v2c'),
     how: '#elo-tab-how',
     axes: '#elo-tab-axes',
     fairness: '#elo-tab-fairness',
@@ -2101,7 +2113,7 @@
         <p class="mb-0 mt-2 text-muted small">The ladder itself &mdash; every commander&rsquo;s rating, record and duel log &mdash; is on the <a href="?tab=vsr-c" data-elo-tab-link="vsr-c">VSR-C Elo</a> pill.</p>
       </section>
 
-      <section class="vt-vtsr-doc-section">
+      ${SMALL_FORMAT_RATINGS ? `<section class="vt-vtsr-doc-section">
         <h6>The 1v1 ladder (VSR-1v1)</h6>
         ${E.oneVOneLadderHtml ? E.oneVOneLadderHtml() : ''}
         <p class="mb-0 mt-2 text-muted small">Every player&rsquo;s 1v1 rating, record and game log is on the <a href="?tab=1v1" data-elo-tab-link="1v1">1v1</a> pill.</p>
@@ -2111,7 +2123,7 @@
         <h6>The 2v2 ladders (VSR-2v2C and VSR-2v2T)</h6>
         ${E.twoVTwoLaddersHtml ? E.twoVTwoLaddersHtml() : ''}
         <p class="mb-0 mt-2 text-muted small">The ladders are the <a href="?tab=2v2c" data-elo-tab-link="2v2c">2v2C</a> and <a href="?tab=2v2t" data-elo-tab-link="2v2t">2v2T</a> pills.</p>
-      </section>
+      </section>` : ''}
 
       <section class="vt-vtsr-doc-section">
         <h6>Which ladder rates my game?</h6>
@@ -2755,6 +2767,9 @@
     });
     // Tab change -> lazy render + URL sync.
     const tabsEl = document.getElementById('elo-tabs');
+    if (tabsEl && SMALL_FORMAT_RATINGS) {
+      tabsEl.querySelectorAll('[data-vt-small-format]').forEach(li => li.classList.remove('d-none'));
+    }
     if (tabsEl) {
       tabsEl.addEventListener('shown.bs.tab', (e) => {
         const target = e.target.getAttribute('data-bs-target');
@@ -2777,10 +2792,10 @@
       fetchJson(`${DATA}match_contributions.json`),
       fetchJson(`${DATA}elo_commander_current.json`),
       fetchJson(`${DATA}elo_commander_history.json`),
-      fetchJson(`${DATA}elo_1v1_current.json`),
-      fetchJson(`${DATA}elo_1v1_history.json`),
-      fetchJson(`${DATA}elo_2v2_current.json`),
-      fetchJson(`${DATA}elo_2v2_history.json`),
+      SMALL_FORMAT_RATINGS ? fetchJson(`${DATA}elo_1v1_current.json`) : null,
+      SMALL_FORMAT_RATINGS ? fetchJson(`${DATA}elo_1v1_history.json`) : null,
+      SMALL_FORMAT_RATINGS ? fetchJson(`${DATA}elo_2v2_current.json`) : null,
+      SMALL_FORMAT_RATINGS ? fetchJson(`${DATA}elo_2v2_history.json`) : null,
     ]);
     if (window.VTSRDisplay) VTSRDisplay.setConfig(elo);
     state.elo = elo;

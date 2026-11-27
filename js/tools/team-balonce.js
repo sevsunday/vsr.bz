@@ -670,8 +670,17 @@
     }
   }
 
+  /**
+   * VSR-2v2 is hidden site-wide while the js/vtsr-display.js switch is
+   * false: Team is then the only format, the pills stay d-none and the
+   * "Use 2v2" hint is not offered.
+   */
+  function smallFormatRatings() {
+    return !!(window.VTSRDisplay && window.VTSRDisplay.SMALL_FORMAT_RATINGS_VISIBLE);
+  }
+
   function setFormat(next) {
-    const target = next === '2v2' ? '2v2' : 'team';
+    const target = (next === '2v2' && smallFormatRatings()) ? '2v2' : 'team';
     if (target === format) return;
     format = target;
     if (format === '2v2') {
@@ -1036,6 +1045,7 @@
 
   /** Team mode with exactly four counted: offer the 2v2 ladders. */
   function render2v2Hint() {
+    if (!smallFormatRatings()) return '';
     if (is2v2() || playingRoster().length !== TWO_V_TWO_PLAYERS) return '';
     return `
       <div class="vt-tools-balonce-format-hint" role="note">
@@ -2275,6 +2285,7 @@
     if (resetBtn) resetBtn.addEventListener('click', onResetLayout);
     const formatGroup = document.getElementById('vt-tools-balonce-format');
     if (formatGroup) {
+      if (smallFormatRatings()) formatGroup.classList.remove('d-none');
       formatGroup.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-vt-balonce-format]');
         if (btn) setFormat(btn.getAttribute('data-vt-balonce-format'));

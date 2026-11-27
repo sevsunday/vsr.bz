@@ -511,15 +511,25 @@
   // "Which ladder rates my game?" — the format lines, shared by the How
   // tab. Mirrors scripts/match_format.py.
   function formatLinesHtml() {
+    // VSR-1v1 / VSR-2v2 are hidden while the js/vtsr-display.js switch
+    // is false, so those two rows read as not rated.
+    const smallFormat = !!(window.VTSRDisplay && window.VTSRDisplay.SMALL_FORMAT_RATINGS_VISIBLE);
+    const smallRows = smallFormat
+      ? `<tr><td>1 and 1</td><td>VSR-1v1</td><td>Both players command.</td></tr>
+          <tr><td>2 and 2</td><td>VSR-2v2C + VSR-2v2T</td><td>A commander and one thug on each side, and all four active: nobody left early, and no thug dealt zero damage.</td></tr>`
+      : `<tr><td>1 and 1</td><td>None</td><td>1v1 games are not rated.</td></tr>
+          <tr><td>2 and 2</td><td>None</td><td>2v2 games are not rated.</td></tr>`;
+    const otherNote = smallFormat
+      ? '2v1, 3v1, 3v2, 4v2, or a 2v2 with an idle or departed player.'
+      : '2v1, 3v1, 3v2 or 4v2.';
     return `<div class="vt-elo-format-lines">
       <p class="mb-2">Count the players on each side, leaving out camera pods (anyone who spent more than a quarter of the game in one):</p>
       <table class="table table-sm align-middle mb-2" style="font-size: 0.85rem;">
         <thead><tr><th>Players per side</th><th>Ladder</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td>1 and 1</td><td>VSR-1v1</td><td>Both players command.</td></tr>
-          <tr><td>2 and 2</td><td>VSR-2v2C + VSR-2v2T</td><td>A commander and one thug on each side, and all four active: nobody left early, and no thug dealt zero damage.</td></tr>
+          ${smallRows}
           <tr><td>3 or more on each side</td><td>VSR-T, then VSR-C</td><td>At least six players in total.</td></tr>
-          <tr><td>Anything else</td><td>None</td><td>2v1, 3v1, 3v2, 4v2, or a 2v2 with an idle or departed player.</td></tr>
+          <tr><td>Anything else</td><td>None</td><td>${otherNote}</td></tr>
         </tbody>
       </table>
       <p class="mb-0 text-muted small">Every ladder also needs a verified winner (host result, recycler/factory loss, or reviewer sign-off); draws and games with no winner are not rated. Game length does not matter.</p>

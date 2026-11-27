@@ -1434,12 +1434,18 @@
   // The 3v3+ shell is rendered up front (the chart + log need
   // elo_history, fetched on first activation); 2v2 / 1v1 lazy-load
   // their ladders when picked.
+  //
+  // VSR-1v1 / VSR-2v2 are hidden while the js/vtsr-display.js switch is
+  // false: 3v3+ is then the only format, the control is not drawn, and
+  // the 1v1 / 2v2 ladder files are never fetched.
 
+  const SMALL_FORMAT_RATINGS = !!(window.VTSRDisplay && window.VTSRDisplay.SMALL_FORMAT_RATINGS_VISIBLE);
   const TRENDS_FORMATS = [
     { id: 'team', label: '3v3+', icon: 'bi-people' },
+  ].concat(SMALL_FORMAT_RATINGS ? [
     { id: '2v2',  label: '2v2',  icon: 'bi-people-fill' },
     { id: '1v1',  label: '1v1',  icon: 'bi-person' },
-  ];
+  ] : []);
 
   function formatCountsFor(rating) {
     const career = lookupCareer(rating);
@@ -1459,7 +1465,7 @@
     if (!pane) return;
     const fc = formatCountsFor(rating);
     state.trendsFormat = state.trendsFormat || defaultTrendsFormat(rating);
-    pane.innerHTML = `
+    const formatBar = TRENDS_FORMATS.length > 1 ? `
       <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
         <span class="text-secondary small text-uppercase" style="letter-spacing:0.08em;">Format</span>
         <div class="vt-trends-format d-flex gap-1" id="vt-trends-format" role="group" aria-label="Format">
@@ -1470,7 +1476,8 @@
             </button>`).join('')}
         </div>
         <span class="text-secondary small ms-auto">Each format has its own ladder; none of them feed the others.</span>
-      </div>
+      </div>` : '';
+    pane.innerHTML = `${formatBar}
       <div id="vt-trends-team" ${state.trendsFormat === 'team' ? '' : 'hidden'}>
         ${renderTeamTrendsShellHtml()}
       </div>
@@ -1766,7 +1773,8 @@
     for (const fileKey in contribs) {
       const m = contribs[fileKey];
       if (m.void) continue;
-      // 1v1 / 2v2 games live on their own Trends panes (separate ladders).
+      // 1v1 / 2v2 games are not in the 3v3+ log. Their own Trends panes
+      // (separate ladders) are hidden while SMALL_FORMAT_RATINGS is false.
       if (m.match_format === '1v1' || m.match_format === '2v2') continue;
       const lbRow = (m.leaderboard || []).find(p => String(p.steam64 || '') === sid);
       if (!lbRow) continue;

@@ -325,6 +325,15 @@
   let _twoVTwoHistPromise = null;
 
   /**
+   * The small-format ratings are hidden site-wide while the
+   * js/vtsr-display.js switch is false. The Outcome card's 2v2 branch
+   * and the 2v2 roster ratings are off then.
+   */
+  function smallFormatRatings() {
+    return !!(window.VTSRDisplay && window.VTSRDisplay.SMALL_FORMAT_RATINGS_VISIBLE);
+  }
+
+  /**
    * Same single-flight loader for `elo_2v2_history.json`, into the shared
    * `window.__vtElo2v2History` sentinel. Used by the Outcome card's 2v2
    * branch and by js/match-elo.js's 2v2 card.
@@ -1960,6 +1969,9 @@
     const joined = joinMatch(currentData);
     if (!joined.available) {
       clearRead();
+      // VSR-2v2 is hidden: a 2v2 reads like any other match the main
+      // ladders do not rate, and its history is never fetched.
+      if (!smallFormatRatings()) return;
       // A rated 2v2 is unavailable to the main join by construction.
       if (window.__vtElo2v2History === undefined) {
         ensure2v2HistoryLoaded().then(() => {
@@ -2034,7 +2046,9 @@
    */
   function rosterRatings(currentData) {
     const joined = joinMatch(currentData);
-    if (!joined || !joined.available) return rosterRatings2v2(currentData);
+    if (!joined || !joined.available) {
+      return smallFormatRatings() ? rosterRatings2v2(currentData) : null;
+    }
     const bySteam = new Map();
     const byName = new Map();
     for (const team of [1, 2]) {

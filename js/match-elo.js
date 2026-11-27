@@ -1125,8 +1125,12 @@
     const joined = joinLobby(currentData);
     lastJoined = joined;
     bindLobbyClicks();
-    schedule1v1(matchId);
-    schedule2v2(matchId);
+    // VSR-1v1 / VSR-2v2 are hidden while the js/vtsr-display.js switch is
+    // false: both cards keep their d-none and neither history is fetched.
+    if (window.VTSRDisplay && window.VTSRDisplay.SMALL_FORMAT_RATINGS_VISIBLE) {
+      schedule1v1(matchId);
+      schedule2v2(matchId);
+    }
     if (!joined.available) {
       showEmpty('Rating data is not available for this match.');
       return;

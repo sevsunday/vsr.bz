@@ -173,23 +173,26 @@
             <i class="bi bi-list-ol me-1"></i>VSR-T
           </button>
         </li>
-        <li class="nav-item vt-elo-tab-sep" role="presentation" aria-hidden="true"></li>
-        <li class="nav-item" role="presentation">
+        <!-- 1v1 / 2v2 ladders hidden 2026-11-26. js/elo.js shows these
+             five <li>s again when VTSRDisplay.SMALL_FORMAT_RATINGS_VISIBLE
+             is true; until then their ?tab= links land on VSR-C. -->
+        <li class="nav-item vt-elo-tab-sep d-none" role="presentation" aria-hidden="true" data-vt-small-format></li>
+        <li class="nav-item d-none" role="presentation" data-vt-small-format>
           <button class="nav-link" id="elo-tab-2v2c-btn" data-bs-toggle="pill"
                   data-bs-target="#elo-tab-2v2c" type="button" role="tab"
                   aria-controls="elo-tab-2v2c" aria-selected="false">
             <i class="bi bi-person-badge me-1"></i>2v2C
           </button>
         </li>
-        <li class="nav-item" role="presentation">
+        <li class="nav-item d-none" role="presentation" data-vt-small-format>
           <button class="nav-link" id="elo-tab-2v2t-btn" data-bs-toggle="pill"
                   data-bs-target="#elo-tab-2v2t" type="button" role="tab"
                   aria-controls="elo-tab-2v2t" aria-selected="false">
             <i class="bi bi-people me-1"></i>2v2T
           </button>
         </li>
-        <li class="nav-item vt-elo-tab-sep" role="presentation" aria-hidden="true"></li>
-        <li class="nav-item" role="presentation">
+        <li class="nav-item vt-elo-tab-sep d-none" role="presentation" aria-hidden="true" data-vt-small-format></li>
+        <li class="nav-item d-none" role="presentation" data-vt-small-format>
           <button class="nav-link" id="elo-tab-1v1-btn" data-bs-toggle="pill"
                   data-bs-target="#elo-tab-1v1" type="button" role="tab"
                   aria-controls="elo-tab-1v1" aria-selected="false">

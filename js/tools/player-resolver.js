@@ -238,6 +238,9 @@
    * 2v2 debut at the anchor.
    */
   async function load2v2EloCurrent() {
+    // VSR-2v2 is hidden while the js/vtsr-display.js switch is false;
+    // 2v2 mode is off then, so the file is not fetched.
+    if (!(window.VTSRDisplay && window.VTSRDisplay.SMALL_FORMAT_RATINGS_VISIBLE)) return;
     const data = await fetchWithFallback(ELO_2V2_URL_CANDIDATES, (r) => r.json());
     if (!data) {
       console.warn('[player-resolver] failed to load elo_2v2_current.json (2v2 mode reads everyone at the anchor)');
