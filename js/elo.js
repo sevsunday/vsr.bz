@@ -10,14 +10,21 @@
  *                             table (explainer lives on How).
  *   VSR-T                  — tier-grouped ladder + detail panels
  *                             (no # ranks; noise-band tie chips).
- *   How it works            — annotated ΔR = K(P−E) stage + the 13.1
- *                             α-blend stage + the commander-ladder section
- *                             (commanderLadderHtml) + tier ladder + worked
- *                             example (from the shared js/vtsr-explainers.js).
+ *   How it works            — plain copy first: the short version, how
+ *                             VSR-T moves (with the worked example), why
+ *                             winning doesn't move it, bands and tiers,
+ *                             VSR-C, which ladder rates a game. The
+ *                             annotated ΔR = K(P−E) and α-blend stages and
+ *                             the VSR-C formula sit in collapsed "The
+ *                             math" disclosures (VTSRExplain.mathDetailsHtml
+ *                             in the shared js/vtsr-explainers.js).
  *   What counts             — the scored axis (enemy damage share) + what stopped counting.
  *   Commanders & fairness   — the fairness rules as plain-language cards.
- *   Does it work?           — honest accuracy stats from the committed
- *                             data/processed/validation_summary.json.
+ *   Does it work?           — accuracy stats from the committed
+ *                             data/processed/validation_summary.json. Lead
+ *                             sentences are built from that data; tuning
+ *                             tables (λ, α_c) and the which-games-count
+ *                             chart are collapsed.
  *
  * Data (all 404-safe): elo_current.json + elo_history.json,
  * elo_commander_current.json + elo_commander_history.json,
@@ -2076,73 +2083,77 @@
       return;
     }
     const blendBlock = E.blendBlockHtml() || '';
+    // Live constants, with the shipped values as fallbacks.
+    const elo = state.elo || {};
     const sigma = ratingNoiseSigma();
-      const noiseSection = sigma != null
-      ? `<section class="vt-vtsr-doc-section">
-           <h6>How close is too close to call?</h6>
-           <p class="mb-0">Two players within roughly <strong>${sigma} points</strong> of each
-           other are basically tied, and one game moves a rating by 10 to 25 points. That is
-           why the site never shows the number: you see a band instead (a tier and its Upper or
-           Lower half), and a label only moves after a clear margin.
-           The gap that matters shrinks as more matches get recorded.
-           <span class="text-muted small">(That figure comes from recomputing every rating on
-           random subsets of the matches and measuring the wobble &mdash; the full numbers live
-           on the <a href="?tab=accuracy" data-elo-tab-link="accuracy">Does it work?</a> tab.)</span></p>
-         </section>`
+    const lossPct = Math.round((elo.k_loss_aversion != null ? elo.k_loss_aversion : 0.85) * 100);
+    const floor = Math.round(elo.rating_floor != null ? elo.rating_floor : 1000);
+    const bufferPts = fmt((window.VTSRDisplay && VTSRDisplay.config.buffer_pts) || 20);
+    const provisional = fmt(elo.provisional_threshold != null ? elo.provisional_threshold : ELO_PROVISIONAL_THRESHOLD);
+    const ladderMin = fmt(vtsrLadderMinMatches(elo));
+    const windowDays = fmt(inactivityWindowDays(elo));
+    const comeback = fmt(comebackGamesRequired(elo));
+    // Why a band and not a number. The noise figure is the bootstrap
+    // wobble from validation_summary.json; without it the sentence about
+    // one game's swing carries the point alone.
+    const whyBand = sigma != null
+      ? `Why not show the number? Two players within about <strong>${sigma} points</strong> of each other can&rsquo;t be told apart yet, and a single game moves a rating by 10 to 25 points.`
+      : 'Why not show the number? A single game moves a rating by 10 to 25 points, and small gaps between players mean little.';
+    const sigmaSource = sigma != null
+      ? ` The ${sigma}-point figure is measured on the <a href="?tab=accuracy" data-elo-tab-link="accuracy">Does it work?</a> tab.`
       : '';
-    const formLead = `VSR-T is your <strong>thug form</strong>. Each game it grades your share of the lobby&rsquo;s damage to the enemy (players, scavs, extractors, AI units and buildings all count the same per point) against the people in that lobby. You go up when that grade beats what your current rating predicted, and down when it falls short; each game reads as <strong>Beat expectation</strong>, <strong>On par</strong> or <strong>Below expectation</strong>. Winning the game does not move it; commanders have their own win rating, VSR-C. The site shows VSR-T as a band, never a number. Under the hood everyone starts at <strong>1500</strong>. Walk through the formula:`;
+    const smallFormatSection = SMALL_FORMAT_RATINGS
+      ? `<section class="vt-vtsr-doc-section">
+        <h6>1v1 and 2v2</h6>
+        <p class="mb-2"><strong>1v1.</strong> The ladder is on the <a href="?tab=1v1" data-elo-tab-link="1v1">1v1</a> tab.</p>
+        ${E.oneVOneLadderHtml ? E.oneVOneLadderHtml() : ''}
+        <p class="mb-2 mt-4"><strong>2v2.</strong> The ladders are on the <a href="?tab=2v2c" data-elo-tab-link="2v2c">2v2C</a> and <a href="?tab=2v2t" data-elo-tab-link="2v2t">2v2T</a> tabs.</p>
+        ${E.twoVTwoLaddersHtml ? E.twoVTwoLaddersHtml() : ''}
+      </section>`
+      : '';
     pane.innerHTML = `<div class="vt-elo-doc">
       <section class="vt-vtsr-doc-section">
-        <h6>The one formula</h6>
-        <p class="mb-1">${formLead}</p>
-        ${deltaBlock}
-        <p class="mb-0 mt-2 text-muted small">Losses sting a little less than wins reward, and your rating never drops below <strong>1000</strong>.</p>
+        <h6>The short version</h6>
+        <p class="mb-2">The site keeps two ratings. <strong>VSR-T</strong> rates how well you fight. <strong>VSR-C</strong> rates how often you win as commander. Both start at <strong>1500</strong>.</p>
+        <p class="mb-0">A game counts when each side has at least three players and it has a recorded winner. VSR-T is shown as a band such as <em>Tier 2 &middot; Upper</em>, never as a number. VSR-C is shown as a number.${SMALL_FORMAT_RATINGS ? ' 1v1 and 2v2 games have their own ladders, covered at the bottom of this page.' : ''}</p>
       </section>
 
       <section class="vt-vtsr-doc-section">
-        <h6>The published rating: two dials</h6>
-        <p class="mb-1">Under the hood, the rating behind your band is a <strong>mix of two ratings</strong> &mdash; one for raw match performance and one for wins &mdash; with a knob that decides the blend:</p>
-        ${blendBlock}
-        <p class="mb-2 mt-2 text-muted small">The Wins dial isn&rsquo;t a placeholder &mdash; it&rsquo;s a real win/loss ladder that updates on every match with a verified outcome. What&rsquo;s off is the <strong>mixer</strong>.</p>
-        <p class="mb-0 text-muted small">Why leave it at zero? Two reasons, both measured. A match win is a <em>team</em> result, and this rating is about one player&rsquo;s own game &mdash; your commander&rsquo;s build order and four teammates decide the ending as much as you do. And when we actually tried blending wins in (at 10%, 25% and 50%), it <strong>didn&rsquo;t predict winners any better</strong> and its confidence scores got slightly worse, so the honest call was to leave the published rating on pure performance. Early recordings often had no provable winner, which kept that wins sample small for a long time (see the <a href="?tab=accuracy" data-elo-tab-link="accuracy">Does it work?</a> tab); newer matches are signed off, so the gap is closing. The rule for turning the knob up was written down <em>before</em> the test, so it can&rsquo;t be bent to fit the result.</p>
+        <h6>How VSR-T moves</h6>
+        <p class="mb-2">After each rated game we take your share of all the damage your lobby did to the enemy. We compare it with the share a player at your rating was expected to deal against that team. That expected share is your bar.</p>
+        <p class="mb-2">Beat your bar and you go up. Fall short and you go down. Each game is labelled <strong>Beat expectation</strong>, <strong>On par</strong> or <strong>Below expectation</strong>. Whether your team won makes no difference.</p>
+        <p class="mb-2">Commanding lowers your bar, because commanders spend most of the game at base.</p>
+        ${E.workedExampleHtml()}
+        <p class="mb-0 mt-2 text-muted small">A drop is cut to ${lossPct}% of what the formula says, and no rating falls below <strong>${floor}</strong>.</p>
+        ${E.mathDetailsHtml('The math: the formula, piece by piece', deltaBlock)}
       </section>
 
       <section class="vt-vtsr-doc-section">
-        <h6>The commander ladder (VSR-C)</h6>
-        ${E.commanderLadderHtml()}
-        <p class="mb-0 mt-2 text-muted small">The ladder itself &mdash; every commander&rsquo;s rating, record and duel log &mdash; is on the <a href="?tab=vsr-c" data-elo-tab-link="vsr-c">VSR-C Elo</a> pill.</p>
-      </section>
-
-      ${SMALL_FORMAT_RATINGS ? `<section class="vt-vtsr-doc-section">
-        <h6>The 1v1 ladder (VSR-1v1)</h6>
-        ${E.oneVOneLadderHtml ? E.oneVOneLadderHtml() : ''}
-        <p class="mb-0 mt-2 text-muted small">Every player&rsquo;s 1v1 rating, record and game log is on the <a href="?tab=1v1" data-elo-tab-link="1v1">1v1</a> pill.</p>
+        <h6>Why winning doesn&rsquo;t move VSR-T</h6>
+        <p class="mb-0">A win belongs to the whole team, and VSR-T rates one player&rsquo;s fighting. The site still keeps a win/loss rating for every player and updates it after each rated game. It counts for <strong>0%</strong> of VSR-T. We tried 10%, 25% and 50%, and none of them picked winners more often. The rule for raising it was written before that test ran.</p>
+        ${E.mathDetailsHtml('The math: how the two ratings mix', blendBlock)}
       </section>
 
       <section class="vt-vtsr-doc-section">
-        <h6>The 2v2 ladders (VSR-2v2C and VSR-2v2T)</h6>
-        ${E.twoVTwoLaddersHtml ? E.twoVTwoLaddersHtml() : ''}
-        <p class="mb-0 mt-2 text-muted small">The ladders are the <a href="?tab=2v2c" data-elo-tab-link="2v2c">2v2C</a> and <a href="?tab=2v2t" data-elo-tab-link="2v2t">2v2T</a> pills.</p>
-      </section>` : ''}
+        <h6>Bands and tiers</h6>
+        <p class="mb-2">Each tier splits into an <strong>Upper</strong> and a <strong>Lower</strong> half. That half is your band, and it is what every page shows.</p>
+        <p class="mb-2">${whyBand} So a band only changes once your rating clears the line by <strong>${bufferPts} points</strong>. One bad game rarely moves it.${sigmaSource}</p>
+        <p class="mb-2">Players with fewer than ${provisional} rated games show <strong>Provisional</strong> instead of a tier. A place on the ladder needs <strong>${ladderMin} rated games</strong> and a game within ${windowDays} days of the newest recorded match. After a longer break it takes ${comeback} games to get back on. Everyone else is listed under <strong>Not on the ladder yet</strong>.</p>
+        <p class="mb-2">Tiers are fixed point ranges, not percentiles, so the top tier can be nearly empty.</p>
+        ${E.tierTableHtml()}
+      </section>
+
+      <section class="vt-vtsr-doc-section">
+        <h6>Commanders: VSR-C</h6>
+        ${E.commanderLadderHtml(' Every commander&rsquo;s rating, record and duel log is on the <a href="?tab=vsr-c" data-elo-tab-link="vsr-c">VSR-C Elo</a> tab.')}
+      </section>
 
       <section class="vt-vtsr-doc-section">
         <h6>Which ladder rates my game?</h6>
         ${E.formatLinesHtml ? E.formatLinesHtml() : ''}
       </section>
 
-      <section class="vt-vtsr-doc-section">
-        <h6>Tier ladder</h6>
-        <p class="mb-2">Tiers are <strong>absolute</strong> VSR-T thresholds &mdash; they don&rsquo;t track percentile, so a thin top tier is a thin top tier. Players with fewer than 10 rated matches show a <strong>Provisional</strong> badge instead of a tier. To appear on the ladder requires <strong>25 rated matches</strong> and a game within 90 days of the newest match in the corpus (or 3 games after returning); everyone else stays visible under <strong>Not on the ladder yet</strong>.</p>
-        <p class="mb-2">Each tier splits at its midpoint into an <strong>Upper</strong> and a <strong>Lower</strong> half, and that band is what every page shows. A label only moves after the rating clears the line by <strong>${fmt((window.VTSRDisplay && VTSRDisplay.config.buffer_pts) || 20)} points</strong>, so one noisy game rarely flips it. That margin applies to tier lines too, so a player who dips just under a line keeps their tier until the drop is clear.</p>
-        ${E.tierTableHtml()}
-      </section>
-
-      <section class="vt-vtsr-doc-section">
-        <h6>Real example</h6>
-        ${E.workedExampleHtml()}
-      </section>
-
-      ${noiseSection}
+      ${smallFormatSection}
     </div>`;
     E.initIn(pane);
     wireTabLinks(pane);
@@ -2275,20 +2286,21 @@
     const rate = (row) => (row && row.n
       ? `${row.favored_wins} of ${row.n} (${Math.round((row.favored_wins / row.n) * 100)}%)`
       : '\u2014');
+    // Labels match the Outcome card's main-reason line (js/balonce-meter.js).
     const rows = [
-      ['Commander edge', 'The stronger commander is the bigger term.', c.commander_edge],
-      ['\u2026 against stronger thugs', 'The stronger commander faced the stronger thugs and still counted for more.', c.commander_edge && c.commander_edge.vs_stronger_thugs],
-      ['Stacked', `A commander at least ${gap} VSR-C weaker, carried by thugs that outweigh the gap.`, c.stacked],
-      ['Thug edge', 'The thugs are the bigger term; the commanders are close.', c.thug_edge],
-      ['Both edges', 'One side has the stronger commander and the stronger thugs.', c.both],
-      ['Even', 'Neither term gives a real edge.', c.even],
+      ['Commander edge', 'The favorite has the better commander, and that is the main reason.', c.commander_edge],
+      ['\u2026 against stronger thugs', 'The better commander faced the stronger thugs and was still the favorite.', c.commander_edge && c.commander_edge.vs_stronger_thugs],
+      ['Stacked', `The favorite\u2019s commander is rated at least ${gap} points lower, and stronger thugs more than cover the gap.`, c.stacked],
+      ['Thug edge', 'The commanders are close. The favorite has the stronger thugs.', c.thug_edge],
+      ['Both edges', 'The favorite has the better commander and the stronger thugs.', c.both],
+      ['Even', 'Neither side has a real edge.', c.even],
     ].map(([label, desc, row]) => `<tr>
         <td><strong>${label}</strong><div class="text-muted small">${desc}</div></td>
         <td class="text-end">${rate(row)}</td>
       </tr>`).join('');
-    return `<p class="vt-elo-acc-blurb mb-2 mt-3"><strong>Why the favorite was favored.</strong> Each rated duel is filed under its main reason (the bigger of the commander gap and the thug term), and the favored side's record is counted. The match page's Outcome card shows the same label for every game:</p>
+    return `<p class="vt-elo-acc-blurb mb-2 mt-3"><strong>Why was the favorite favored?</strong> Each duel is filed under the main reason one side was expected to win. The match page shows the same label on its Outcome card.</p>
       <table class="vt-elo-gap-table">
-        <thead><tr><th>Main reason</th><th class="text-end">Favored side won</th></tr></thead>
+        <thead><tr><th>Main reason</th><th class="text-end">Favorite won</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
   }
@@ -2300,10 +2312,15 @@
     if (!v || !v.latest) {
       pane.innerHTML = `<div class="card"><div class="card-body text-center text-muted py-5">
         <i class="bi bi-clipboard-data d-block mb-2" style="font-size: 1.6rem;"></i>
-        Validation data hasn&rsquo;t been published yet &mdash; run the pipeline to generate <code>validation_summary.json</code>.
+        No accuracy data yet. Run the pipeline to generate <code>validation_summary.json</code>.
       </div></div>`;
       return;
     }
+    // Formulas and tuning tables sit in a collapsed disclosure so the
+    // plain copy reads on its own (shared with the How tab).
+    const mathDetails = (summary, inner) => ((window.VTSRExplain && window.VTSRExplain.mathDetailsHtml)
+      ? window.VTSRExplain.mathDetailsHtml(summary, inner)
+      : inner);
     const L = v.latest;
     const funnel = (v.latest_detail && v.latest_detail.winner_funnel) || null;
     const gaps = (v.latest_detail && v.latest_detail.rating_gap_breakout
@@ -2338,40 +2355,38 @@
         default: return null;
       }
     };
+    const recent = (L.clean_win_accuracy_recent && L.clean_win_accuracy_recent.accuracy != null)
+      ? L.clean_win_accuracy_recent : null;
+    const pickAcc = recent ? recent.accuracy : L.clean_win_accuracy_hard_max;
     const cards = [
       {
-        label: 'Rated matches', value: String(L.rated_match_count ?? '\u2014'),
+        label: 'Rated games', value: String(L.rated_match_count ?? '\u2014'),
         badge: badge('sample', L.rated_match_count),
-        caption: `Across ${L.players_total ?? '?'} players. Every number below comes from re-checking the rating against this corpus on each pipeline run.`,
-        tech: 'Corpus gates: a match is rated only when it has \u22656 players and a recorded winner (host result, recycler/factory loss, or reviewer sign-off). Draws and match length do not count.',
+        caption: `Played by ${L.players_total ?? '?'} players. Everything on this tab is recomputed from these games on each update.`,
+        tech: 'A match is rated when it has at least 6 players, at least 3 per side, and a recorded winner (host result, recycler or factory loss, or reviewer sign-off). Draws are not rated. Match length does not matter.',
       },
       {
-        label: 'Self-consistency', value: (L.self_consistency_rho != null) ? L.self_consistency_rho.toFixed(2) : '\u2014',
+        label: 'Rating stability', value: (L.self_consistency_rho != null) ? L.self_consistency_rho.toFixed(2) : '\u2014',
         badge: badge('rho', L.self_consistency_rho),
-        caption: 'Split each player\u2019s games in half at random \u2014 do the two halves agree on how good they are? 1.00 = the two halves agree perfectly.',
+        caption: 'Split each player\u2019s games into two random halves and compare how the halves rank the players. 1.00 means they agree completely.',
         tech: 'Spearman \u03c1 between random split-halves of each player\u2019s matches.',
       },
       {
-        label: 'Noise band', value: sigma != null ? `\u00b1${sigma}` : '\u2014',
+        label: 'Too close to call', value: sigma != null ? `\u00b1${sigma}` : '\u2014',
         badge: badge('sigma', sigma),
-        caption: 'How much a rating wobbles when the match list is reshuffled. Players within this band of each other are basically tied.',
+        caption: 'How far a rating moves when we recompute it on a random 80% of the games. Players closer together than this are effectively tied.',
         tech: 'Median per-player \u03c3 over 100 bootstrap resamples of 80% of matches.',
       },
       {
-        label: (L.clean_win_accuracy_recent && L.clean_win_accuracy_recent.accuracy != null)
-          ? 'Current form' : 'Winner prediction',
-        value: pct((L.clean_win_accuracy_recent && L.clean_win_accuracy_recent.accuracy != null)
-          ? L.clean_win_accuracy_recent.accuracy
-          : L.clean_win_accuracy_hard_max),
-        badge: badge('accuracy', (L.clean_win_accuracy_recent && L.clean_win_accuracy_recent.accuracy != null)
-          ? L.clean_win_accuracy_recent.accuracy
-          : L.clean_win_accuracy_hard_max),
-        caption: (L.clean_win_accuracy_recent && L.clean_win_accuracy_recent.n)
-          ? `Last ${L.clean_win_accuracy_recent.n} provable matches`
-            + (L.clean_win_accuracy_recent.since_date ? ` (since ${esc(L.clean_win_accuracy_recent.since_date)})` : '')
-            + `: how often the team with the highest-rated player won. All-time: ${pct(L.clean_win_accuracy_hard_max)} of ${L.clean_win_n ?? 0}. (Coin flip = 50%.)`
-          : `Of the ${L.clean_win_n ?? 0} matches with a provable winner, how often did the team with the highest-rated player win? (Coin flip = 50%.) Read the caveats below before judging this one.`,
-        tech: 'Highest pre-match rating on the team (hard max). Provable winners only: clean win, host-attested, or reviewer-confirmed.',
+        label: 'Picks the winner',
+        value: pct(pickAcc),
+        badge: badge('accuracy', pickAcc),
+        caption: (recent && recent.n)
+          ? `In the last ${recent.n} rated games`
+            + (recent.since_date ? ` (since ${esc(recent.since_date)})` : '')
+            + `, this is how often the team with the highest-rated player won. Over all ${L.clean_win_n ?? 0} games it is ${pct(L.clean_win_accuracy_hard_max)}. A coin flip is 50%.`
+          : `Across ${L.clean_win_n ?? 0} rated games, this is how often the team with the highest-rated player won. A coin flip is 50%.`,
+        tech: 'Highest pre-match VSR-T on each team (hard max). Games with a single recorded winner only.',
       },
     ].map(c => `<div class="vt-elo-statcard">
         <div class="vt-elo-stat-head">
@@ -2399,14 +2414,15 @@
       const attested = funnel.decided_by_attested || 0;
       const adjudicated = funnel.decided_by_adjudicated || 0;
       const rows = [
-        ['All rated matches', total, 'total'],
-        ['Provable winner (clean win)', funnel.decided_by_clean_win || 0, 'provable'],
-        // v15: host-attested wins (proto v3 outcome dialog). Only shown once
-        // any exist so the pre-v3 funnel keeps its familiar three rows.
-        ...(attested > 0 ? [['Host-attested winner', attested, 'provable']] : []),
+        ['All rated games', total, 'total'],
+        ['Winner seen in the recording', funnel.decided_by_clean_win || 0, 'provable'],
+        // v15: host-attested wins (proto v3 outcome dialog).
+        ...(attested > 0 ? [['Host reported the winner', attested, 'provable']] : []),
         // v16: reviewer-confirmed wins (pipeline outcome-review prompt).
-        ...(adjudicated > 0 ? [['Reviewer-confirmed winner', adjudicated, 'provable']] : []),
-        ['Winner unprovable from the data', unprovable, 'unprovable'],
+        ...(adjudicated > 0 ? [['Reviewer confirmed the winner', adjudicated, 'provable']] : []),
+        // Since ELO_SCHEMA_VERSION 21 a game is rated only with a recorded
+        // winner, so this row is the rare both-bases-fell game.
+        ...(unprovable > 0 ? [['No clear winner', unprovable, 'unprovable']] : []),
       ].map(([label, n, kind]) => {
         const w = total > 0 ? Math.max(0.8, (n / total) * 100) : 0;
         return `<div class="vt-elo-funnel-row is-${kind}">
@@ -2415,27 +2431,26 @@
           <span class="vt-elo-funnel-count">${n}</span>
         </div>`;
       }).join('');
-      const recentFunnel = funnel.recent || null;
-      const recentLine = (recentFunnel && recentFunnel.rated)
-        ? ` ${recentFunnel.determined} of the last ${recentFunnel.rated} rated matches`
-          + (recentFunnel.since_date ? ` (since ${esc(recentFunnel.since_date)})` : '')
-          + ` had a provable winner.`
+      const noWinnerLine = unprovable > 0
+        ? ` ${unprovable} of ${total} games had no clear winner to pick, usually because both bases fell. ${unprovable === 1 ? 'That game stays' : 'Those games stay'} out of the winner-picking numbers on this tab.`
         : '';
       funnelHtml = `<div class="vt-elo-acc-section">
-        <h6>Which matches count</h6>
-        <p class="vt-elo-acc-blurb">A match counts toward prediction stats when we can <strong>prove</strong> who won. Three things qualify: the recording shows it physically (one team\u2019s base destroyed, the other\u2019s untouched), the host answered the end-of-game dialog, or a reviewer signed the result off afterwards. Host quits, timeouts, and rebuild ambiguity are a gap in the early recordings. <strong>${unprovable} of ${total}</strong> rated matches still have no provable winner.${recentLine}</p>
-        <div class="vt-elo-funnel">${rows}</div>
-        <p class="vt-elo-acc-blurb mb-0 mt-2 text-muted small">Contested matches (both bases fell) and draws sit in the unprovable bar because there\u2019s no single winner to predict here &mdash; the <a href="?tab=vsr-c" data-elo-tab-link="vsr-c">commander ladder</a> does still rate contested games. That card\u2019s duel count also includes community-logged games; this chart is recorded matches only.</p>
+        ${mathDetails('Which games count', `
+          <p class="vt-elo-acc-blurb">A game is rated only when we know who won. That comes from one of three places: the recording shows one team\u2019s base destroyed, the host answered the end-of-game question, or a reviewer signed the result off afterwards.${noWinnerLine}</p>
+          <div class="vt-elo-funnel">${rows}</div>
+          <p class="vt-elo-acc-blurb mb-0 mt-2 text-muted small">This chart is recorded games only. The <a href="?tab=vsr-c" data-elo-tab-link="vsr-c">commander ladder</a> also counts F9bomber\u2019s logged games, so its duel count is higher.</p>`)}
       </div>`;
     }
 
     // ---- Gap breakout. ----
     let gapHtml = '';
     if (gaps.length) {
+      // Bucket edges come from the validator (25 / 100 today).
+      const edge = (x) => fmt(x);
       const rows = gaps.map(b => {
-        const label = b.bucket === 'small' ? 'Tight (&lt;25 pts apart)'
-          : b.bucket === 'mid' ? 'Moderate (25\u2013100 pts)'
-          : 'Lopsided (&gt;100 pts)';
+        const label = b.bucket === 'small' ? `Close (under ${edge(b.gap_max ?? 25)} points)`
+          : b.bucket === 'mid' ? `Moderate (${edge(b.gap_min ?? 25)} to ${edge(b.gap_max ?? 100)})`
+          : `Lopsided (over ${edge(b.gap_min ?? 100)})`;
         const acc = (b.score && b.score.accuracy != null) ? pct(b.score.accuracy) : '\u2014';
         return `<tr>
           <td>${label}</td>
@@ -2443,15 +2458,27 @@
           <td class="text-end">${acc}</td>
         </tr>`;
       }).join('');
+      // The lead sentence is built from the buckets so it can never
+      // disagree with the table under it.
+      const accOf = (b) => ((b && b.n && b.score && b.score.accuracy != null) ? b.score.accuracy : null);
+      const close = gaps.find(b => b.bucket === 'small');
       const lopsided = gaps.find(b => b.bucket === 'large');
-      const noLopsided = lopsided && !lopsided.n;
+      const closeAcc = accOf(close);
+      const lopAcc = accOf(lopsided);
+      let gapLead;
+      if (lopsided && !lopsided.n) {
+        gapLead = `No rated game so far has had one team more than ${edge(lopsided.gap_min ?? 100)} points stronger than the other, so the ratings have only been tested on close games.`;
+      } else if (closeAcc != null && lopAcc != null) {
+        const coin = (closeAcc >= 0.4 && closeAcc <= 0.6) ? ', about a coin flip' : '';
+        gapLead = `When the two teams\u2019 average VSR-T was within ${edge(close.gap_max ?? 25)} points, the favorite won <strong>${pct(closeAcc)}</strong> of ${close.n} games${coin}. When one side was more than ${edge(lopsided.gap_min ?? 100)} points stronger, it won <strong>${pct(lopAcc)}</strong> of ${lopsided.n}.`;
+      } else {
+        gapLead = 'The bigger the rating gap between two teams, the more often the stronger one should win.';
+      }
       gapHtml = `<div class="vt-elo-acc-section">
-        <h6>Prediction by team-strength gap</h6>
-        <p class="vt-elo-acc-blurb">Ratings predict best when teams are mismatched on paper. ${noLopsided
-          ? 'So far <strong>not a single rated match has had a lopsided rating gap</strong> \u2014 the community balances its lobbies well, which is great for the games and brutal for prediction stats. The headline number above is being tested only on coin-flip-tight matches.'
-          : 'Larger gaps should show higher accuracy as the corpus grows.'}</p>
+        <h6>Bigger gaps, better calls</h6>
+        <p class="vt-elo-acc-blurb">${gapLead}</p>
         <table class="vt-elo-gap-table">
-          <thead><tr><th>Pre-match rating gap</th><th class="text-end">Matches</th><th class="text-end">Favorite won</th></tr></thead>
+          <thead><tr><th>Gap between the teams</th><th class="text-end">Games</th><th class="text-end">Favorite won</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;
@@ -2469,29 +2496,30 @@
           <td class="text-end">${row.log_loss != null ? row.log_loss.toFixed(3) : '\u2014'}</td>
         </tr>`;
       }).join('');
+      const lamTable = lamRows ? `<p class="vt-elo-acc-blurb mb-2">\u03bb sets how much a gap in thug strength counts next to the gap between the commanders. Every duel is re-scored at each setting. Log-loss measures how far off the win chances were, and lower is better.</p>
+        <table class="vt-elo-gap-table">
+          <thead><tr><th>Thug weight</th><th class="text-end">Favorite won</th><th class="text-end">Log-loss</th></tr></thead>
+          <tbody>${lamRows}</tbody>
+        </table>` : '';
       cmdrAccHtml = `<div class="vt-elo-acc-section">
-        <h6>Commander ladder accuracy (VSR-C)</h6>
-        <p class="vt-elo-acc-blurb">Replaying the commander ladder match-by-match: knowing only the two commanders\u2019 pre-match ratings and their teams\u2019 thug strength, how often did it pick the actual winner of the ${vc.n_scored ?? 0} rated duels (telemetry + community-logged)? (Coin flip = 50%.)</p>
+        <h6>Commander ratings (VSR-C)</h6>
+        <p class="vt-elo-acc-blurb">Before each commander duel, VSR-C names a favorite from the two commanders\u2019 ratings and the strength of their thugs. Recorded games and F9bomber\u2019s logged games both count.</p>
         <div class="vt-elo-statgrid" style="margin-bottom: 0.85rem;">
           <div class="vt-elo-statcard">
             <div class="vt-elo-stat-head">
-              <span class="vt-elo-stat-label">Duel prediction</span>
+              <span class="vt-elo-stat-label">Favorite won</span>
               ${(() => { const b = badge('accuracy', vc.accuracy); return b ? `<span class="vt-elo-badge is-${b.tone}">${b.label}</span>` : ''; })()}
             </div>
             <div class="vt-elo-stat-value">${pct(vc.accuracy)}</div>
-            <div class="vt-elo-stat-caption">Of ${vc.n_scored ?? 0} rated commander duels (telemetry + community-logged), how often the pre-match favorite (rating + team-strength handicap) actually won.</div>
+            <div class="vt-elo-stat-caption">Of ${vc.n_scored ?? 0} rated commander duels. A coin flip is 50%.</div>
             <details class="vt-elo-stat-tech">
               <summary>Technical definition</summary>
-              <div class="vt-elo-stat-tech-body">Chronological replay from elo_commander_history.json; draws excluded from the denominator; log-loss ${vc.log_loss != null ? vc.log_loss.toFixed(3) : '\u2014'}.</div>
+              <div class="vt-elo-stat-tech-body">Chronological replay from elo_commander_history.json. Draws are left out of the count. Log-loss ${vc.log_loss != null ? vc.log_loss.toFixed(3) : '\u2014'}.</div>
             </details>
           </div>
         </div>
-        <p class="vt-elo-acc-blurb mb-2">The <strong>\u03bb dial</strong> controls how much the thug-team strength gap counts in the expected score. The validator re-scores every duel at each setting \u2014 as the corpus grows, this table picks the dial empirically:</p>
-        <table class="vt-elo-gap-table">
-          <thead><tr><th>Handicap weight</th><th class="text-end">Prediction accuracy</th><th class="text-end">Log-loss</th></tr></thead>
-          <tbody>${lamRows}</tbody>
-        </table>
         ${driversTableHtml(vc.drivers)}
+        ${lamTable ? mathDetails('The math: how much the thugs should count', lamTable) : ''}
       </div>`;
     }
 
@@ -2509,14 +2537,20 @@
         const w = agree != null ? Math.max(1.5, agree * 100) : 0;
         return `<div class="vt-elo-funnel-row ${tone}">
           <span class="vt-elo-funnel-label" data-bs-toggle="tooltip" data-bs-placement="top"
-                title="n = ${r.n} determined matches">${esc(axisLabel(r.axis))}</span>
+                title="${r.n} rated games">${esc(axisLabel(r.axis))}</span>
           <span class="vt-elo-funnel-track"><span class="vt-elo-funnel-fill" style="width:${w.toFixed(1)}%;"></span></span>
           <span class="vt-elo-funnel-count">${pct(agree)}</span>
         </div>`;
       }).join('');
+      // One scored axis today (enemy damage share). The lead names its
+      // figure; with more axes the bars carry the detail.
+      const top = ao.axes.length === 1 ? ao.axes[0] : null;
+      const lead = (top && top.sign_agreement != null)
+        ? `In ${top.n ?? ao.n_matches_determined ?? 0} rated games, the team whose players scored higher on ${esc(axisLabel(top.axis).toLowerCase())} won <strong>${pct(top.sign_agreement)}</strong> of the time.`
+        : `Across ${ao.n_matches_determined ?? 0} rated games, this is how often the team that scored higher on each stat also won. At 50% a stat says nothing about winning.`;
       axisOutcomeHtml = `<div class="vt-elo-acc-section">
-        <h6>Which axes actually win games?</h6>
-        <p class="vt-elo-acc-blurb">Across the ${ao.n_matches_determined ?? 0} matches with a verified winner: when one team out-scored the other on an axis, how often did that team win? Below 50% that axis lined up with the losing side. The bar is the axis that scores today; it is measured inside the same match, so it says the winners did more damage, not that the rating predicts winners in advance (thug ratings do not yet). Updated every pipeline run. (50% = the axis says nothing about winning; a self-omitting axis has a smaller sample, so treat a thin one with care.)</p>
+        <h6>${top && top.axis === 'enemy_damage_share' ? 'Do winners deal more damage?' : 'Which stats go with winning?'}</h6>
+        <p class="vt-elo-acc-blurb">${lead} That is measured after the game, inside the same game. It shows that winners deal more damage. It does not show that VSR-T can call a winner before the game starts. The cards at the top test that.</p>
         <div class="vt-elo-funnel">${rows}</div>
       </div>`;
     }
@@ -2524,6 +2558,26 @@
     // ---- VSR-C v2 economy composite proof sections (v1.3; absent-safe). ----
     const vcp = (v.latest_detail && v.latest_detail.vtsr_c_perf) || null;
     let cmdrEconHtml = '';
+    // What-if table: the ladder replayed with the economy read mixed in.
+    // Tuning detail, so it sits in the section's collapsed disclosure.
+    let alphaDetails = '';
+    if (vcp && vcp.alpha_ablation && vcp.alpha_ablation.available
+        && Array.isArray(vcp.alpha_ablation.per_alpha)) {
+      const abRows = vcp.alpha_ablation.per_alpha.map(row => {
+        const mark = row.canonical ? ' <span class="badge text-bg-secondary" style="font-size:0.6rem;">current</span>' : '';
+        return `<tr${row.canonical ? ' class="fw-semibold"' : ''}>
+          <td>\u03b1<sub>c</sub> = ${row.alpha_c}${mark}</td>
+          <td class="text-end">${pct(row.accuracy)}</td>
+          <td class="text-end">${row.log_loss != null ? row.log_loss.toFixed(3) : '\u2014'}</td>
+        </tr>`;
+      }).join('');
+      alphaDetails = mathDetails('The math: what if the economy counted?', `
+        <p class="vt-elo-acc-blurb mb-2">The duels with economy data are replayed with the economy read mixed in. \u03b1<sub>c</sub> is the share that wins and losses keep, so 1 is today\u2019s setting and 0.5 is an even split. A small bump in this table does not switch it on. Only a fresh batch of games that passes the rule written in advance can.</p>
+        <table class="vt-elo-gap-table">
+          <thead><tr><th>Win/loss share</th><th class="text-end">Favorite won</th><th class="text-end">Log-loss</th></tr></thead>
+          <tbody>${abRows}</tbody>
+        </table>`);
+    }
     if (vcp && vcp.econ_axes && vcp.econ_axes.available
         && Array.isArray(vcp.econ_axes.axes) && vcp.econ_axes.axes.length) {
       const ea = vcp.econ_axes;
@@ -2536,41 +2590,43 @@
           : agree >= 0.45 ? 'is-total'
           : 'is-unprovable';
         const w = agree != null ? Math.max(1.5, agree * 100) : 0;
-        const name = econLabel(r.axis) + (r.scored === false ? ' (not scored)' : '');
+        // Every stat here is recorded, not scored. The suffix marks the
+        // readouts that are not even candidates for scoring.
+        const name = econLabel(r.axis) + (r.scored === false ? ' (display only)' : '');
         return `<div class="vt-elo-funnel-row ${tone}">
           <span class="vt-elo-funnel-label" data-bs-toggle="tooltip" data-bs-placement="top"
-                title="n = ${r.n} telemetry duels">${esc(name)}</span>
+                title="${r.n} duels with economy data">${esc(name)}</span>
           <span class="vt-elo-funnel-track"><span class="vt-elo-funnel-fill" style="width:${w.toFixed(1)}%;"></span></span>
           <span class="vt-elo-funnel-count">${pct(agree)}</span>
         </div>`;
       }).join('');
+      // Promotion status in plain words. HOLD is the validator's verdict
+      // while the pre-registered rule has not been passed.
       const promo = vcp.promote;
-      const promoHtml = (promo && promo.verdict) ? `<p class="vt-elo-acc-blurb">Blend status: <strong>${esc(promo.verdict)}</strong>. ${esc(promo.note || '')} Confirmation duels so far: ${promo.n_confirmation ?? 0} (need ${promo.n_confirmation_required ?? 25}, dated after ${esc(promo.amended_on || '')}).</p>` : '';
-      cmdrEconHtml += `<div class="vt-elo-acc-section">
-        <h6>Do the commander economy axes predict duels?</h6>
-        <p class="vt-elo-acc-blurb">Across the ${ea.n_scored ?? 0} verified duels with proto v4 telemetry: when one commander led an economy axis, how often did they win? That same-match agreement is <strong>necessary and not sufficient</strong>. It does not turn the blend on. The blend stays off until a fresh sample, recorded after the 23 Oct 2026 rule change, also holds up in close games, already shows in the opening minutes, and actually improves prediction.</p>
+      let promoHtml = '';
+      if (promo && promo.verdict) {
+        const have = promo.n_confirmation ?? 0;
+        const need = promo.n_confirmation_required ?? 25;
+        const since = promo.amended_on ? ` since ${esc(promo.amended_on)}` : '';
+        const held = String(promo.verdict).toUpperCase() === 'HOLD';
+        const detail = !held
+          ? `${have} games recorded${since} have been checked.`
+          : have < need
+            ? `The rule needs ${need} games recorded${since}, and ${have} exist so far.`
+            : `${have} games recorded${since} have been checked, and they did not pass the rule.`;
+        promoHtml = `<p class="vt-elo-acc-blurb">Status: <strong>${held ? 'not counted' : esc(promo.verdict)}</strong>. ${detail}</p>`;
+      }
+      cmdrEconHtml = `<div class="vt-elo-acc-section">
+        <h6>Commander economy (recorded, not scored)</h6>
+        <p class="vt-elo-acc-blurb">Newer recordings track how each commander ran their economy. In ${ea.n_scored ?? 0} duels with that data, the bars show how often the commander who led a stat also won. Leading a stat in a game you won proves little, because winning produces the lead. So none of this moves VSR-C. It starts counting only if a fresh batch of games passes a rule written before those games were played.</p>
         ${promoHtml}
         <div class="vt-elo-funnel">${rows}</div>
+        ${alphaDetails}
       </div>`;
-    }
-    if (vcp && vcp.alpha_ablation && vcp.alpha_ablation.available
-        && Array.isArray(vcp.alpha_ablation.per_alpha)) {
-      const ab = vcp.alpha_ablation;
-      const abRows = ab.per_alpha.map(row => {
-        const mark = row.canonical ? ' <span class="badge text-bg-secondary" style="font-size:0.6rem;">current</span>' : '';
-        return `<tr${row.canonical ? ' class="fw-semibold"' : ''}>
-          <td>\u03b1<sub>c</sub> = ${row.alpha_c}${mark}</td>
-          <td class="text-end">${pct(row.accuracy)}</td>
-          <td class="text-end">${row.log_loss != null ? row.log_loss.toFixed(3) : '\u2014'}</td>
-        </tr>`;
-      }).join('');
-      cmdrEconHtml += `<div class="vt-elo-acc-section">
-        <h6>The \u03b1<sub>c</sub> dial (economy blend ablation)</h6>
-        <p class="vt-elo-acc-blurb">What would happen if the economy composite started counting? The validator replays the ladder at each blend weight on the matches already recorded. A small accuracy bump here is not enough: the blend stays off unless a later sample improves prediction by a pre-registered margin. \u03b1<sub>c</sub> = 1 is the shipped, outcome-pure setting.</p>
-        <table class="vt-elo-gap-table">
-          <thead><tr><th>Blend weight</th><th class="text-end">Duel accuracy</th><th class="text-end">Log-loss</th></tr></thead>
-          <tbody>${abRows}</tbody>
-        </table>
+    } else if (alphaDetails) {
+      cmdrEconHtml = `<div class="vt-elo-acc-section">
+        <h6>Commander economy (recorded, not scored)</h6>
+        ${alphaDetails}
       </div>`;
     }
 
@@ -2581,31 +2637,41 @@
     const jm = (v.latest_detail && v.latest_detail.joint_model) || null;
     let jointHtml = '';
     if (jm && jm.available) {
-      const looks = (jm.looks_at || [200, 300, 400]).join(', ');
       const run = jm.running || null;
+      const lookList = (Array.isArray(jm.looks_at) && jm.looks_at.length) ? jm.looks_at : [200, 300, 400];
+      const lastLook = lookList[lookList.length - 1];
+      const looks = lookList.length > 1
+        ? `${lookList.slice(0, -1).join(', ')} and ${lastLook}`
+        : String(lastLook);
       const STATUS = {
-        not_started: ['Not started', 'ok', 'The rules are written down but not signed off yet, so no game counts.'],
-        running: ['Running', 'info', `Checked at ${looks} recorded games. Next check at ${jm.next_look ?? '\u2014'}.`],
+        not_started: ['Not started', 'ok', 'The rules are written but not signed off, so no game counts yet.'],
+        running: ['Running', 'info', `It is checked at ${looks} recorded games. The next check is at ${jm.next_look ?? '\u2014'}.`],
         passed: ['Passed', 'good', 'It predicted clearly better at a check. The switch to it is being prepared.'],
         withdrawn: ['Withdrawn', 'bad', 'It fell clearly behind today\u2019s formula at a check, so the preview was taken down.'],
-        ended: ['Ended', 'ok', 'It did not predict clearly better within 400 games. Today\u2019s ratings stay.'],
+        ended: ['Ended', 'ok', `It did not predict clearly better within ${lastLook} games. Today\u2019s ratings stay.`],
       };
       const [sLabel, sTone, sText] = STATUS[jm.status] || [String(jm.status || 'Unknown'), 'ok', ''];
       const num = (x, d) => (x == null || !isFinite(x)) ? '\u2014' : Number(x).toFixed(d);
+      let gapLine = '';
+      if (run && run.gain != null && isFinite(run.gain)) {
+        const side = run.gain >= 0 ? 'ahead' : 'behind';
+        gapLine = `<p class="vt-elo-acc-blurb mt-2 mb-0">So far the new model is ${side} by ${num(Math.abs(run.gain), 3)} log-loss, give or take ${num(run.gain_se, 3)}. To pass a check, its lead has to be at least twice that margin.</p>`;
+      }
       const soFar = run
         ? `<table class="vt-elo-gap-table">
             <thead><tr><th>On the ${run.n} games counted so far</th><th class="text-end">New model</th><th class="text-end">Today\u2019s formula</th></tr></thead>
             <tbody>
-              <tr><td>Winners called</td><td class="text-end">${pct(run.accuracy_joint)}</td><td class="text-end">${pct(run.accuracy_baseline)}</td></tr>
+              <tr><td>Favorite won</td><td class="text-end">${pct(run.accuracy_joint)}</td><td class="text-end">${pct(run.accuracy_baseline)}</td></tr>
               <tr><td>Log-loss (lower is better)</td><td class="text-end">${num(run.log_loss_joint, 3)}</td><td class="text-end">${num(run.log_loss_baseline, 3)}</td></tr>
             </tbody>
           </table>
-          <p class="vt-elo-acc-blurb mt-2 mb-0">Gap so far: ${num(run.gain, 3)} \u00b1 ${num(run.gain_se, 3)} log-loss in the new model\u2019s favor. It has to be at least 2 standard errors above zero at a check.</p>`
+          ${gapLine}`
         : '';
       jointHtml = `<div class="vt-elo-acc-section" id="elo-joint-test">
         <h6>New model in testing <span class="vt-elo-badge is-${sTone}">${sLabel}</span></h6>
-        <p class="vt-elo-acc-blurb">Today VSR-T ignores who won and VSR-C ignores how well the commander fights. A new model gives every player <strong>two skills, commanding and fighting</strong>, and learns both from the same evidence: who won, and how much damage each player dealt compared with their own teammates. The commander counts as one of the team\u2019s fighters. It runs beside today\u2019s ratings and changes none of them; where it shows, it is the line labelled <em>New model (in testing)</em> next to the Balonce meter.</p>
-        <p class="vt-elo-acc-blurb"><strong>${sText}</strong> It replaces today\u2019s ratings only if it predicts recorded games clearly better than today\u2019s formula. The rule was written down before any of those games were played${jm.freeze_date ? ` (${esc(jm.freeze_date)})` : ''}, and the test stops at 400 games either way.</p>
+        <p class="vt-elo-acc-blurb">Today VSR-T ignores who won, and VSR-C ignores how well the commander fights. We are testing a model that gives every player <strong>two skills, commanding and fighting</strong>. It learns both from who won and from how much damage each player dealt compared with their teammates. The commander counts as one of the team\u2019s fighters.</p>
+        <p class="vt-elo-acc-blurb">It runs alongside today\u2019s ratings and changes none of them. Where it appears, it is the line labelled <em>New model (in testing)</em> beside the Balonce meter.</p>
+        <p class="vt-elo-acc-blurb"><strong>${sText}</strong> It replaces today\u2019s ratings only if it predicts recorded games clearly better than today\u2019s formula. That rule was written${jm.freeze_date ? ` on ${esc(jm.freeze_date)},` : ''} before any of the test games were played, and the test stops at ${lastLook} games.</p>
         ${soFar}
       </div>`;
     }
@@ -2618,24 +2684,29 @@
       ? v.latest_detail.accuracy_timeline.filter(row => row && row.date)
       : [];
     const showTrend = timeline.length > 1 || hist.length > 1;
+    const trendLegend = timeline.length > 1
+      ? 'The solid line is how often VSR-T picked the winner over the previous 30 games. The dashed line counts every game up to that date. Above 50% beats a coin flip.'
+      : 'One point per update: how often VSR-T picked the winner, and how well ratings lined up with match scores.';
     const histSection = `<div class="vt-elo-acc-section">
       <h6>Is it getting better?</h6>
       ${showTrend
-        ? '<div class="vt-elo-history-wrap"><canvas id="elo-history-chart"></canvas></div>'
-        : `<p class="vt-elo-acc-blurb mb-0 text-muted">Only ${hist.length || 'one'} validation run recorded so far &mdash; the trend chart appears once more pipeline runs accumulate.</p>`}
+        ? `<p class="vt-elo-acc-blurb">${trendLegend}</p>
+           <div class="vt-elo-history-wrap"><canvas id="elo-history-chart"></canvas></div>`
+        : '<p class="vt-elo-acc-blurb mb-0 text-muted">The trend chart appears once more updates have been recorded.</p>'}
     </div>`;
 
+    const updated = String(L.generated_at || v.generated_at || '').slice(0, 10);
     pane.innerHTML = `<div class="vt-elo-doc" style="max-width: 1100px;">
-      <p class="mb-3">Every rating update, we <strong>re-validate</strong> the results to give you the latest effectiveness and prediction accuracy.</p>
+      <p class="mb-3">Each time the ratings update, we replay every rated game in order and check what the ratings said before it was played.</p>
       <div class="vt-elo-statgrid">${cards}</div>
-      ${funnelHtml}
       ${gapHtml}
-      ${cmdrAccHtml}
-      ${cmdrEconHtml}
-      ${axisOutcomeHtml}
-      ${jointHtml}
       ${histSection}
-      <p class="text-muted small mb-0">Source: <code>data/processed/validation_summary.json</code>, generated ${esc(L.generated_at || v.generated_at || '')} by <code>scripts/validate_elo.py</code>.</p>
+      ${cmdrAccHtml}
+      ${axisOutcomeHtml}
+      ${cmdrEconHtml}
+      ${jointHtml}
+      ${funnelHtml}
+      ${updated ? `<p class="text-muted small mb-0">Updated ${esc(updated)}.</p>` : ''}
     </div>`;
 
     ensureTooltips(pane);
@@ -2667,7 +2738,7 @@
           labels = timeline.map(row => String(row.date).slice(0, 10));
           datasets = [
             {
-              label: 'All-time so far (%)',
+              label: 'Every game so far (%)',
               data: cumulative,
               borderColor: muted,
               backgroundColor: 'transparent',
@@ -2676,7 +2747,7 @@
               pointRadius: 0,
             },
             {
-              label: 'Last 30 provable (%)',
+              label: 'Previous 30 games (%)',
               data: rolling,
               borderColor: primary,
               backgroundColor: 'transparent',
@@ -2697,7 +2768,7 @@
           labels = hist.map(h => (h.generated_at || '').slice(0, 10));
           datasets = [
             {
-              label: 'Winner prediction (%)',
+              label: 'Picks the winner (%)',
               data: hist.map(h => h.clean_win_accuracy_hard_max != null ? h.clean_win_accuracy_hard_max * 100 : null),
               borderColor: primary,
               backgroundColor: 'transparent',
@@ -2705,7 +2776,7 @@
               pointRadius: 3,
             },
             {
-              label: 'Rating \u2194 performance agreement (%)',
+              label: 'Ratings match performance (%)',
               data: hist.map(h => h.spearman_pooled_rho != null ? h.spearman_pooled_rho * 100 : null),
               borderColor: muted,
               backgroundColor: 'transparent',

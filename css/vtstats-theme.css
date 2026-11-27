@@ -6511,6 +6511,28 @@ td.vt-col-split {
     .vt-eq-list li { transition: none; }
 }
 
+/* Collapsed disclosure for formulas and tuning tables (mathDetailsHtml()
+   in js/vtsr-explainers.js). The plain copy above it reads on its own. */
+.vt-explain-math { margin-top: 0.75rem; }
+.vt-explain-math > summary {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--kb-text-muted);
+    cursor: pointer;
+    user-select: none;
+    list-style-position: inside;
+}
+.vt-explain-math > summary:hover,
+.vt-explain-math > summary:focus-visible,
+.vt-explain-math[open] > summary { color: var(--kb-text-primary); }
+.vt-explain-math-body {
+    margin-top: 0.6rem;
+    padding: 0.2rem 0 0.2rem 0.9rem;
+    border-left: 2px solid color-mix(in oklab, var(--kb-text-muted) 22%, transparent);
+    font-size: 0.86rem;
+}
+.vt-explain-math-body > :last-child { margin-bottom: 0; }
+
 /* The 8-axes mixing board: a horizontal stacked weight bar whose
    segments are the stage anchors (solo mode). Luxury 0.005 axes render
    as a hairline with a halo hit-area so they stay visible + clickable
