@@ -2570,6 +2570,57 @@
         "video_duration_sec": 720.0,
         "video_id": "4F_iIoT4urs"
       }
+    ],
+    "2026-11-20T05-47-30": [
+      {
+        "anchors": [
+          {
+            "match_sec": 0.0,
+            "mission_time": "0:00",
+            "offset_sec": 1.0,
+            "video_sec": 1.0
+          }
+        ],
+        "channel": {
+          "name": "F9bomber",
+          "url": "https://www.youtube.com/channel/UCrImlETsN44qo421NOVbo5g"
+        },
+        "identity_check": {
+          "at_video_sec": null,
+          "names_matched": 0,
+          "roster_size": 10
+        },
+        "kill_check": {
+          "at_match_sec": 0.0,
+          "data": [
+            0,
+            0
+          ],
+          "status": "missing",
+          "video": [
+            null,
+            null
+          ]
+        },
+        "mapping_kind": "manual",
+        "notes": "manual --offset 1.0; identity gate bypassed via --force-identity; frames at video 600/2400/4134 read Mission Time 9:59, 39:59, 1:08:50 (game crashed, clock frozen at 1:08:50; match 4130.8s); inbox scan read the hour-format clock as 1:08 and declined; roster visually confirmed on the scoreboard (Vivify, VTrider, judgeguns, HappyOtter, DraconisMarch, F9bomber, muerte, Vindictive); QA links checked and signed off by the operator",
+        "pov_steam64": "76561198026325621",
+        "segments": [
+          {
+            "duration_sec": 4130.8,
+            "match_sec": 0.0,
+            "video_sec": 1.0
+          }
+        ],
+        "title": "A Game With an Abrupt End in Battlezone: Combat Commander",
+        "tool_version": 1,
+        "uploaded_at": "2026-11-20",
+        "url": "https://www.youtube.com/watch?v=V5y8vUl0g6s",
+        "verified": true,
+        "verified_at": "2026-11-27T00:15:21Z",
+        "video_duration_sec": 4137.0,
+        "video_id": "V5y8vUl0g6s"
+      }
     ]
   },
   "schema_version": 1

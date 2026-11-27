@@ -19,6 +19,9 @@ imported by the pipeline.
 A non-empty commander or recording-date disagreement with the CSV stops
 the HUD pass. Re-run with --accept-disagreements after that list has
 been reviewed. The parsed field still wins.
+
+A row from a channel in TOPIC_CHECKED_HANDLES is skipped, with a printed
+line, when neither its title nor its description names Battlezone.
 """
 
 from __future__ import annotations
@@ -82,6 +85,13 @@ PLAIN_VS_RE = re.compile(
     re.IGNORECASE,
 )
 FORMAT_RE = re.compile(r"^\d+\s*v\s*\d+$", re.IGNORECASE)
+# A starred note in front of the names: "*READ DESCRIPTION* Mort vs ...".
+LEAD_NOTE_RE = re.compile(r"^\*[^*]*\*\s*")
+# Channels that also post other games. A row from one of them is cataloged
+# only when its title or description names Battlezone. The other inbox
+# channels are Battlezone-only and their titles never say so.
+TOPIC_CHECKED_HANDLES = {"@f9bomber"}
+TOPIC_RE = re.compile(r"battlezone|bzcc|bzii|\bvsr\b", re.IGNORECASE)
 NULL_WORDS = {"", "unknown"}
 
 
@@ -234,9 +244,19 @@ def _without_date_lines(text: str) -> str:
     return "\n".join(kept)
 
 
+def _f9_match_line(text: str) -> dict:
+    """The F9 match line is a single line. Text on later lines of a
+    description is not part of the map title."""
+    for line in _without_date_lines(text).splitlines():
+        parsed = ext.parse_f9_title(line.strip())
+        if parsed:
+            return parsed
+    return {}
+
+
 def extract_f9(title: str, description: str) -> Extracted:
-    from_desc = ext.parse_f9_title(_without_date_lines(description)) or {}
-    from_title = ext.parse_f9_title(_without_date_lines(title)) or {}
+    from_desc = _f9_match_line(description)
+    from_title = _f9_match_line(title)
     commanders = [
         _commander_name(name)
         for name in (from_desc.get("commanders") or from_title.get("commanders") or [])
@@ -296,7 +316,7 @@ def extract_draconis(title: str, description: str) -> Extracted:
 def extract_aggressor(title: str, description: str) -> Extracted:
     for text in (description, title):
         for line in (text or "").splitlines():
-            match = PLAIN_VS_RE.match(line.strip())
+            match = PLAIN_VS_RE.match(LEAD_NOTE_RE.sub("", line.strip()))
             if not match:
                 continue
             left, right = match.group("a").strip(), match.group("b").strip()
@@ -324,6 +344,14 @@ def extract_for(handle: str, title: str, description: str) -> Extracted:
     if fn is None:
         return Extracted()
     return fn(title or "", description or "")
+
+
+def off_topic(handle: str, title: str, description: str) -> bool:
+    """True for a video from a mixed-content channel that does not name
+    Battlezone in its title or description."""
+    if (handle or "").lower() not in TOPIC_CHECKED_HANDLES:
+        return False
+    return not TOPIC_RE.search(f"{title or ''}\n{description or ''}")
 
 
 def fill(extracted: Extracted, hint: Hint) -> Extracted:
@@ -745,6 +773,7 @@ def run(args) -> int:
     ledger_ids = ext.ledger_video_ids(ledger_store)
     videos = []
     problems = []
+    skipped = 0
     for vid, hint in by_id.items():
         prior = existing.get(vid)
         refresh = args.refresh or prior is None or prior.get("inbox_hint") != hint.key()
@@ -752,6 +781,10 @@ def run(args) -> int:
             meta = cached_meta(vid, hint.url, refresh)
         except Exception as exc:
             log(f"  meta-failed {vid}: {exc}")
+            continue
+        if off_topic(hint.handle, meta.get("title") or "", meta.get("description") or ""):
+            log(f"  skip off-topic {vid}  {hint.handle}  {meta.get('title') or ''}")
+            skipped += 1
             continue
         extracted = extract_for(
             hint.handle, meta.get("title") or "", meta.get("description") or "")
@@ -764,6 +797,8 @@ def run(args) -> int:
             })
         videos.append(build_row(hint, meta, context, linked.get(vid)))
 
+    if skipped:
+        log(f"off-topic: {skipped} inbox row(s) not cataloged")
     write_catalog(videos)
     if problems:
         REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -858,6 +893,17 @@ def _self_test() -> int:
     assert titled.map_title == "Jade Green"
     assert titled.record_date == date(2026, 11, 15)
 
+    buried = extract_f9(
+        "A Game With an Abrupt End in Battlezone: Combat Commander",
+        "DraconisMarch vs Muerte | Battlezone: Combat Commander | VSR | Oldboy\n\n"
+        "Recording date:  11.19.26\n\n"
+        "My Addon Items:\nHadean Wire Icons: https://example.com/?id=1\n\n"
+        "#Battlezone #BZCC #VSR",
+    )
+    assert buried.commanders == ["DraconisMarch", "Muerte"], buried.commanders
+    assert buried.map_title == "Oldboy", buried.map_title
+    assert buried.record_date == date(2026, 11, 19), buried.record_date
+
     vsr = extract_bz2vsr(
         "Sev (Scion) vs Cloaket (ISDF) - Remnant 20261015", "")
     assert vsr.commanders == ["Sev", "Cloaket"], vsr.commanders
@@ -892,6 +938,8 @@ def _self_test() -> int:
     assert agg.commanders == ["Aggressor", "DraconisMarch"], agg.commanders
     prefixed = extract_aggressor("WARTHUNDA 2.0: Clovis vs Darkvale", "")
     assert prefixed.commanders == ["Clovis", "Darkvale"], prefixed.commanders
+    noted = extract_aggressor("*READ DESCRIPTION* Mort vs Draconismarch", "11/20/26")
+    assert noted.commanders == ["Mort", "Draconismarch"], noted.commanders
     assert agg.map_title == ""
     assert agg.record_date is None
 
@@ -914,6 +962,17 @@ def _self_test() -> int:
         "https://www.youtube.com/watch?v=RpyBnpm2AIE\n"
     )[0]
     assert unknown.c1 is None and unknown.record_date is None and unknown.map_title is None
+
+    assert off_topic(
+        "@F9bomber", "Digital Paintball 2 | Social Saturday | 5 | 11.21.26",
+        "0:00 - Wobluda\n10:11 - ub_rooftop",
+    )
+    assert not off_topic("@F9bomber", "I Need Clips #battlezone #bzcc", "")
+    assert not off_topic(
+        "@F9bomber", "A joke title",
+        "Sev vs F9bomber | Battlezone: Combat Commander | VSR | Titan",
+    )
+    assert not off_topic("@bz2aggressor", "F9bomber vs Mort", "11/19/26")
 
     upload_ignored = extract_f9("joke title", "no recording date here")
     assert upload_ignored.record_date is None

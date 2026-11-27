@@ -1,7 +1,494 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-20T04:40:49Z",
+  "generated_at": "2026-11-27T00:25:50Z",
   "videos": [
+    {
+      "video_id": "rEjT1VvFkzM",
+      "url": "https://www.youtube.com/watch?v=rEjT1VvFkzM",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "Sponge vs Aggressor",
+      "description": "10/10/26",
+      "upload_date": "2026-11-25",
+      "duration_sec": 1762,
+      "recording_date": "2026-10-10",
+      "commanders": [
+        {
+          "name": "sponge",
+          "steam64": "76561198163015714",
+          "slug": "sponge",
+          "faction": null
+        },
+        {
+          "name": "Nomad",
+          "steam64": "76561199066952713",
+          "slug": "nomad",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|Sponge||Aggressor|||2026-10-10"
+    },
+    {
+      "video_id": "nX-8KUb6Ksc",
+      "url": "https://www.youtube.com/watch?v=nX-8KUb6Ksc",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "Sponge vs Aggressor",
+      "description": "10/10/26",
+      "upload_date": "2026-11-25",
+      "duration_sec": 1171,
+      "recording_date": "2026-10-10",
+      "commanders": [
+        {
+          "name": "sponge",
+          "steam64": "76561198163015714",
+          "slug": "sponge",
+          "faction": null
+        },
+        {
+          "name": "Nomad",
+          "steam64": "76561199066952713",
+          "slug": "nomad",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|Sponge||Aggressor|||2026-10-10"
+    },
+    {
+      "video_id": "PU6dXaX06-w",
+      "url": "https://www.youtube.com/watch?v=PU6dXaX06-w",
+      "channel": {
+        "name": "F9bomber",
+        "url": "https://www.youtube.com/channel/UCrImlETsN44qo421NOVbo5g",
+        "handle": "@F9bomber"
+      },
+      "title": "Econchump vs Nomad | Battlezone: Combat Commander | VSR | Remnant",
+      "description": "\u25ba Recording date:  11.21.26\n\nSong: Free (Mind Go Free) (Extended Mix) - Tim Grand\n\nMy Addon Items:\nHadean Wire Icons: https://steamcommunity.com/sharedfiles/filedetails/?id=3447403480\nISDF Wire Icons: https://steamcommunity.com/sharedfiles/filedetails/?id=3458292573\nScion Wire Icons: https://steamcommunity.com/sharedfiles/filedetails/?id=3480107324\n\nBattlezone: Combat Commander is a hybrid tank shooter, first-person shooter and real-time strategy video game.\n\nHad fun watching\u2026",
+      "upload_date": "2026-11-23",
+      "duration_sec": 546,
+      "recording_date": "2026-11-21",
+      "commanders": [
+        {
+          "name": "econchump",
+          "steam64": "76561198068133931",
+          "slug": "econchump",
+          "faction": null
+        },
+        {
+          "name": "Nomad",
+          "steam64": "76561199066952713",
+          "slug": "nomad",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": "Remnant",
+        "title": "VSR: Remnant",
+        "slug": "vsrremnant"
+      },
+      "inbox_hint": "@F9bomber|Econchump||Nomad||Remnant|2026-11-21"
+    },
+    {
+      "video_id": "R0mJWR9_Feg",
+      "url": "https://www.youtube.com/watch?v=R0mJWR9_Feg",
+      "channel": {
+        "name": "F9bomber",
+        "url": "https://www.youtube.com/channel/UCrImlETsN44qo421NOVbo5g",
+        "handle": "@F9bomber"
+      },
+      "title": "Another Day Another Desert Map #battlezone #bzcc #gaming #bzii #fps #rts #strategy",
+      "description": "#youtubeshortsviral  #crazy #epic #rebellion #bigboatinteractive #hadean #isdf #scion #gaming #gamer #videogames #gamingcommunity #gamers #gameplay #pcgaming  #youtubers #youtube #youtuber #youtubechannel #instagram #youtubevideos #youtubevideo #subscribe #sub #like #explorepage #follow #love #viral #youtubegaming #explore #gaming #video #gamer #trending \n\nHad fun watching this Battlezone Combat Commander short? Check out the links in the bio",
+      "upload_date": "2026-11-23",
+      "duration_sec": 123,
+      "recording_date": null,
+      "commanders": [],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@F9bomber||||||"
+    },
+    {
+      "video_id": "lSI1g9pd7bs",
+      "url": "https://www.youtube.com/watch?v=lSI1g9pd7bs",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "VTrider vs F9bomber (old game don't know date)",
+      "description": "",
+      "upload_date": "2026-11-23",
+      "duration_sec": 5139,
+      "recording_date": null,
+      "commanders": [
+        {
+          "name": "VTrider",
+          "steam64": "76561197974548434",
+          "slug": "vtrider",
+          "faction": null
+        },
+        {
+          "name": "F9bomber",
+          "steam64": "76561198026325621",
+          "slug": "f9bomber",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|VTrider||F9bomber|||"
+    },
+    {
+      "video_id": "g2TJVkxfeiM",
+      "url": "https://www.youtube.com/watch?v=g2TJVkxfeiM",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "Aggressor vs Clovis Bray (3 of 3)",
+      "description": "11/22/26",
+      "upload_date": "2026-11-22",
+      "duration_sec": 999,
+      "recording_date": "2026-11-22",
+      "commanders": [
+        {
+          "name": "Nomad",
+          "steam64": "76561199066952713",
+          "slug": "nomad",
+          "faction": null
+        },
+        {
+          "name": "Certified Bad Guy",
+          "steam64": "76561198284800778",
+          "slug": "certified-bad-guy",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|Aggressor||Clovis Bray|||2026-11-22"
+    },
+    {
+      "video_id": "380hLoRj0Zw",
+      "url": "https://www.youtube.com/watch?v=380hLoRj0Zw",
+      "channel": {
+        "name": "BZ2VSR",
+        "url": "https://www.youtube.com/channel/UC5nrG2MRA8mINRvZ4lisUfA",
+        "handle": "@bz2vsr"
+      },
+      "title": "Sev (Hadean) vs Mort (Hadean) - Mojave 20261121",
+      "description": "",
+      "upload_date": "2026-11-22",
+      "duration_sec": 4904,
+      "recording_date": "2026-11-21",
+      "commanders": [
+        {
+          "name": "Sev",
+          "steam64": "76561199653748651",
+          "slug": "sev",
+          "faction": "Hadean"
+        },
+        {
+          "name": "mort",
+          "steam64": "76561198005099553",
+          "slug": "muerte",
+          "faction": "Hadean"
+        }
+      ],
+      "map": {
+        "raw": "Mojave",
+        "title": "VSR: Mojave",
+        "slug": "vsrmojave"
+      },
+      "inbox_hint": "@bz2vsr|Sev|Hadean|Mort|Hadean|Mojave|2026-11-21"
+    },
+    {
+      "video_id": "SwWjEXFpyxc",
+      "url": "https://www.youtube.com/watch?v=SwWjEXFpyxc",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "The 2nd coming of Monkey: Mort vs Sev",
+      "description": "11/21/26",
+      "upload_date": "2026-11-22",
+      "duration_sec": 542,
+      "recording_date": "2026-11-21",
+      "commanders": [
+        {
+          "name": "mort",
+          "steam64": "76561198005099553",
+          "slug": "muerte",
+          "faction": null
+        },
+        {
+          "name": "Sev",
+          "steam64": "76561199653748651",
+          "slug": "sev",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|Mort||Sev|||2026-11-21"
+    },
+    {
+      "video_id": "rs7HN3SQFOo",
+      "url": "https://www.youtube.com/watch?v=rs7HN3SQFOo",
+      "channel": {
+        "name": "F9bomber",
+        "url": "https://www.youtube.com/channel/UCrImlETsN44qo421NOVbo5g",
+        "handle": "@F9bomber"
+      },
+      "title": "A Clean Sweep in Battlezone Combat Commander #battlezone #bzcc #gaming #bzii #fps #rts #strategy",
+      "description": "#youtubeshortsviral  #crazy #epic #rebellion #bigboatinteractive #hadean #isdf #scion #gaming #gamer #videogames #gamingcommunity #gamers #gameplay #pcgaming  #youtubers #youtube #youtuber #youtubechannel #instagram #youtubevideos #youtubevideo #subscribe #sub #like #explorepage #follow #love #viral #youtubegaming #explore #gaming #video #gamer #trending \n\nHad fun watching this Battlezone Combat Commander short? Check out the links in the bio",
+      "upload_date": "2026-11-22",
+      "duration_sec": 177,
+      "recording_date": null,
+      "commanders": [],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@F9bomber||||||"
+    },
+    {
+      "video_id": "3A1NpsrL7hc",
+      "url": "https://www.youtube.com/watch?v=3A1NpsrL7hc",
+      "channel": {
+        "name": "F9bomber",
+        "url": "https://www.youtube.com/channel/UCrImlETsN44qo421NOVbo5g",
+        "handle": "@F9bomber"
+      },
+      "title": "Econchump vs Muerte | Battlezone: Combat Commander | VSR | Excavation",
+      "description": "They wanted a 4v3...\n\n\u25ba Recording date:  11.20.26\n\nMy Addon Items:\nHadean Wire Icons: https://steamcommunity.com/sharedfiles/filedetails/?id=3447403480\nISDF Wire Icons: https://steamcommunity.com/sharedfiles/filedetails/?id=3458292573\nScion Wire Icons: https://steamcommunity.com/sharedfiles/filedetails/?id=3480107324\n\nBattlezone: Combat Commander is a hybrid tank shooter, first-person shooter and real-time strategy video game.\n\nHad fun watching this Battlezone Combat Commande\u2026",
+      "upload_date": "2026-11-21",
+      "duration_sec": 1447,
+      "recording_date": "2026-11-20",
+      "commanders": [
+        {
+          "name": "econchump",
+          "steam64": "76561198068133931",
+          "slug": "econchump",
+          "faction": null
+        },
+        {
+          "name": "mort",
+          "steam64": "76561198005099553",
+          "slug": "muerte",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": "Excavation",
+        "title": "VSR: Excavation",
+        "slug": "stvsrexcav"
+      },
+      "inbox_hint": "@F9bomber|Econchump||Muerte||Excavation|2026-11-20"
+    },
+    {
+      "video_id": "KgcrWewmpuU",
+      "url": "https://www.youtube.com/watch?v=KgcrWewmpuU",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "*READ DESCRIPTION* Mort vs Draconismarch",
+      "description": "11/20/26\n\"dusty dusty, ashy ashy, stupid game went crashy crashy\" ~Herp Mcderperson",
+      "upload_date": "2026-11-20",
+      "duration_sec": 4149,
+      "recording_date": "2026-11-20",
+      "commanders": [
+        {
+          "name": "mort",
+          "steam64": "76561198005099553",
+          "slug": "muerte",
+          "faction": null
+        },
+        {
+          "name": "DraconisMarch",
+          "steam64": "76561198048896649",
+          "slug": "draconismarch",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|Mort||Draconismarch|||2026-11-20"
+    },
+    {
+      "video_id": "V5y8vUl0g6s",
+      "url": "https://www.youtube.com/watch?v=V5y8vUl0g6s",
+      "channel": {
+        "name": "F9bomber",
+        "url": "https://www.youtube.com/channel/UCrImlETsN44qo421NOVbo5g",
+        "handle": "@F9bomber"
+      },
+      "title": "A Game With an Abrupt End in Battlezone: Combat Commander",
+      "description": "DraconisMarch vs Muerte | Battlezone: Combat Commander | VSR | Oldboy\n\n\u25ba Recording date:  11.19.26\n\nMy Addon Items:\nHadean Wire Icons: https://steamcommunity.com/sharedfiles/filedetails/?id=3447403480\nISDF Wire Icons: https://steamcommunity.com/sharedfiles/filedetails/?id=3458292573\nScion Wire Icons: https://steamcommunity.com/sharedfiles/filedetails/?id=3480107324\n\nBattlezone: Combat Commander is a hybrid tank shooter, first-person shooter and real-time strategy video game.\u2026",
+      "upload_date": "2026-11-20",
+      "duration_sec": 4137,
+      "recording_date": "2026-11-19",
+      "commanders": [
+        {
+          "name": "DraconisMarch",
+          "steam64": "76561198048896649",
+          "slug": "draconismarch",
+          "faction": "ISDF"
+        },
+        {
+          "name": "mort",
+          "steam64": "76561198005099553",
+          "slug": "muerte",
+          "faction": "Hadean"
+        }
+      ],
+      "map": {
+        "raw": "Oldboy",
+        "title": "VSR: Oldboy",
+        "slug": "vsroldboy"
+      },
+      "inbox_hint": "@F9bomber|DraconisMarch||Muerte||Oldboy|2026-11-19",
+      "match": {
+        "id": "2026-11-20T05-47-30"
+      }
+    },
+    {
+      "video_id": "UzhxOFNYpdA",
+      "url": "https://www.youtube.com/watch?v=UzhxOFNYpdA",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "F9bomber vs Mort",
+      "description": "11/19/26",
+      "upload_date": "2026-11-20",
+      "duration_sec": 1137,
+      "recording_date": "2026-11-19",
+      "commanders": [
+        {
+          "name": "F9bomber",
+          "steam64": "76561198026325621",
+          "slug": "f9bomber",
+          "faction": null
+        },
+        {
+          "name": "mort",
+          "steam64": "76561198005099553",
+          "slug": "muerte",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|F9bomber||Mort|||2026-11-19"
+    },
+    {
+      "video_id": "CtsZzpLdyFw",
+      "url": "https://www.youtube.com/watch?v=CtsZzpLdyFw",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "F9bomber vs Mort",
+      "description": "11/19/26",
+      "upload_date": "2026-11-20",
+      "duration_sec": 777,
+      "recording_date": "2026-11-19",
+      "commanders": [
+        {
+          "name": "F9bomber",
+          "steam64": "76561198026325621",
+          "slug": "f9bomber",
+          "faction": null
+        },
+        {
+          "name": "mort",
+          "steam64": "76561198005099553",
+          "slug": "muerte",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|F9bomber||Mort|||2026-11-19"
+    },
+    {
+      "video_id": "WJT7e3n0AaM",
+      "url": "https://www.youtube.com/watch?v=WJT7e3n0AaM",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "Mort vs Draconismarch",
+      "description": "11/19/26",
+      "upload_date": "2026-11-20",
+      "duration_sec": 350,
+      "recording_date": "2026-11-19",
+      "commanders": [
+        {
+          "name": "mort",
+          "steam64": "76561198005099553",
+          "slug": "muerte",
+          "faction": null
+        },
+        {
+          "name": "DraconisMarch",
+          "steam64": "76561198048896649",
+          "slug": "draconismarch",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|Mort||Draconismarch|||2026-11-19"
+    },
     {
       "video_id": "4F_iIoT4urs",
       "url": "https://www.youtube.com/watch?v=4F_iIoT4urs",
@@ -2124,6 +2611,74 @@
       "inbox_hint": "@bz2aggressor||||||"
     },
     {
+      "video_id": "6I4GykEoQkw",
+      "url": "https://www.youtube.com/watch?v=6I4GykEoQkw",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "F9bomber vs Tsahalis",
+      "description": "10/27/26",
+      "upload_date": "2026-10-28",
+      "duration_sec": 1496,
+      "recording_date": "2026-10-27",
+      "commanders": [
+        {
+          "name": "F9bomber",
+          "steam64": "76561198026325621",
+          "slug": "f9bomber",
+          "faction": null
+        },
+        {
+          "name": "HappyOtter",
+          "steam64": "76561198064801924",
+          "slug": "happyotter",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|F9bomber||Tsahalis|||2026-10-27"
+    },
+    {
+      "video_id": "oXfIhMpiYvE",
+      "url": "https://www.youtube.com/watch?v=oXfIhMpiYvE",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "F9bomber vs Tsahalis",
+      "description": "10/27/26",
+      "upload_date": "2026-10-28",
+      "duration_sec": 810,
+      "recording_date": "2026-10-27",
+      "commanders": [
+        {
+          "name": "F9bomber",
+          "steam64": "76561198026325621",
+          "slug": "f9bomber",
+          "faction": null
+        },
+        {
+          "name": "HappyOtter",
+          "steam64": "76561198064801924",
+          "slug": "happyotter",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|F9bomber||Tsahaliswas|||2026-10-27"
+    },
+    {
       "video_id": "RTO4k8XrTCc",
       "url": "https://www.youtube.com/watch?v=RTO4k8XrTCc",
       "channel": {
@@ -2287,6 +2842,40 @@
         "slug": null
       },
       "inbox_hint": "@F9bomber||||||"
+    },
+    {
+      "video_id": "2ngCyzTMTS0",
+      "url": "https://www.youtube.com/watch?v=2ngCyzTMTS0",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "Max vs Cloaket",
+      "description": "10/24/26",
+      "upload_date": "2026-10-25",
+      "duration_sec": 2805,
+      "recording_date": "2026-10-24",
+      "commanders": [
+        {
+          "name": "MAX",
+          "steam64": "76561198877763773",
+          "slug": "max",
+          "faction": null
+        },
+        {
+          "name": "Cloaket",
+          "steam64": "76561198025032941",
+          "slug": "cloaket",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|Max||Cloaket|||2026-10-24"
     },
     {
       "video_id": "KqsJeQoyl6M",
@@ -2463,6 +3052,40 @@
       }
     },
     {
+      "video_id": "2x8UyPX3arA",
+      "url": "https://www.youtube.com/watch?v=2x8UyPX3arA",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "F9bomber vs Blue Banana",
+      "description": "10/22/26",
+      "upload_date": "2026-10-23",
+      "duration_sec": 4044,
+      "recording_date": "2026-10-22",
+      "commanders": [
+        {
+          "name": "F9bomber",
+          "steam64": "76561198026325621",
+          "slug": "f9bomber",
+          "faction": null
+        },
+        {
+          "name": "blue",
+          "steam64": "76561198043392032",
+          "slug": "blue",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|F9bomber||Blue Banana|||2026-10-22"
+    },
+    {
       "video_id": "RiBphPAnUow",
       "url": "https://www.youtube.com/watch?v=RiBphPAnUow",
       "channel": {
@@ -2556,6 +3179,40 @@
       }
     },
     {
+      "video_id": "wL6aulUBFLw",
+      "url": "https://www.youtube.com/watch?v=wL6aulUBFLw",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "Back from the dead: Blue banana vs Nomad",
+      "description": "10/21/26",
+      "upload_date": "2026-10-21",
+      "duration_sec": 4487,
+      "recording_date": "2026-10-21",
+      "commanders": [
+        {
+          "name": "blue",
+          "steam64": "76561198043392032",
+          "slug": "blue",
+          "faction": null
+        },
+        {
+          "name": "Nomad",
+          "steam64": "76561199066952713",
+          "slug": "nomad",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|Blue banana||Nomad|||2026-10-21"
+    },
+    {
       "video_id": "WPnLBXMmRq8",
       "url": "https://www.youtube.com/watch?v=WPnLBXMmRq8",
       "channel": {
@@ -2588,6 +3245,74 @@
         "slug": "vsrterron"
       },
       "inbox_hint": "@F9bomber|Nomad||Blue Banana||Terron|2026-10-20"
+    },
+    {
+      "video_id": "WQyQ0tx5hOA",
+      "url": "https://www.youtube.com/watch?v=WQyQ0tx5hOA",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "Econchump vs Domakus",
+      "description": "10/19/26",
+      "upload_date": "2026-10-20",
+      "duration_sec": 1456,
+      "recording_date": "2026-10-19",
+      "commanders": [
+        {
+          "name": "econchump",
+          "steam64": "76561198068133931",
+          "slug": "econchump",
+          "faction": null
+        },
+        {
+          "name": "Domakus",
+          "steam64": "76561198006115793",
+          "slug": "domakus",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|Econchump||Domakus|||2026-10-19"
+    },
+    {
+      "video_id": "5AhFrlVQB1U",
+      "url": "https://www.youtube.com/watch?v=5AhFrlVQB1U",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "F9bomber vs VTrider",
+      "description": "10/18/26",
+      "upload_date": "2026-10-18",
+      "duration_sec": 668,
+      "recording_date": "2026-10-18",
+      "commanders": [
+        {
+          "name": "F9bomber",
+          "steam64": "76561198026325621",
+          "slug": "f9bomber",
+          "faction": null
+        },
+        {
+          "name": "VTrider",
+          "steam64": "76561197974548434",
+          "slug": "vtrider",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|F9bomber||VTrider|||2026-10-18"
     },
     {
       "video_id": "TA-tu6tOA9Q",
@@ -2732,6 +3457,108 @@
         "slug": "vsrrectal"
       },
       "inbox_hint": "@bz2vsr|Cloaket|Scion|Domakus|ISDF|rectal|2026-10-18"
+    },
+    {
+      "video_id": "NEgCD56k5Kg",
+      "url": "https://www.youtube.com/watch?v=NEgCD56k5Kg",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "Cloaket vs Domakus",
+      "description": "10/17/26",
+      "upload_date": "2026-10-18",
+      "duration_sec": 1241,
+      "recording_date": "2026-10-17",
+      "commanders": [
+        {
+          "name": "Cloaket",
+          "steam64": "76561198025032941",
+          "slug": "cloaket",
+          "faction": null
+        },
+        {
+          "name": "Domakus",
+          "steam64": "76561198006115793",
+          "slug": "domakus",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|Cloaket||Domakus|||2026-10-17"
+    },
+    {
+      "video_id": "_rNH8zHvGsg",
+      "url": "https://www.youtube.com/watch?v=_rNH8zHvGsg",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "Cloaket vs Domakus",
+      "description": "10/17/26",
+      "upload_date": "2026-10-18",
+      "duration_sec": 916,
+      "recording_date": "2026-10-17",
+      "commanders": [
+        {
+          "name": "Cloaket",
+          "steam64": "76561198025032941",
+          "slug": "cloaket",
+          "faction": null
+        },
+        {
+          "name": "Domakus",
+          "steam64": "76561198006115793",
+          "slug": "domakus",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|Cloaket||Domakus|||2026-10-17"
+    },
+    {
+      "video_id": "eiZ2KfzwQCk",
+      "url": "https://www.youtube.com/watch?v=eiZ2KfzwQCk",
+      "channel": {
+        "name": "bz2aggressor",
+        "url": "https://www.youtube.com/channel/UCueOIlEir0UyCF2eVQ15hIw",
+        "handle": "@bz2aggressor"
+      },
+      "title": "Cloaket vs Domakus",
+      "description": "10/17/26",
+      "upload_date": "2026-10-18",
+      "duration_sec": 1084,
+      "recording_date": "2026-10-17",
+      "commanders": [
+        {
+          "name": "Cloaket",
+          "steam64": "76561198025032941",
+          "slug": "cloaket",
+          "faction": null
+        },
+        {
+          "name": "Domakus",
+          "steam64": "76561198006115793",
+          "slug": "domakus",
+          "faction": null
+        }
+      ],
+      "map": {
+        "raw": null,
+        "title": null,
+        "slug": null
+      },
+      "inbox_hint": "@bz2aggressor|Cloaket||Domakus|||2026-10-17"
     },
     {
       "video_id": "PKcJLt4UO2E",
