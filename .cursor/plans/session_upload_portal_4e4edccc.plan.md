@@ -11,8 +11,17 @@ todos:
   - id: site-theme
     content: "Copy the site's theme into the portal (five stylesheets, Bootstrap, icons, Geist, theme.js) with a sync script and a drift check; build the base templates on the site's navbar and components; render the theme server-side from the shared cookie"
     status: pending
+  - id: validator
+    content: "Layered streaming validator run in a memory- and time-limited worker process: gzip fingerprint, strict decode against era-matched descriptors read from main, header, stream, identity and ODF checks, limits kept per schema version; tests over all 390 sessions plus synthetic bad files"
+    status: pending
+  - id: queue-push
+    content: "Stand-alone inbox commits staged in a scratch repository and pushed with git through an askpass helper, developed against a local remote; a temporary secret-guarded test page that runs one file through the check and the push"
+    status: pending
   - id: early-render-test
-    content: "Deploy the skeleton to a real Render free instance and run the largest corpus file through the check and the git push there; measure free temporary disk and the worker memory limit; check whether a push by the publisher App starts a Pages build"
+    content: "With you: push /portal, deploy the skeleton to a real Render free instance and run the largest corpus file through the check and the git push there; measure time, memory and free temporary disk; stop and bring you the options if it does not cope"
+    status: pending
+  - id: ci-dry-run
+    content: "Draft the workflow's dry-run mode and the ci_uploads.py checks in portal/integration; on your go-ahead install it in vsr.bz as a manual-only workflow with no secrets that never pushes; run it and record output parity, runner disk before and after cleanup, and 3D extracts on Linux"
     status: pending
   - id: state-store
     content: "GitHub-backed private state on the stats-portal state branch (submitters, password checks, audit log, upload records, block list, settings): access and safety changes written at once, routine log entries batched, compare-and-swap, no write for unapproved requests"
@@ -20,14 +29,11 @@ todos:
   - id: auth
     content: "Steam OpenID login with the full set of response checks and a pinned base URL and host, host-only signed sessions re-checked on every request, submitter gate, admin rights from the environment only, one-time devtest password check with 90-day memory and lockouts, CSRF and security headers"
     status: pending
-  - id: validator
-    content: "Layered streaming validator run in a memory- and time-limited worker process: gzip fingerprint, strict decode against era-matched descriptors read from main, header, stream, identity and ODF checks, limits kept per schema version; tests over all 390 sessions plus synthetic bad files"
-    status: pending
   - id: outcome-prompt
     content: "Game preview (rosters, commanders, factions, host answer, kill-feed evidence) and the outcome form, with a parity test against every published match"
     status: pending
   - id: github-queue
-    content: "GitHub App client: duplicate, collision and block-list checks, stand-alone inbox commits staged and pushed with git through an askpass helper (API fallback), held uploads, workflow start, status read from GitHub"
+    content: "GitHub App client around the push: duplicate, collision and block-list checks, held uploads, workflow start, status read from GitHub, and the API fallback"
     status: pending
   - id: submitter-ui
     content: "Upload page with a local skip of files the site already has, per-file progress, bounded keep-alive and a clean re-send path when staged files expire, and the read-only My games dashboard"
@@ -36,7 +42,7 @@ todos:
     content: "Admin dashboard: health, submitters, approvals, sign-in and audit log, git and publish history, queue, outcome flags, and the recovery actions"
     status: pending
   - id: ci-integration
-    content: "Draft process-uploads.yml and ci_uploads.py in portal/integration (process, publish and report jobs, fresh shallow checkout, wait and consistency checks, two-pass run that applies outcomes, output path list, protected sessions, owner-only remove and rebuild, quarantine, serialized and paced publishes, hourly sweep, manual modes); install in vsr.bz on go-ahead with the merge rules, the keyed-JSON merge helper and the one-line folder sort key; run the no-push parity dry run"
+    content: "Complete process-uploads.yml and ci_uploads.py in portal/integration (process, publish and report jobs, wait and consistency checks, two-pass run that applies outcomes, output path list, protected sessions, owner-only remove and rebuild, quarantine, serialized and paced publishes, hourly sweep, manual modes); install in vsr.bz on go-ahead with the merge rules, the keyed-JSON merge helper and the one-line folder sort key"
     status: pending
   - id: site-changes
     content: "On go-ahead and before go-live: the shared theme cookie in js/theme.js; check theme switching in a browser"
@@ -91,6 +97,19 @@ portal/
   PRE-DEPLOY.md  your checklist: everything only you can do, in order
   render.yaml, requirements.txt, README.md
 ```
+
+## Build order
+
+Each stage is built and tested locally first, against a stand-in Steam sign-in and a local git remote, and has a gate that must pass before the next stage starts. If a gate fails, I stop and bring you the options. The todo list follows this order.
+
+1. **Site fix** (vsr.bz, approved): quote escaping in the six helpers. Gate: the match picker and the ELO page show a name with quotes correctly.
+2. **Foundations**: the `/portal` scaffold, the `.gitignore` line, the first `PRE-DEPLOY.md`, the theme copy and the base pages. Gate: a portal page renders in any of the 44 themes locally.
+3. **The two big unknowns, early**:
+   - The file check and the git push, then the Render test with you. Gate: the largest corpus file is checked and pushed from a free instance within its memory and disk.
+   - The dry-run workflow in vsr.bz, started by hand and never pushing, on your go-ahead. Gate: the three timestamp-free files match on Linux and the runner has room.
+4. **Portal features**: state store, sign-in and password, game preview and outcome form, queue checks and held uploads, upload page and My games, admin dashboard. Gate: an upload goes from sign-in to a queued branch in a test repository, and every test passes.
+5. **Rollout**, each vsr.bz change on your go-ahead: the full workflow, the merge aids, the sort key and the theme cookie, then the Apps, ruleset and publish environment from `PRE-DEPLOY.md`. Gate: every check under "Checks before go-live" passes, ending with the first real upload.
+6. **After go-live**: the links and the docs.
 
 ## Look and theme
 
@@ -209,14 +228,15 @@ The workflow publishes only as a fast-forward of the current `main`. It never me
 - **Portal**: a GitHub App with contents and actions permission and no workflow permission, installed on both repos. It does not expire. A personal token works in its place for local testing.
 - **Ruleset** on `main` in both repos: only repository admins and the publisher may update it. A leaked portal credential could queue files, delete queued files and start runs. It could not change `main`, remove published sessions or start a rebuild.
 - **Publisher**: a second GitHub App with contents permission on vsr.bz only, on the ruleset's bypass list, its key kept in an Actions environment limited to `main`. It needs no yearly renewal. Statuses, quarantine moves and the issue use the workflow's built-in token, which the ruleset keeps off `main`.
-- GitHub documents that a push made with the workflow's built-in token does not start a Pages build. Whether a push by an App does is checked in the early test. If it does not, a fine-grained token of yours takes the publisher's place and the health panel warns before it expires.
+- GitHub documents that a push made with the workflow's built-in token does not start a Pages build. Whether a push by an App does is answered by the first publish during rollout. If it does not, a fine-grained token of yours takes the publisher's place and the health panel warns before it expires.
 
 ## Changes in the vsr.bz repo
 
 - First, approved on Nov 27: quote escaping in the escape helpers of [js/app.js](js/app.js), [js/elo.js](js/elo.js), `js/meta.js`, `js/vtsr-explainers.js`, `js/highlights-render.js` and `js/players-tab.js`. They leave quotes alone and feed more than 60 attribute values, among them player names in the match picker and the ELO table. One published game already has a nickname with double quotes in it. The two comments in `js/app.js` and the note in `.cursor/rules/data-schema.mdc` that describe the old behaviour are updated with it. You review, commit and push it.
 - Then: add `/portal` to [.gitignore](.gitignore).
+- Early, on your go-ahead: the workflow in its dry-run form only. It is started by hand, holds no secrets and cannot push.
 - At rollout, on your go-ahead, drafted first in `portal/integration/`:
-  - `.github/workflows/process-uploads.yml` and `scripts/ci_uploads.py`.
+  - The complete `.github/workflows/process-uploads.yml` and `scripts/ci_uploads.py`.
   - A `.gitattributes` rule that keeps your copy of generated files in a merge (`data/processed/**` except `player_slugs.json`, plus the player and map stubs).
   - `scripts/merge_keyed_json.py`, a merge helper for the keyed state files (`data/match_outcome_adjudications.json`, `data/duplicate_recordings.json`, `data/processed/player_slugs.json`, `data/joint_test_ledger.json`). It unions them by key and stops only when both sides changed the same entry or allocated the same slug.
   - One line in `discover_sessions()`: an explicit case-insensitive sort key, the same order Windows gives today, so folder order cannot differ between your machine and Actions.
@@ -243,9 +263,9 @@ The workflow publishes only as a fast-forward of the current `main`. It never me
 1. Done: you approved the escaping fix as my first step. You review, commit and push it.
 2. Make `sevsunday/stats-portal` private. It has to be private before the first push.
 
-**After I build: `portal/PRE-DEPLOY.md`**
+**While and after I build: `portal/PRE-DEPLOY.md`**
 
-Everything only you can do goes into `portal/PRE-DEPLOY.md`. I write it at the start of the build and keep it current as pieces land. Each step has the exact values to enter, where to click and how to tell it worked, in the order the steps are needed: before the first push, before the Render test, before the dry run, before go-live, after go-live, and ongoing. In short:
+Everything only you can do goes into `portal/PRE-DEPLOY.md`. I write it at the start of the build, keep it current as pieces land, and tell you when a step is due. Each step has the exact values to enter, where to click and how to tell it worked, in the order the steps are needed: before the first push, before the Render test, before the dry run, before go-live, after go-live, and ongoing. In short:
 
 1. Tell me to push `/portal` to `sevsunday/stats-portal`.
 2. Create the two GitHub Apps, portal and publisher, install them and download their keys.
@@ -295,4 +315,4 @@ Checked against `.cursor/plans/archive/pipeline/session_upload_automation_fa3089
 - The published site is 9.2 GB against GitHub's documented 1 GB Pages limit, and the Pages build checks out all of it. If GitHub enforces that limit, publishing stops with or without the portal.
 - Runner disk is the next ceiling for the workflow. If freeing SDKs is not enough, the replay tracks can be left out of the checkout, because the pipeline only writes them.
 - GitHub may delay or drop a scheduled run under load, so the hourly sweep is a safety net, not a timer.
-- Not tested yet: output parity between Linux and your Windows runs, the git push and the worker memory limit on a Render free instance, how much temporary disk that instance has, whether an App push starts a Pages build, how much disk the runner cleanup frees, and 3D extracts for new maps on Linux (the map sources are tracked, so they should build). The early test and the dry run cover all of them.
+- Not tested yet: output parity between Linux and your Windows runs, the git push and the worker memory limit on a Render free instance, how much temporary disk that instance has, whether an App push starts a Pages build, how much disk the runner cleanup frees, and 3D extracts for new maps on Linux (the map sources are tracked, so they should build). The Render test and the dry run in stage 3 cover all of them except the Pages question, which the first publish answers.
